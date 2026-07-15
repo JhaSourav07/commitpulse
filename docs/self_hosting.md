@@ -30,6 +30,13 @@ npm run dev
 
 Then visit: `http://localhost:3000/api/streak?user=YOUR_USERNAME`
 
+> [!TIP]
+> If port 3000 is already in use by another application, you can start the development server on a custom port using:
+>
+> ```bash
+> npm run dev -- -p 3001
+> ```
+
 ---
 
 ## 🗄️ Optional: MongoDB User Tracking
@@ -49,6 +56,28 @@ MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/commitpulse
 ```
 
 For production (Vercel), add `MONGODB_URI` to your project's **Environment Variables** settings.
+
+---
+
+## 🔔 Optional: GitHub Push Webhook (Instant Badge Refresh)
+
+Badge/SVG contribution data is cached and refreshes automatically once the cache TTL expires. If you want a badge to update immediately after a push instead of waiting out the TTL, configure a GitHub webhook that invalidates the cache on each push:
+
+1. Add a shared secret to your environment:
+
+   ```env
+   GITHUB_WEBHOOK_SECRET=a_long_random_secret
+   ```
+
+2. In your GitHub repository settings, go to **Settings → Webhooks → Add webhook** and set:
+   - **Payload URL**: `https://<your-deployment>/api/webhooks/github`
+   - **Content type**: `application/json`
+   - **Secret**: the same value as `GITHUB_WEBHOOK_SECRET`
+   - **Which events**: just the `push` event
+
+   > **⚠️ Note the URL:** the correct endpoint is `/api/webhooks/github` (plural `webhooks`). This is the only webhook endpoint in CommitPulse — it validates the signature and invalidates the cached contribution data for the pusher.
+
+This step is entirely optional — without it, badges still update on their own once the cache expires.
 
 ---
 

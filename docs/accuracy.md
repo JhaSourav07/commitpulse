@@ -36,6 +36,6 @@ const res = await fetch(GITHUB_API_URL, {
 });
 ```
 
-Caching is handled entirely at the HTTP response layer (`Cache-Control: s-maxage`), giving us surgical control over what gets cached and for how long — without stale data poisoning the GraphQL response.
+Caching is handled entirely at the HTTP response layer. The response includes `Cache-Control` headers containing specific directives such as `s-maxage` (to control CDN/Edge caching duration) and `stale-while-revalidate` (to allow serving cached content while silently fetching updates in the background), giving us surgical control over what gets cached and for how long — without stale data poisoning the GraphQL response.
 
 **Result:** CommitPulse's contribution counts are always in sync with GitHub's actual UTC day boundaries.

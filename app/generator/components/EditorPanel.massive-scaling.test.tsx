@@ -34,6 +34,8 @@ const makeState = (overrides: Partial<GeneratorState> = {}): GeneratorState => (
   githubUsername: '',
   showCommitPulse: false,
   commitPulseAccent: '',
+  showRepoSpotlight: false,
+  spotlightRepo: '',
   showSnakeGraph: false,
   showPacmanGraph: false,
   graphPlacement: 'bottom',
@@ -118,6 +120,8 @@ describe('EditorPanel - Massive Scaling & Extreme Bounds', () => {
       githubUsername: 'a'.repeat(10000), // Enormous username
       showCommitPulse: true,
       commitPulseAccent: '🚀emoji_invalid_hex_value_with_excessive_length!@#$',
+      showRepoSpotlight: false,
+      spotlightRepo: '',
       showSnakeGraph: true,
       showPacmanGraph: true,
       graphPlacement: 'top',

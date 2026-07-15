@@ -91,13 +91,13 @@ export async function GET(request: Request) {
   try {
     const userToken = await getUserGitHubToken();
     const data = await fetchBurnoutAnalysis(owner, repo, {
-      bypassCache: refresh,
+      bypassCache: shouldBypassCache,
       token: userToken,
     });
 
     const cacheControl = shouldBypassCache
       ? 'no-cache, no-store, must-revalidate'
-      : 's-maxage=3600, stale-while-revalidate=86400';
+      : 's-maxage=1, stale-while-revalidate=59';
 
     return NextResponse.json(data, {
       status: 200,
@@ -112,6 +112,9 @@ export async function GET(request: Request) {
     const message = error instanceof Error ? error.message : 'Internal Server Error';
     const status = message.includes('not found') ? 404 : 500;
 
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json(
+      { error: status === 404 ? 'Repository not found' : 'Internal server error' },
+      { status }
+    );
   }
 }

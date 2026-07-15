@@ -2,13 +2,22 @@
 
 import crypto from 'crypto';
 import { NextResponse } from 'next/server';
-import { fetchGitHubContributions, getOrgDashboardData, getCircuitTelemetry } from '@/lib/github';
+import {
+  fetchGitHubContributions,
+  getOrgDashboardData,
+  getCircuitTelemetry,
+  fetchCommitHourDistribution,
+  isAbortError,
+} from '@/lib/github';
 import {
   calculateStreak,
   calculateMonthlyStats,
   aggregateCalendars,
+  convertLocalToUtc,
   chunkDaysIntoWeeks,
   normalizeCalendarToTimezone,
+  isLeapYear,
+  daysInYear,
 } from '@/lib/calculate';
 import {
   generateNotFoundSVG,
@@ -25,9 +34,16 @@ import {
 import { generateConstellationSVG } from '@/lib/svg/constellation';
 import { generateRadarSVG } from '@/lib/svg/radar';
 import { generateDoughnutSVG } from '@/lib/svg/doughnut';
+import { generateCommitClockSVG } from '@/lib/svg/commitClock';
+import { generateWeekdaySVG } from '@/lib/svg/weekday';
 import { optimizeSVG } from '@/lib/svg/optimizer';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
-import type { BadgeParams, RepoContribution, ExtendedContributionData } from '@/types';
+import type {
+  BadgeParams,
+  RepoContribution,
+  ExtendedContributionData,
+  ContributionCalendar,
+} from '@/types';
 import { getNormalizedThemeKey, themes } from '@/lib/svg/themes';
 import { streakParamsSchema, coerceQueryParams } from '@/lib/validations';
 import { sanitizeHexColor, sanitizeRadius, escapeXML } from '@/lib/svg/sanitizer';
@@ -35,34 +51,24 @@ import { getClientIp } from '@/utils/getClientIp';
 import { quotaMonitor } from '@/services/github/quota-monitor';
 import { refreshPolicy } from '@/services/github/refresh-policy';
 import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
-import { logger } from '@/lib/logger';
+import { logger, setRequestId, clearRequestId } from '@/lib/logger';
 
-const VALIDATION_CACHE_MAX = 256;
-const validationCache = new Map<string, ReturnType<typeof streakParamsSchema.safeParse>>();
-
-function cachedValidation(
-  key: string,
-  parseFn: () => ReturnType<typeof streakParamsSchema.safeParse>
-) {
-  let cached = validationCache.get(key);
-  if (cached !== undefined) return cached;
-  cached = parseFn();
-  if (validationCache.size >= VALIDATION_CACHE_MAX) {
-    const firstKey = validationCache.keys().next().value;
-    if (firstKey !== undefined) validationCache.delete(firstKey);
-  }
-  validationCache.set(key, cached);
-  return cached;
-}
+import { validationCache as _vc, normalizeCacheKey, cachedValidation } from './validation-cache';
+// Re-alias so existing usages in this file continue to work.
+const validationCache = _vc;
 
 const SVG_CSP_HEADER =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
 
 function buildInlineErrorSVG(text: string): string {
   const MAX_LINE = 48;
-  const truncated = text.length > MAX_LINE * 2 ? text.slice(0, MAX_LINE * 2 - 1) + '…' : text;
-  const line1 = escapeXML(truncated.slice(0, MAX_LINE));
-  const line2 = truncated.length > MAX_LINE ? escapeXML(truncated.slice(MAX_LINE)) : null;
+  const chars = Array.from(text);
+  const truncated =
+    chars.length > MAX_LINE * 2 ? chars.slice(0, MAX_LINE * 2 - 1).join('') + '…' : text;
+  const truncatedChars = Array.from(truncated);
+  const line1 = escapeXML(truncatedChars.slice(0, MAX_LINE).join(''));
+  const line2 =
+    truncatedChars.length > MAX_LINE ? escapeXML(truncatedChars.slice(MAX_LINE).join('')) : null;
   const textY = line2 ? '62' : '75';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="150" viewBox="0 0 400 150">
   <rect width="400" height="150" fill="#2d0000" rx="8"/>
@@ -86,12 +92,21 @@ function getMonthlyReferenceDate(year: string | undefined, timezone: string): Da
 }
 
 export async function GET(request: Request) {
+  const start = Date.now();
+  const requestId = request.headers.get('x-request-id') ?? crypto.randomUUID();
+  setRequestId(requestId);
+
   const { searchParams } = new URL(request.url);
 
-  const cacheKey = searchParams.toString();
+  const cacheKey = normalizeCacheKey(searchParams);
   const parseResult = cachedValidation(cacheKey, () =>
     streakParamsSchema.safeParse(coerceQueryParams(searchParams))
   );
+  logger.info('Incoming streak request', {
+    source: 'streak',
+    user: parseResult.success ? parseResult.data.user : undefined,
+    view: parseResult.success ? parseResult.data.view : undefined,
+  });
   try {
     if (!parseResult.success) {
       const fieldErrors = parseResult.error.flatten();
@@ -107,6 +122,7 @@ export async function GET(request: Request) {
           'Content-Type': 'image/svg+xml',
           'Cache-Control': 'no-store',
           'Content-Security-Policy': SVG_CSP_HEADER,
+          'X-Request-ID': requestId,
         },
       });
     }
@@ -129,6 +145,8 @@ export async function GET(request: Request) {
       year,
       from: customFrom,
       to: customTo,
+      start_date,
+      end_date,
       refresh,
       bypassCache: bypassCacheParam,
       hide_title,
@@ -165,6 +183,7 @@ export async function GET(request: Request) {
       phi,
       border,
       minify,
+      hide_weekend,
     } = parseResult.data;
     const normalizedView = view as
       | 'default'
@@ -177,8 +196,9 @@ export async function GET(request: Request) {
       | 'radar'
       | 'doughnut'
       | 'pie'
-      | 'activity_graph';
-
+      | 'activity_graph'
+      | 'commit_clock'
+      | 'weekday';
     const themeKey = getNormalizedThemeKey(theme);
     const themeName = themeKey === 'default' && theme ? theme : themeKey;
 
@@ -239,6 +259,11 @@ export async function GET(request: Request) {
           throw validationErr;
         }
         throw error;
+      } finally {
+        logger.info('Streak request completed', {
+          source: 'streak',
+        });
+        clearRequestId();
       }
     }
 
@@ -258,9 +283,28 @@ export async function GET(request: Request) {
       return date.toISOString();
     };
 
-    let from = parseDate(customFrom) ?? (year ? `${year}-01-01T00:00:00Z` : undefined);
+    const finalFrom = parseDate(start_date) ?? parseDate(customFrom);
+    const finalTo = parseDate(end_date) ?? parseDate(customTo);
 
-    let to = parseDate(customTo) ?? (year ? `${year}-12-31T23:59:59Z` : undefined);
+    let from = finalFrom ?? (year ? `${year}-01-01T00:00:00Z` : undefined);
+    let to = finalTo ?? (year ? `${year}-12-31T23:59:59Z` : undefined);
+
+    let autoSubtitle = custom_subtitle;
+    if (!autoSubtitle && (start_date || end_date)) {
+      const formatOpts: Intl.DateTimeFormatOptions = {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        timeZone: timezone,
+      };
+      const startStr = start_date
+        ? new Intl.DateTimeFormat('en-US', formatOpts).format(new Date(start_date))
+        : 'Start';
+      const endStr = end_date
+        ? new Intl.DateTimeFormat('en-US', formatOpts).format(new Date(end_date))
+        : 'Present';
+      autoSubtitle = `${startStr} - ${endStr}`;
+    }
 
     if (normalizedView === 'monthly') {
       const referenceDate = getMonthlyReferenceDate(year, timezone) || new Date();
@@ -342,7 +386,7 @@ export async function GET(request: Request) {
       autoTheme: isAutoTheme,
       hide_title,
       custom_title,
-      custom_subtitle,
+      custom_subtitle: autoSubtitle,
       hideBackground: hide_background,
       hide_stats,
       lang,
@@ -382,9 +426,11 @@ export async function GET(request: Request) {
       theta,
       phi,
       compact,
+      hide_weekend,
     };
 
     let calendar;
+    let individualCalendars: { user: string; calendar: ContributionCalendar }[] | undefined;
     let versusCalendar;
     let repoContributions: RepoContribution[] = [];
 
@@ -401,6 +447,7 @@ export async function GET(request: Request) {
           signal: controller.signal,
         });
         calendar = orgData.calendar;
+        individualCalendars = orgData.individualCalendars;
         repoContributions = normalizedView === 'languages' ? orgData.repoContributions || [] : [];
       } else if (user.includes(',')) {
         const users = user
@@ -408,7 +455,16 @@ export async function GET(request: Request) {
           .map((u) => u.trim())
           .filter(Boolean);
 
-        if (users.length > 2) {
+        if (users.length > 7) {
+          throw new Error(
+            'ValidationError: A maximum of 7 usernames is supported for the skyline.'
+          );
+        }
+
+        if (
+          users.length > 2 &&
+          (versus || (normalizedView !== 'skyline' && normalizedView !== 'default'))
+        ) {
           throw new Error(
             'ValidationError: The streak comparison generator strictly accepts a maximum of 2 usernames.'
           );
@@ -441,6 +497,10 @@ export async function GET(request: Request) {
           throw lastError || new Error('No successful data fetched');
         }
         calendar = aggregateCalendars(successfulData.map((d) => d.calendar));
+        individualCalendars = successfulData.map((d, i) => ({
+          user: users[i],
+          calendar: d.calendar,
+        }));
         repoContributions =
           normalizedView === 'languages'
             ? successfulData.flatMap((d) => d.repoContributions || [])
@@ -475,18 +535,34 @@ export async function GET(request: Request) {
         }
       }
     } finally {
+      logger.info('Streak request completed', {
+        source: 'streak',
+        user,
+        view: normalizedView,
+        format,
+        status: 200,
+        durationMs: Date.now() - start,
+      });
       clearTimeout(timeoutId);
     }
+    if (normalizedView !== 'monthly') {
+      let effectiveDays = days;
 
-    if (days && normalizedView !== 'monthly') {
-      const allDays = calendar.weeks.flatMap((w) => w.contributionDays);
+      if (!effectiveDays && year) {
+        const yearNum = parseInt(year, 10);
+        if (!isNaN(yearNum)) {
+          effectiveDays = daysInYear(yearNum);
+        }
+      }
 
-      const filteredDays = allDays.slice(-days);
-
-      calendar = {
-        totalContributions: filteredDays.reduce((sum, d) => sum + d.contributionCount, 0),
-        weeks: chunkDaysIntoWeeks(filteredDays),
-      };
+      if (effectiveDays) {
+        const allDays = calendar.weeks.flatMap((w) => w.contributionDays);
+        const filteredDays = allDays.slice(-effectiveDays);
+        calendar = {
+          totalContributions: filteredDays.reduce((sum, d) => sum + d.contributionCount, 0),
+          weeks: chunkDaysIntoWeeks(filteredDays),
+        };
+      }
     }
 
     // ─── JSON output mode ──────────────────────────────────────────────────
@@ -503,7 +579,7 @@ export async function GET(request: Request) {
         : getSecondsUntilUTCMidnight();
       const cacheControl = isRefreshRequested
         ? 'no-cache, no-store, must-revalidate'
-        : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
+        : `public, s-maxage=1, stale-while-revalidate=86400`;
 
       const cacheStatusHeader = shouldBypassCache
         ? `BYPASS, fetched=${new Date().toISOString()}`
@@ -531,6 +607,7 @@ export async function GET(request: Request) {
             headers: {
               'Cache-Control': cacheControl,
               ETag: weakEtag,
+              'X-Request-ID': requestId,
             },
           });
         }
@@ -542,6 +619,7 @@ export async function GET(request: Request) {
           'Cache-Control': cacheControl,
           ETag: weakEtag,
           'X-Cache-Status': cacheStatusHeader,
+          'X-Request-ID': requestId,
         },
       });
     }
@@ -581,6 +659,17 @@ export async function GET(request: Request) {
     } else if (normalizedView === 'activity_graph') {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generateActivityGraphSVG(stats, params, calendar);
+    } else if (normalizedView === 'commit_clock') {
+      const stats = calculateStreak(calendar, timezone, undefined, grace);
+      const hourCounts = await fetchCommitHourDistribution(user, undefined, timezone).catch(() =>
+        new Array(24).fill(0)
+      );
+      svg = generateCommitClockSVG(hourCounts, stats, params);
+    } else if (normalizedView === 'weekday') {
+      // ← INSERT YOUR NEW BLOCK HERE
+      const normalizedCalendar = normalizeCalendarToTimezone(calendar, timezone);
+      const stats = calculateStreak(normalizedCalendar, timezone, undefined, grace);
+      svg = generateWeekdaySVG(stats, params, normalizedCalendar);
     } else if (versus && versusCalendar) {
       // Normalize both calendars to the target timezone for accurate comparison
       const normalizedCalendar = normalizeCalendarToTimezone(calendar, timezone);
@@ -591,7 +680,7 @@ export async function GET(request: Request) {
       svg = generateVersusSVG(stats1, stats2, params, normalizedCalendar, normalizedVersusCalendar);
     } else {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
-      svg = generateSVG(stats, params, calendar);
+      svg = generateSVG(stats, params, calendar, individualCalendars);
     }
 
     if (minify) {
@@ -605,7 +694,7 @@ export async function GET(request: Request) {
       ? 'no-cache, no-store, must-revalidate'
       : isHistoricalYear
         ? 'public, max-age=31536000, s-maxage=31536000, immutable'
-        : `public, max-age=60, s-maxage=${secondsToMidnight}, stale-while-revalidate=60`;
+        : `public, max-age=60, s-maxage=1, stale-while-revalidate=59`;
 
     const etag = crypto.createHash('sha256').update(svg).digest('hex');
     const weakEtag = `W/"${etag}"`;
@@ -619,6 +708,7 @@ export async function GET(request: Request) {
           headers: {
             'Cache-Control': cacheControl,
             ETag: weakEtag,
+            'X-Request-ID': requestId,
           },
         });
       }
@@ -640,7 +730,8 @@ export async function GET(request: Request) {
           ETag: weakEtag,
           'X-Cache-Status': shouldBypassCache
             ? `BYPASS, fetched=${new Date().toISOString()}`
-            : 'HIT',
+            : `HIT, cached=${new Date().toISOString()}`,
+          'X-Request-ID': requestId,
         },
       });
     }
@@ -653,10 +744,11 @@ export async function GET(request: Request) {
         'X-CommitPulse-Grace-Applied': String(grace),
         ETag: weakEtag,
         'X-Cache-Status': shouldBypassCache ? `BYPASS, fetched=${new Date().toISOString()}` : 'HIT',
+        'X-Request-ID': requestId,
       },
     });
   } catch (error: unknown) {
-    return buildErrorResponse(error, parseResult);
+    return buildErrorResponse(error, parseResult, requestId);
   }
 }
 
@@ -669,23 +761,57 @@ function sanitizeErrorMessage(message: string): string {
   if (message.includes('schema') || message.includes('Schema')) {
     return 'Invalid request parameters';
   }
-  return message;
+  // Preserve user-facing validation messages — these are intentional,
+  // safe error strings thrown by route-level validation and do not
+  // expose internal implementation details.
+  const lower = message.toLowerCase();
+  if (lower.includes('strictly for organizations')) {
+    return 'This endpoint is strictly for organizations.';
+  }
+  if (lower.includes('strictly accepts a maximum of 2')) {
+    return 'The streak comparison generator strictly accepts a maximum of 2 usernames.';
+  }
+  if (lower.includes('maximum of 7 usernames')) {
+    return 'A maximum of 7 usernames is supported for the skyline.';
+  }
+  if (lower.includes('quota is low')) {
+    return 'API rate limit quota is low. Please try again later.';
+  }
+  // Issue #7263: Return a generic message for all other errors to
+  // prevent leaking internal implementation details (auth state, cache
+  // servers, token rotation info, etc.) to the client.
+  return 'Something went wrong. Please try again later.';
 }
 
-function buildErrorResponse(error: unknown, parseResult: ParseResult): NextResponse {
+function buildErrorResponse(
+  error: unknown,
+  parseResult: ParseResult,
+  requestId?: string
+): NextResponse {
   const rawMessage = error instanceof Error ? error.message : String(error);
   const message = sanitizeErrorMessage(rawMessage);
 
   if (parseResult.success && parseResult.data.format === 'json') {
+    const isTimeout = isAbortError(error);
     const isNotFound =
-      message.toLowerCase().includes('not found') ||
-      message.toLowerCase().includes('could not resolve');
-    const isRateLimit = message.toLowerCase().includes('rate limit');
+      rawMessage.toLowerCase().includes('not found') ||
+      rawMessage.toLowerCase().includes('could not resolve');
+    const isRateLimit = rawMessage.toLowerCase().includes('rate limit');
     const isValidationError =
       (error instanceof Error && error.name === 'ValidationError') ||
-      message.toLowerCase().includes('invalid') ||
-      message.toLowerCase().includes('validation') ||
-      message.toLowerCase().includes('strictly for organizations');
+      rawMessage.toLowerCase().includes('invalid') ||
+      rawMessage.toLowerCase().includes('validation') ||
+      rawMessage.toLowerCase().includes('strictly for organizations');
+
+    if (isTimeout) {
+      return NextResponse.json(
+        { error: 'Upstream request timed out after 10 seconds.' },
+        {
+          status: 504,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+        }
+      );
+    }
 
     const status = isRateLimit ? 429 : isNotFound ? 404 : isValidationError ? 400 : 500;
     const jsonErrorHeaders: Record<string, string> = {
@@ -705,16 +831,16 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
   }
 
   const isNotFound =
-    message.toLowerCase().includes('not found') ||
-    message.toLowerCase().includes('could not resolve');
-  const isRateLimit = message.toLowerCase().includes('rate limit');
+    rawMessage.toLowerCase().includes('not found') ||
+    rawMessage.toLowerCase().includes('could not resolve');
+  const isRateLimit = rawMessage.toLowerCase().includes('rate limit');
 
   // 2. Safely detect if the error was a validation/client error
   const isValidationError =
     (error instanceof Error && error.name === 'ValidationError') ||
-    message.toLowerCase().includes('invalid') ||
-    message.toLowerCase().includes('validation') ||
-    message.toLowerCase().includes('strictly for organizations');
+    rawMessage.toLowerCase().includes('invalid') ||
+    rawMessage.toLowerCase().includes('validation') ||
+    rawMessage.toLowerCase().includes('strictly for organizations');
 
   const errBg = `#${sanitizeHexColor(parseResult.success ? parseResult.data.bg : undefined, '0d1117')}`;
   const errAccentRaw =
@@ -744,6 +870,9 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
       headers['X-CommitPulse-Circuit-Status'] = 'Open';
       headers['X-CommitPulse-Circuit-Reset-In'] = String(telemetry.resetInMs);
     }
+    if (requestId) {
+      headers['X-Request-ID'] = requestId;
+    }
 
     return new NextResponse(svg, {
       status: 429,
@@ -759,44 +888,71 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     const badUsername = match?.[1] ?? match?.[2] ?? fallbackTarget;
 
     const svg = generateNotFoundSVG(badUsername, errBg, errAccent, errText, errRadius, errSpeed);
+    const errorHeaders: Record<string, string> = {
+      'Content-Type': 'image/svg+xml; charset=utf-8',
+      'Cache-Control': 'no-cache',
+      'Content-Security-Policy': SVG_CSP_HEADER,
+    };
+    if (requestId) {
+      errorHeaders['X-Request-ID'] = requestId;
+    }
     return new NextResponse(svg, {
       status: 404,
-      headers: {
-        'Content-Type': 'image/svg+xml; charset=utf-8',
-        'Cache-Control': 'no-cache',
-        'Content-Security-Policy': SVG_CSP_HEADER,
-      },
+      headers: errorHeaders,
     });
   }
 
   // 3. Return a 400 Bad Request for Validation Errors
   if (isValidationError) {
     const validationSvg = buildInlineErrorSVG(message);
-
+    const errorHeaders: Record<string, string> = {
+      'Content-Type': 'image/svg+xml; charset=utf-8',
+      'Cache-Control': 'no-store',
+      'Content-Security-Policy': SVG_CSP_HEADER,
+    };
+    if (requestId) {
+      errorHeaders['X-Request-ID'] = requestId;
+    }
     return new NextResponse(validationSvg, {
       status: 400,
-      headers: {
-        'Content-Type': 'image/svg+xml; charset=utf-8',
-        'Cache-Control': 'no-store',
-        'Content-Security-Policy': SVG_CSP_HEADER,
-      },
+      headers: errorHeaders,
     });
   }
 
-  // 4. Return a 500 Internal Server Error for real crashes
+  // 4. Return a 504 Gateway Timeout for aborted/timed out requests
+  if (isAbortError(error)) {
+    const timeoutSvg = buildInlineErrorSVG('Request timed out. Please try again later.');
+    const errorHeaders: Record<string, string> = {
+      'Content-Type': 'image/svg+xml; charset=utf-8',
+      'Cache-Control': 'no-store',
+      'Content-Security-Policy': SVG_CSP_HEADER,
+    };
+    if (requestId) {
+      errorHeaders['X-Request-ID'] = requestId;
+    }
+    return new NextResponse(timeoutSvg, {
+      status: 504,
+      headers: errorHeaders,
+    });
+  }
+
+  // 5. Return a 500 Internal Server Error for real crashes
   logger.error('Unhandled error', {
     source: 'streak',
     message,
   });
 
   const errorSvg = buildInlineErrorSVG('Something went wrong. Please try again later.');
-
+  const errorHeaders: Record<string, string> = {
+    'Content-Type': 'image/svg+xml; charset=utf-8',
+    'Cache-Control': 'no-store',
+    'Content-Security-Policy': SVG_CSP_HEADER,
+  };
+  if (requestId) {
+    errorHeaders['X-Request-ID'] = requestId;
+  }
   return new NextResponse(errorSvg, {
     status: 500,
-    headers: {
-      'Content-Type': 'image/svg+xml; charset=utf-8',
-      'Cache-Control': 'no-store',
-      'Content-Security-Policy': SVG_CSP_HEADER,
-    },
+    headers: errorHeaders,
   });
 }

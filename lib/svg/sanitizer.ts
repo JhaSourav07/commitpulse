@@ -91,6 +91,36 @@ export function sanitizeFont(font: string | undefined | null): string | null {
 }
 
 /**
+ * Sanitizes a width/height dimension destined for direct interpolation into
+ * an SVG attribute (e.g. `width="${w}"`, `viewBox="0 0 ${w} ${h}"`).
+ * ...
+ */
+export function sanitizeDimension(
+  value: string | number | undefined | null,
+  fallback: number,
+  min = 1,
+  max = 5000
+): number {
+  const safeFallback = Math.round(Math.max(min, Math.min(fallback, max)));
+
+  if (value === undefined || value === null) return safeFallback;
+
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) return safeFallback;
+    return Math.round(Math.max(min, Math.min(value, max)));
+  }
+
+  if (typeof value === 'string' && /^\d+(\.\d+)?$/.test(value.trim())) {
+    const parsed = Number(value.trim());
+    if (Number.isFinite(parsed)) {
+      return Math.round(Math.max(min, Math.min(parsed, max)));
+    }
+  }
+
+  return safeFallback;
+}
+
+/**
  * Validates and sanitizes a Google Font name for safe use in external @import URLs.
  * Returns the URL-safe font name (spaces replaced with '+') or null if invalid/unsafe.
  */

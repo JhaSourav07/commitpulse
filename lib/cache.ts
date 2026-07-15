@@ -42,6 +42,7 @@ type CacheItem<T> = {
   value: T;
   expiresAt: number;
 };
+
 /**
  * A Simple in-memory TTL(Time To Live) cache.
  *
@@ -51,12 +52,10 @@ type CacheItem<T> = {
  * @typeParam T - Type of values stored in the cache.
  */
 export class TTLCache<T> {
-  //private store = new Map<string, CacheItem<T>>();
-
   private store = new Map<string, CacheItem<T | Buffer>>();
-
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
   private readonly maxSize?: number;
+
   private static assertValidKey(key: unknown): asserts key is string {
     if (typeof key !== 'string') {
       throw new TypeError('Cache key must be a string');
@@ -66,6 +65,7 @@ export class TTLCache<T> {
       throw new TypeError('Cache key cannot be empty');
     }
   }
+
   /**
    * Creates a new TTL cache instance.
    *
@@ -147,13 +147,11 @@ export class TTLCache<T> {
    * const user = cache.get("user:1");
    */
   get(key: string): T | null {
-    //TTLCache.assertValidKey(key);
-    if (key === null || key === undefined) {
-      throw new TypeError('Cache key must be a string');
-    }
-
     if (typeof key !== 'string') {
       throw new TypeError('Cache key must be a string');
+    }
+    if (key.trim().length === 0) {
+      return null;
     }
 
     const hit = this.store.get(key);
@@ -180,14 +178,13 @@ export class TTLCache<T> {
    *   // safe to call get()
    * }
    */
-  has(key: string): boolean {
-    //TTLCache.assertValidKey(key);
-    if (key === null || key === undefined) {
-      throw new TypeError('Cache key must be a string');
-    }
 
+  has(key: string): boolean {
     if (typeof key !== 'string') {
       throw new TypeError('Cache key must be a string');
+    }
+    if (key.trim().length === 0) {
+      return false;
     }
 
     const hit = this.store.get(key);
@@ -200,6 +197,7 @@ export class TTLCache<T> {
 
     return true;
   }
+
   /**
    * Removes a single entry from the cache.
    *
@@ -212,25 +210,15 @@ export class TTLCache<T> {
    * cache.delete("user:1");
    */
   delete(key: string): boolean {
-    TTLCache.assertValidKey(key);
+    if (typeof key !== 'string') {
+      throw new TypeError('Cache key must be a string');
+    }
+    if (key.trim().length === 0) {
+      return false;
+    }
 
     return this.store.delete(key);
   }
-
-  /**
-   * Stores a value in the cache with a TTL.
-   *
-   * If the cache reaches its maximum capacity, the oldest item
-   * may be removed to make room for new entries.
-   *
-   * @param key - Cache key.
-   * @param value - Value to cache.
-   * @param ttlMs - Time to live in milliseconds.
-   * @returns void
-   *
-   * @example
-   * cache.set("user:1", userData, 5000);
-   */
   /**
    * Updates the value of an existing, non-expired cache entry without resetting its TTL.
    *
@@ -254,14 +242,31 @@ export class TTLCache<T> {
     return true;
   }
 
+  /**
+   * Stores a value in the cache with a TTL.
+   *
+   * If the cache reaches its maximum capacity, the oldest item
+   * may be removed to make room for new entries.
+   *
+   * @param key - Cache key.
+   * @param value - Value to cache.
+   * @param ttlMs - Time to live in milliseconds.
+   * @returns void
+   *
+   * @example
+   * cache.set("user:1", userData, 5000);
+   */
   set(key: string, value: T, ttlMs: number): void {
-    //TTLCache.assertValidKey(key);
     if (typeof key !== 'string' || key.trim().length === 0) {
       throw new TypeError('Cache key cannot be empty');
     }
+    if (!Number.isFinite(ttlMs)) {
+      throw new RangeError(`ttlMs must be a finite number, got ${ttlMs}`);
+    }
 
-    if (ttlMs <= 0) throw new RangeError(`ttlMs must be positive, got ${ttlMs}`);
-    if (Number.isNaN(ttlMs)) ttlMs = 60_000;
+    if (ttlMs <= 0) {
+      throw new RangeError(`ttlMs must be positive, got ${ttlMs}`);
+    }
 
     if (key.length > 10000) {
       throw new Error('Cache key exceeds maximum allowed length to prevent memory bloat');
@@ -512,16 +517,12 @@ export class DistributedCache<T> {
    */
   async incr(key: string, ttlMs: number): Promise<number> {
     if (!this.useRedis) {
-      // Fail closed — no shared state means no reliable distributed rate limiting.
-      // In serverless (Vercel, AWS Lambda, etc.) each cold start resets the in-memory
-      // counter, so an in-memory fallback would silently reset the limit and enable
-      // Denial-of-Wallet attacks on the shared GitHub token pool.
       if (process.env.NODE_ENV === 'production') {
-        logger.error('Redis not configured in production — rate limiting disabled (fail-closed)', {
-          component: 'DistributedCache',
-          key,
-        });
-        return Number.MAX_SAFE_INTEGER;
+        logger.warn(
+          'Redis not configured — rate limiting is per-instance only. ' +
+            'Add KV_REST_API_URL + KV_REST_API_TOKEN for distributed rate limiting.',
+          { component: 'DistributedCache', key }
+        );
       }
       const current = (this.localCache.get(key) as unknown as number) || 0;
       const next = current + 1;
@@ -568,13 +569,6 @@ return c`;
           error: err,
         }
       );
-      // Do NOT fall back to a per-instance local counter here. Serverless
-      // instances don't share memory, so a local fallback would let each
-      // instance maintain its own disconnected counter — silently multiplying
-      // the effective rate limit by the number of active instances during
-      // any Redis blip. Failing closed (returning a large value that exceeds
-      // any realistic limit) ensures callers treat this as "limit exceeded"
-      // rather than "limit reset," which is the safer default during an outage.
       return Number.MAX_SAFE_INTEGER;
     }
   }
@@ -606,19 +600,15 @@ return c`;
     shouldFetch?: (cached: T) => boolean,
     lockConfig?: LockConfig
   ): Promise<T> {
-    // Join an existing in-flight request before any async operation to avoid
-    // concurrent loadFn execution for the same key.
     const existing = this.localLocks.get(key);
     if (existing) return existing;
 
-    // Attempt to retrieve an existing value before triggering a refresh.
     const cached = await this.get(key, ttlMs);
 
     if (cached !== null && (!shouldFetch || !shouldFetch(cached))) {
       return cached;
     }
 
-    // Double-check local locks after the await in case another call interleaved.
     const pendingLocal = this.localLocks.get(key);
     if (pendingLocal) return pendingLocal;
 
@@ -640,8 +630,6 @@ return c`;
       const start = Date.now();
       let attempt = 0;
 
-      // Only DEL the lock if the stored token still matches ours, preventing
-      // accidental deletion of a lock acquired by another instance after ours expired.
       const luaRelease = `
         if redis.call("GET", KEYS[1]) == ARGV[1] then
           return redis.call("DEL", KEYS[1])
@@ -681,8 +669,6 @@ return c`;
         let acquired = false;
 
         try {
-          // NX: acquire only if lock doesn't already exist.
-          // PX: auto-expire lock to avoid deadlocks.
           const lockRes = await fetch(`${this.redisUrl}/`, {
             method: 'POST',
             headers: {
@@ -699,7 +685,6 @@ return c`;
             throw new Error(`Redis lock HTTP error: ${lockRes.status}`);
           }
         } catch (err) {
-          // Redis network error during locking. Fallback to direct execution.
           logger.error('Cache lock failed', {
             component: 'DistributedCache',
             key,
@@ -714,18 +699,12 @@ return c`;
           let extensionTimer: ReturnType<typeof setInterval> | null = null;
 
           if (enableLockExtension) {
-            // Heartbeat fires at 60% of lockTtlMs so there is always time before expiry.
-            // When lockTtlMs is small (<1667ms), clamp to lockTtlMs/2 but with at least
-            // 100ms of headroom so the heartbeat always fires before the lock expires.
             const rawInterval = Math.floor(lockTtlMs * 0.6);
             const minInterval = Math.min(1000, Math.max(100, lockTtlMs - 100));
             const extensionInterval = Math.max(minInterval, rawInterval);
 
             extensionTimer = setInterval(async () => {
               try {
-                // Atomically extend only if we still own the lock (token matches).
-                // Using SET XX without a token check would let us extend a lock that
-                // another instance acquired after ours expired — do not use SET XX alone.
                 const luaExtend = `
                   if redis.call("GET", KEYS[1]) == ARGV[1] then
                     redis.call("PEXPIRE", KEYS[1], ARGV[2])
@@ -747,7 +726,7 @@ return c`;
                   ]),
                 });
               } catch {
-                // Silently ignore extension failures — the lock will expire naturally.
+                // Ignore extension failures
               }
             }, extensionInterval);
             if (typeof extensionTimer === 'object' && typeof extensionTimer.unref === 'function') {
@@ -765,8 +744,6 @@ return c`;
           }
         }
 
-        // Exponential backoff with jitter to prevent thundering herd
-        // when multiple instances contend for the same lock.
         const baseBackoff = Math.min(BASE_POLL_MS * 2 ** attempt, MAX_POLL_MS);
         const jitter = 0.5 + Math.random() * 0.5;
         const backoffMs = Math.round(baseBackoff * jitter);
@@ -779,7 +756,6 @@ return c`;
         }
       }
 
-      // Timed out waiting for lock. Fallback to direct execution.
       const finalFallback = await loadFn(cached);
       await this.set(key, finalFallback, ttlMs);
       return finalFallback;
@@ -794,8 +770,6 @@ return c`;
 
     this.localLocks.set(key, promise);
 
-    // Safety Eviction: Forcefully evict locks that hang longer than 60s
-    // to prevent memory leaks (fixes Issue #6177).
     timeoutTimer = setTimeout(() => {
       if (this.localLocks.get(key) === promise) {
         this.localLocks.delete(key);

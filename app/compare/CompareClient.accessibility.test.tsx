@@ -20,25 +20,8 @@ vi.mock('framer-motion', () => ({
     {},
     {
       get: (_, tag) => {
-        return ({
-          children,
-          animate: _animate,
-          initial: _initial,
-          exit: _exit,
-          transition: _transition,
-          variants: _variants,
-          whileHover: _whileHover,
-          whileTap: _whileTap,
-          whileFocus: _whileFocus,
-          whileDrag: _whileDrag,
-          whileInView: _whileInView,
-          layout: _layout,
-          layoutId: _layoutId,
-          ...props
-        }: {
-          children?: ReactNode;
-          [key: string]: unknown;
-        }) => React.createElement(tag as string, props, children);
+        return ({ children, ...props }: { children?: ReactNode; [key: string]: unknown }) =>
+          React.createElement(tag as string, props, children);
       },
     }
   ),

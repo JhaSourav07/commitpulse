@@ -6,8 +6,8 @@ import successPayload from './fixtures/githubContributionsPayload.json';
 
 describe('GraphQL Syncing Utility Integration Tests', () => {
   beforeEach(() => {
-    process.env.GITHUB_PAT = 'mock_token_for_testing';
-    process.env.GITHUB_TOKEN = 'mock_token_for_testing';
+    process.env.GITHUB_PAT = 'ghp_mockTokenForTestingAAAAAAAAAAAAAA';
+    process.env.GITHUB_TOKEN = 'ghp_mockTokenForTestingAAAAAAAAAAAAAA';
   });
 
   // Test Case 1: The Happy Path (Successful Parsing)

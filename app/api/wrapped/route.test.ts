@@ -168,6 +168,15 @@ describe('GET /api/wrapped', () => {
       expect(response.status).toBe(200);
       expect(body).toContain('fill="transparent"');
     });
+
+    it('parses valid org parameter and passes it to getWrappedData', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', org: 'github' }));
+      expect(response.status).toBe(200);
+      expect(getWrappedData).toHaveBeenCalledWith('octocat', expect.any(String), {
+        bypassCache: false,
+        org: 'github',
+      });
+    });
   });
 
   describe('cache-control header', () => {

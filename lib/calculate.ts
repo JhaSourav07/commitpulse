@@ -14,6 +14,21 @@ import type {
  * ========================================================================== */
 
 /**
+ * Determines whether a given year is a leap year.
+ * Returns true for years divisible by 4 (except centuries not divisible by 400).
+ */
+export function isLeapYear(year: number): boolean {
+  return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+}
+
+/**
+ * Returns the number of days in a given year (365 or 366).
+ */
+export function daysInYear(year: number): number {
+  return isLeapYear(year) ? 366 : 365;
+}
+
+/**
  * Safely calculates and rounds a percentage fraction to prevent NaN or
  * Infinity division values when the total denominator resolves to zero.
  */
@@ -161,11 +176,13 @@ export function calculateStreak(
   const days = weeks.flatMap((week) => week?.contributionDays || []).filter(Boolean);
 
   const seen = new Set<string>();
-  const uniqueDays = days.filter((d) => {
-    if (!d || seen.has(d.date)) return false;
-    seen.add(d.date);
-    return true;
-  });
+  const uniqueDays = days
+    .filter((d) => {
+      if (!d || seen.has(d.date)) return false;
+      seen.add(d.date);
+      return true;
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
 
   let currentStreak = 0;
   let longestStreak = 0;
@@ -210,7 +227,6 @@ export function calculateStreak(
       } else {
         todayIndex = lastIndex;
       }
-
       todayIndex = lastIndex;
     } else {
       return {
@@ -596,6 +612,7 @@ export function normalizeCalendarToTimezone(
   calendar: ContributionCalendar,
   _targetTimezone: string // retained for backward compatibility with existing callers
 ): ContributionCalendar {
+  void _targetTimezone;
   if (!calendar || !calendar.weeks || calendar.weeks.length === 0) {
     return calendar;
   }

@@ -21,6 +21,8 @@ const mockState: GeneratorState = {
   githubUsername: 'johndoe',
   showCommitPulse: true,
   commitPulseAccent: '10b981',
+  showRepoSpotlight: false,
+  spotlightRepo: '',
   showSnakeGraph: false,
   showPacmanGraph: false,
   graphPlacement: 'middle',

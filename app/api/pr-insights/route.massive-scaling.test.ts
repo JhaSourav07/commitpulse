@@ -1,24 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { GET } from './route'; // Ensure this matches your API handler export
 import { NextRequest } from 'next/server';
-
-// Helper to generate massive mockup log arrays
-const generateMassiveLogs = (count: number) => {
-  return Array.from({ length: count }, (_, i) => ({
-    id: `log-${i}`,
-    contributor: `Contributor ${i}`,
-    additions: 100000 + i,
-    deletions: 50000 - i,
-    commits: i * 5,
-    timestamp: new Date().toISOString(),
-  }));
-};
 
 describe('PR Insights Route - Massive Data Sets & Extreme High Bounds Scaling', () => {
   // Test Case 1: Handle massive array structures cleanly
   it('should successfully process thousands of activity logs without memory or buffer errors', async () => {
-    const massiveData = generateMassiveLogs(2000);
-
     // NOTE: If your route pulls data from a DB or global service, mock it here:
     // vi.spyOn(Database, 'getLogs').mockResolvedValue(massiveData);
 

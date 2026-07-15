@@ -11,8 +11,17 @@ vi.mock('lucide-react', () => ({
   Globe: () => <div>GlobeIcon</div>,
   Sun: () => <div>SunIcon</div>,
   Moon: () => <div>MoonIcon</div>,
+
   Search: () => <div>SearchIcon</div>,
   ArrowRight: () => <div>ArrowRightIcon</div>,
+  ChevronDown: () => <div>ChevronDownIcon</div>,
+  Check: () => <div>CheckIcon</div>,
+  Keyboard: () => <div>KeyboardIcon</div>,
+}));
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
+  useSearchParams: () => ({ get: vi.fn() }),
 }));
 
 vi.mock('framer-motion', () => ({

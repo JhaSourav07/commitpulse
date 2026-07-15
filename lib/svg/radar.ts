@@ -76,7 +76,9 @@ export function generateRadarSVG(
   const safeUser = escapeXML(truncateUsername(params.user));
   const bgColor = params.bg || '0d1117';
   const textColor = params.text || 'c9d1d9';
-  const accentColor = Array.isArray(params.accent) ? params.accent[0] : params.accent || '58a6ff';
+  const accentColor = Array.isArray(params.accent)
+    ? params.accent[params.accent.length - 1]
+    : params.accent || '58a6ff';
 
   const metrics = calculateRadarMetrics(stats, calendar);
 
@@ -137,7 +139,7 @@ export function generateRadarSVG(
     }
   `;
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(RADAR_SVG_WIDTH * sf)}" height="${Math.round(RADAR_SVG_HEIGHT * sf)}" viewBox="0 0 ${RADAR_SVG_WIDTH} ${RADAR_SVG_HEIGHT}" role="img" aria-labelledby="cp-radar-title cp-radar-desc">
+  return `<svg style="max-width: 100%; height: auto;" xmlns="http://www.w3.org/2000/svg" width="${Math.round(RADAR_SVG_WIDTH * sf)}" height="${Math.round(RADAR_SVG_HEIGHT * sf)}" viewBox="0 0 ${RADAR_SVG_WIDTH} ${RADAR_SVG_HEIGHT}" role="img" aria-labelledby="cp-radar-title cp-radar-desc">
   <title id="cp-radar-title">CommitPulse Radar Map for ${safeUser}</title>
   <desc id="cp-radar-desc">A radar chart visualization of ${safeUser}'s GitHub contributions across 6 dimensions.</desc>
   <defs>

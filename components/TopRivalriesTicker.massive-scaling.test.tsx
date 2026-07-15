@@ -13,11 +13,6 @@ vi.mock('framer-motion', () => ({
       children,
       className,
       style,
-      animate,
-      initial,
-      whileInView,
-      viewport,
-      transition,
       ...rest
     }: ComponentProps<'div'> & { [key: string]: unknown }) => (
       <div className={className} style={style} {...rest}>

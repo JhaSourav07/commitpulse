@@ -34,6 +34,10 @@ describe('PreviewPanel Type Compiler Validation', () => {
     };
 
     expect(invalidProps).toBeDefined();
+
+
+    expect(invalidProps).toBeDefined();
+
   });
 
   it('accepts a valid props object', () => {

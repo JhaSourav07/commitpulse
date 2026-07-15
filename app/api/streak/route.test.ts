@@ -1,15 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 import { GET } from './route';
+import { getValidationCacheForTests } from './validation-cache';
 
 // We only mock the two things that reach outside this process:
 // the GitHub API call and the wall-clock time helper.
 // calculateStreak and generateSVG run for real, giving us genuine end-to-end coverage.
-vi.mock('../../../lib/github', () => ({
-  fetchGitHubContributions: vi.fn(),
-  getOrgDashboardData: vi.fn(),
-  getCircuitTelemetry: vi.fn().mockReturnValue({ isOpen: false, resetInMs: 0 }),
-}));
+vi.mock('../../../lib/github', async () => {
+  const actual = await vi.importActual<typeof import('../../../lib/github')>('../../../lib/github');
+
+  return {
+    ...actual,
+    fetchGitHubContributions: vi.fn(),
+    getOrgDashboardData: vi.fn(),
+    getCircuitTelemetry: vi.fn().mockReturnValue({ isOpen: false, resetInMs: 0 }),
+  };
+});
 
 vi.mock('../../../utils/time', () => ({
   getSecondsUntilUTCMidnight: vi.fn(),
@@ -437,7 +443,7 @@ describe('GET /api/streak', () => {
     it('caches until UTC midnight by default, using the value from getSecondsUntilUTCMidnight', async () => {
       const response = await GET(makeRequest({ user: 'octocat' }));
       expect(response.headers.get('Cache-Control')).toBe(
-        'public, max-age=60, s-maxage=3600, stale-while-revalidate=60'
+        'public, max-age=60, s-maxage=1, stale-while-revalidate=59'
       );
     });
 
@@ -445,7 +451,7 @@ describe('GET /api/streak', () => {
       vi.mocked(getSecondsUntilUTCMidnight).mockReturnValue(7200);
       const response = await GET(makeRequest({ user: 'octocat' }));
       expect(response.headers.get('Cache-Control')).toBe(
-        'public, max-age=60, s-maxage=7200, stale-while-revalidate=60'
+        'public, max-age=60, s-maxage=1, stale-while-revalidate=59'
       );
     });
 
@@ -1007,7 +1013,7 @@ describe('GET /api/streak', () => {
       const response = await GET(makeRequest({ user: 'octocat', tz: 'America/New_York' }));
 
       expect(response.headers.get('Cache-Control')).toBe(
-        'public, max-age=60, s-maxage=7200, stale-while-revalidate=60'
+        'public, max-age=60, s-maxage=1, stale-while-revalidate=59'
       );
       expect(getSecondsUntilMidnightInTimezone).toHaveBeenCalledWith('America/New_York');
       expect(getSecondsUntilUTCMidnight).not.toHaveBeenCalled();
@@ -1538,19 +1544,43 @@ describe('GET /api/streak', () => {
       expect(body).toContain('family=Inter&amp;display=swap');
       expect(body).toContain('"Inter", sans-serif');
     });
+
+    it('route-level: ?font=jetbrains returns SVG containing JetBrains Mono', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', font: 'jetbrains' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain('JetBrains Mono');
+    });
+
+    it('route-level: ?font=Inter returns SVG containing Google Fonts import URL', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', font: 'Inter' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain('family=Inter');
+    });
+
+    it('route-level: empty ?font falls back to default font', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', font: '' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain('Space Grotesk');
+    });
   });
 
   describe('stale-while-revalidate cache header', () => {
-    it('contains stale-while-revalidate=60 for normal request', async () => {
+    it('contains stale-while-revalidate=59 for normal request', async () => {
       const response = await GET(makeRequest({ user: 'octocat' }));
 
-      expect(response.headers.get('Cache-Control')).toContain('stale-while-revalidate=60');
+      expect(response.headers.get('Cache-Control')).toContain('stale-while-revalidate=59');
     });
 
     it('does NOT contain stale-while-revalidate when ?refresh=true', async () => {
       const response = await GET(makeRequest({ user: 'octocat', refresh: 'true' }));
 
-      expect(response.headers.get('Cache-Control')).not.toContain('stale-while-revalidate=60');
+      expect(response.headers.get('Cache-Control')).not.toContain('stale-while-revalidate=59');
     });
   });
 
@@ -1622,14 +1652,14 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(404);
     });
 
-    it('rejects requests with more than 2 users with a 400 Bad Request', async () => {
-      const response = await GET(makeRequest({ user: 'a, b, c, d' }));
+    it('rejects requests with more than 7 users with a 400 Bad Request', async () => {
+      const response = await GET(makeRequest({ user: 'a, b, c, d, e, f, g, h' }));
       expect(response.status).toBe(400);
 
       expect(fetchGitHubContributions).not.toHaveBeenCalled();
 
       const body = await response.text();
-      expect(body).toContain('strictly accepts a maximum of 2 usernames');
+      expect(body).toContain('maximum of 7 usernames');
     });
   });
 
@@ -1945,6 +1975,60 @@ describe('GET /api/streak', () => {
 
       expect(bodyNormal.length).toBeGreaterThan(bodyMinified.length);
       expect(bodyNormal).toContain('  <rect');
+    });
+  });
+
+  describe('validation cache', () => {
+    it('normalizes cache keys by sorting query parameters alphabetically', async () => {
+      const cache = getValidationCacheForTests();
+      cache.clear();
+
+      const response1 = await GET(makeRequest({ user: 'octocat', theme: 'dark' }));
+      expect(response1.status).toBe(200);
+      expect(cache.size).toBe(1);
+
+      const response2 = await GET(makeRequest({ theme: 'dark', user: 'octocat' }));
+      expect(response2.status).toBe(200);
+      expect(cache.size).toBe(1);
+    });
+
+    it('uses LRU eviction so frequently accessed entries survive', async () => {
+      const cache = getValidationCacheForTests();
+      cache.clear();
+
+      const baseParams: Record<string, string> = { user: 'octocat' };
+
+      for (let i = 0; i < 256; i++) {
+        await GET(makeRequest({ ...baseParams, _k: String(i) }));
+      }
+      expect(cache.size).toBe(256);
+
+      await GET(makeRequest({ ...baseParams, _k: '0' }));
+
+      await GET(makeRequest({ ...baseParams, _k: 'overflow' }));
+      expect(cache.size).toBe(256);
+
+      const responseFirst = await GET(makeRequest({ ...baseParams, _k: '0' }));
+      expect(responseFirst.status).toBe(200);
+    });
+
+    it('evicts least recently used entries when cache is full', async () => {
+      const cache = getValidationCacheForTests();
+      cache.clear();
+
+      const baseParams: Record<string, string> = { user: 'octocat' };
+
+      for (let i = 0; i < 256; i++) {
+        await GET(makeRequest({ ...baseParams, _k: String(i) }));
+      }
+
+      for (let i = 256; i < 260; i++) {
+        await GET(makeRequest({ ...baseParams, _k: String(i) }));
+      }
+      expect(cache.size).toBe(256);
+
+      const responseOld = await GET(makeRequest({ ...baseParams, _k: '0' }));
+      expect(responseOld.status).toBe(200);
     });
   });
 });

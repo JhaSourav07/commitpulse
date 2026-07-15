@@ -147,7 +147,8 @@ export function useShareActions(
       setOptionState('copy', 'success');
       setTimeout(() => onClose(), 800);
       return true;
-    } catch {
+    } catch (err) {
+      console.error('[useShareActions] copy link failed:', err);
       setOptionState('copy', 'error');
       return false;
     }
@@ -207,7 +208,8 @@ export function useShareActions(
       link.href = dataUrl;
       link.click();
       setOptionState('png', 'success');
-    } catch {
+    } catch (err) {
+      console.error('[useShareActions] PNG download failed:', err);
       setOptionState('png', 'error');
     }
   };
@@ -243,7 +245,8 @@ export function useShareActions(
       link.href = dataUrl;
       link.click();
       setOptionState('webp', 'success');
-    } catch {
+    } catch (err) {
+      console.error('[useShareActions] WEBP download failed:', err);
       setOptionState('webp', 'error');
     }
   };
@@ -295,7 +298,8 @@ export function useShareActions(
 
       setOptionState('copyImage', 'success');
       setTimeout(() => onClose(), 800);
-    } catch {
+    } catch (err) {
+      console.error('[useShareActions] copy image failed:', err);
       setOptionState('copyImage', 'error');
     }
   };
@@ -314,7 +318,8 @@ export function useShareActions(
       link.click();
       URL.revokeObjectURL(url);
       setOptionState('svg', 'success');
-    } catch {
+    } catch (err) {
+      console.error('[useShareActions] SVG download failed:', err);
       setOptionState('svg', 'error');
     }
   };
@@ -326,7 +331,8 @@ export function useShareActions(
       await navigator.clipboard.writeText(markdown);
       setOptionState('markdown', 'success');
       setTimeout(() => onClose(), 800);
-    } catch {
+    } catch (err) {
+      console.error('[useShareActions] copy markdown failed:', err);
       setOptionState('markdown', 'error');
     }
   };
@@ -378,7 +384,8 @@ export function useShareActions(
       downloadTextFile(csv, `commitpulse-${username}-stats.csv`, 'text/csv;charset=utf-8');
 
       setOptionState('csv', 'success');
-    } catch {
+    } catch (err) {
+      console.error('[useShareActions] CSV download failed:', err);
       setOptionState('csv', 'error');
     }
   };
@@ -412,7 +419,8 @@ export function useShareActions(
       );
 
       setOptionState('json', 'success');
-    } catch {
+    } catch (err) {
+      console.error('[useShareActions] JSON download failed:', err);
       setOptionState('json', 'error');
     }
   };

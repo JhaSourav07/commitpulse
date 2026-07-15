@@ -141,7 +141,7 @@ describe('GET /api/stats', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe(
-      'public, s-maxage=3600, stale-while-revalidate=86400'
+      'public, s-maxage=1, stale-while-revalidate=59'
     );
     expect(response.headers.get('Pragma')).toBeNull();
     expect(response.headers.get('Expires')).toBeNull();
@@ -168,7 +168,7 @@ describe('GET /api/stats', () => {
     });
     expect(response.headers.get('X-Refresh-Status')).toBe('Cooldown-Served-Cached');
     expect(response.headers.get('Cache-Control')).toBe(
-      'public, s-maxage=3600, stale-while-revalidate=86400'
+      'public, s-maxage=1, stale-while-revalidate=59'
     );
   });
 
@@ -210,7 +210,7 @@ describe('GET /api/stats', () => {
     const response = await GET(makeRequest({ user: 'testuser' }));
     expect(response.status).toBe(500);
     const body = await response.json();
-    expect(body.error).toBe('GitHub API error');
+    expect(body.error).toBe('Internal server error');
   });
 
   it('returns 404 when GitHub reports that the user does not exist', async () => {
@@ -240,6 +240,6 @@ describe('GET /api/stats', () => {
     const response = await GET(makeRequest({ user: 'testuser' }));
     expect(response.status).toBe(500);
     const body = await response.json();
-    expect(body.error).toBe('Unknown error');
+    expect(body.error).toBe('Internal server error');
   });
 });

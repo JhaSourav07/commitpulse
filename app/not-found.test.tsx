@@ -20,7 +20,7 @@ describe('NotFound', () => {
   it('renders the oops text', () => {
     render(<NotFound />);
 
-    expect(screen.getAllByText('𝒐𝒐𝒑𝒔')).toHaveLength(2);
+    expect(screen.getAllByText('404')).toHaveLength(3);
   });
 
   it('renders git checkout main text', () => {

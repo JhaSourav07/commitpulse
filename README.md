@@ -138,10 +138,27 @@ Transform your GitHub contribution history into a cinematic 3D monolith.
 | `tokyo_night`      | Deep navy & soft pastel blue | `1a1b26` | `7aa2f7` | `c0caf5` |
 | `monokai`          | Classic vibrant dark         | `272822` | `a6e22e` | `f8f8f2` |
 | `midnight_ocean`   | Deep navy bioluminescent     | `020c1b` | `0af5ff` | `ccd6f6` |
+| `india`            | Saffron & India green        | `0a0a0a` | `FF9933` | `ffffff` |
+| `ocean`            | Deep sea teal & navy         | `0a192f` | `64ffda` | `ccd6f6` |
+| `sunset`           | Warm dusk orange             | `1a0a0a` | `ff6b35` | `ffd6c0` |
+| `forest`           | Emerald woodland green       | `0d1f0d` | `39d353` | `c8f0c8` |
+| `rose`             | Blush pink romance           | `1f0d14` | `ff6b9d` | `f0c8d4` |
+| `nord`             | Arctic frost blue            | `2e3440` | `88c0d0` | `d8dee9` |
+| `synthwave`        | 80s retro pink glow          | `0d0221` | `ff2d78` | `f8f8f2` |
+| `aurora_cyberpunk` | Aurora violet neon           | `090B13` | `9D5CFF` | `EAF2FF` |
+| `catppuccin_latte` | Pastel latte light           | `eff1f5` | `1e66f5` | `4c4f69` |
+| `solarized_light`  | Warm solarized light         | `fdf6e3` | `268bd2` | `586e75` |
+| `gruvbox_light`    | Retro warm light             | `fbf1c7` | `d65d0e` | `3c3836` |
+| `nord_light`       | Arctic frost light           | `eceff4` | `5e81ac` | `2e3440` |
+| `cyberpunk`        | Neon yellow cyberpunk        | `fce22a` | `ff003c` | `111111` |
+| `cyberpunk_neon`   | Electric cyan neon           | `0d0d14` | `ff0055` | `00f3ff` |
+| `enterprise`       | Professional indigo dark     | `1a1a2e` | `6366f1` | `e2e8f0` |
 
 > **`auto` uses CSS `@media (prefers-color-scheme)`** inside the SVG so the badge switches between the `light` and `dark` palettes based on the viewer's OS setting — no JavaScript required. This is ideal for GitHub profile READMEs where visitors may use either mode.
 
 For all URL parameters and configuration possibilities (including grace periods, custom fonts, timezone overrides, versus comparison mode, heatmap view, LOC mode, and layout dimensions), check out the **[🎨 Customization Guide & Parameters](docs/customization.md)**.
+
+For advanced usage examples including custom gradient backgrounds, multi-user comparisons, organization dashboards, and custom date ranges, see the **[🚀 Advanced Usage Examples](docs/customization.md#-advanced-usage-examples)** section in the customization guide.
 
 ---
 
@@ -175,7 +192,7 @@ To keep the repository clean and readable, technical details have been modulariz
 
 Get your own instance of CommitPulse running locally in 4 simple steps:
 
-```bash
+````bash
 # 1. Clone the repository
 git clone https://github.com/JhaSourav07/commitpulse.git && cd commitpulse
 
@@ -183,15 +200,30 @@ git clone https://github.com/JhaSourav07/commitpulse.git && cd commitpulse
 npm install
 
 # 3. Create your environment file
-cat > .env.local << 'EOF'
+
+Create a `.env.local` file in the project root:
+
+```env
 GITHUB_TOKEN=your_github_pat_here
-EOF
+````
+
+> Replace `your_github_pat_here` with your own GitHub Personal Access Token.
+
+> ⚠️ **Security Notice**
+>
+> - Never commit `.env.local` or any file containing secrets to Git.
+> - Keep your Personal Access Token private.
+> - If your token is ever exposed, revoke it immediately from your GitHub account and generate a new one.
+> - `.env.local` is intended for local development only and should remain untracked by Git.
 
 # 4. Start the development server
+
+```bash
 npm run dev
 ```
 
-> **📌 Token Scope**: Your GitHub Personal Access Token needs the `read:user` scope only. No write permissions required.
+> **📌 Token Scope**: > Your GitHub Personal Access Token only requires the `read:user` scope.
+> Avoid granting additional permissions unless absolutely necessary, following the principle of least privilege.
 
 Then visit: `http://localhost:3000/api/streak?user=YOUR_USERNAME`
 

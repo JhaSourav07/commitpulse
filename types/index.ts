@@ -296,7 +296,9 @@ export interface BadgeParams {
     | 'radar'
     | 'doughnut'
     | 'pie'
-    | 'activity_graph';
+    | 'activity_graph'
+    | 'commit_clock'
+    | 'weekday';
 
   /** Format for the monthly delta indicator. 'percent' shows %, 'absolute' shows raw count, 'both' shows both. */
   delta_format?: 'percent' | 'absolute' | 'both';
@@ -368,6 +370,9 @@ export interface BadgeParams {
 
   /** When true, renders a compact single-row card (~100px tall) with only username, avatar, and streak count. Skips the full isometric grid. */
   compact?: boolean;
+
+  /** When true, hides Saturday and Sunday from the weekday chart */
+  hide_weekend?: boolean;
 
   /** @internal Temporary property to track custom gradient ID during SVG generation. */
   __customGradientId?: string;

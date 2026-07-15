@@ -33,15 +33,20 @@ vi.mock('@/components/dashboard/ActivityLandscape', () => ({
   default: () => <div data-testid="activity-landscape">ActivityLandscape</div>,
 }));
 
-type StatsCardProps = {
-  title: string;
-  value: string | number;
+type ContributionInsightsPanelProps = {
+  stats: {
+    currentStreak: number;
+    peakStreak: number;
+    totalContributions: number;
+  };
 };
 
-vi.mock('@/components/dashboard/StatsCard', () => ({
-  default: ({ title, value }: StatsCardProps) => (
-    <div data-testid="stats-card">
-      {title}: {value}
+vi.mock('@/components/dashboard/ContributionInsightsPanel', () => ({
+  default: ({ stats }: ContributionInsightsPanelProps) => (
+    <div data-testid="contribution-insights-panel">
+      <div>Current Streak: {stats.currentStreak}</div>
+      <div>Peak Streak: {stats.peakStreak}</div>
+      <div>Contributions: {stats.totalContributions}</div>
     </div>
   ),
 }));
@@ -238,7 +243,7 @@ describe('DashboardPage', () => {
       expect(screen.getByTestId('historical-trend-view')).toBeDefined();
       expect(screen.getByTestId('ai-insights')).toBeDefined();
       expect(screen.getByTestId('achievements')).toBeDefined();
-      expect(screen.getAllByTestId('stats-card')).toHaveLength(3);
+      expect(screen.getByTestId('contribution-insights-panel')).toBeDefined();
       expect(screen.getByText('Current Streak: 5')).toBeDefined();
       expect(screen.getByText('Peak Streak: 15')).toBeDefined();
       expect(screen.getByText('Contributions: 500')).toBeDefined();

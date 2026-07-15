@@ -1,4 +1,4 @@
-import { describe, expectTypeOf, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 import type { ComponentProps } from 'react';
 import VisualizationTooltip from './VisualizationTooltip';
 
@@ -44,23 +44,25 @@ describe('VisualizationTooltip type compiler tests', () => {
   it('rejects invalid property types during compilation', () => {
     expectTypeOf<VisualizationTooltipProps>().toBeObject();
 
-    const invalidProps: VisualizationTooltipProps = {
+    void ({
       title: 'Test',
       children: 'Content',
       // @ts-expect-error x must be number
       x: '100',
       y: 200,
-    };
+    } satisfies VisualizationTooltipProps);
   });
 
   it('rejects missing required properties', () => {
     expectTypeOf<VisualizationTooltipProps>().toBeObject();
 
     // @ts-expect-error y is required
-    const invalidProps: VisualizationTooltipProps = {
+    const _invalidProps: VisualizationTooltipProps = {
       title: 'Test',
       children: 'Content',
       x: 100,
     };
+
+    expect(_invalidProps).toBeDefined();
   });
 });

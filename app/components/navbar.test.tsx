@@ -49,7 +49,7 @@ function mockMatchMedia(initialMatches = false) {
       listeners.forEach((listener) => {
         listener({
           matches,
-          media: '(min-width: 768px)',
+          media: '(min-width: 1024px)',
         } as MediaQueryListEvent);
       });
     },
@@ -69,8 +69,16 @@ vi.mock('lucide-react', () => ({
   Globe: () => <div>GlobeIcon</div>,
   Sun: () => <div>SunIcon</div>,
   Moon: () => <div>MoonIcon</div>,
+
   Search: () => <div>SearchIcon</div>,
   ArrowRight: () => <div>ArrowRightIcon</div>,
+  ChevronDown: () => <div>ChevronDownIcon</div>,
+  Check: () => <div>CheckIcon</div>,
+  Keyboard: () => <div>KeyboardIcon</div>,
+}));
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
 }));
 
 describe('Navbar mobile menu', () => {
