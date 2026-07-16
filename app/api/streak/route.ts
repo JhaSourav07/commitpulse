@@ -579,7 +579,7 @@ export async function GET(request: Request) {
         : getSecondsUntilUTCMidnight();
       const cacheControl = isRefreshRequested
         ? 'no-cache, no-store, must-revalidate'
-        : `public, s-maxage=1, stale-while-revalidate=86400`;
+        : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
 
       const cacheStatusHeader = shouldBypassCache
         ? `BYPASS, fetched=${new Date().toISOString()}`
@@ -694,7 +694,7 @@ export async function GET(request: Request) {
       ? 'no-cache, no-store, must-revalidate'
       : isHistoricalYear
         ? 'public, max-age=31536000, s-maxage=31536000, immutable'
-        : `public, max-age=60, s-maxage=1, stale-while-revalidate=59`;
+        : `public, max-age=60, s-maxage=${secondsToMidnight}, stale-while-revalidate=59`;
 
     const etag = crypto.createHash('sha256').update(svg).digest('hex');
     const weakEtag = `W/"${etag}"`;
