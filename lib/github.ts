@@ -36,7 +36,26 @@ export interface GitHubRepo {
 const MAX_RETRIES = Number(process.env.GITHUB_MAX_RETRIES ?? '3');
 const BASE_DELAY_MS = Number(process.env.GITHUB_BASE_DELAY_MS ?? '500');
 const MAX_RETRY_DELAY_MS = Number(process.env.GITHUB_MAX_RETRY_DELAY_MS ?? '5000');
+const pendingRequests = new Map<string, Promise<unknown>>();
+async function dedupeRequest<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+  const existing = pendingRequests.get(key);
 
+  if (existing) {
+    console.log('[DEDUPE] Reusing existing request:', key);
+    return existing as Promise<T>;
+  }
+
+  console.log('[DEDUPE] Starting new request:', key);
+
+  const promise = fetcher().finally(() => {
+    console.log('[DEDUPE] Removing request:', key);
+    pendingRequests.delete(key);
+  });
+
+  pendingRequests.set(key, promise);
+
+  return promise;
+}
 export function getJitteredBackoff(attempt: number): number {
   const base = BASE_DELAY_MS * Math.pow(2, attempt);
   const jitter = 0.5 + Math.random() * 0.5;
@@ -183,7 +202,16 @@ export function isAbortError(error: unknown): boolean {
     lower.includes('operation was aborted')
   );
 }
+const inFlightRequests = new Map<string, Promise<Response>>();
 
+function createRequestKey(url: string, options: RequestInit, token?: string): string {
+  return JSON.stringify({
+    url,
+    method: options.method ?? 'GET',
+    body: options.body ?? '',
+    token: token ?? '',
+  });
+}
 export async function fetchWithRetry(
   url: string | URL,
   options: RequestInit,
@@ -240,7 +268,10 @@ export async function fetchWithRetry(
   let didThrow = false;
 
   try {
-    res = await fetch(url, { ...options, signal: controller.signal });
+    res = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
   } catch (err: unknown) {
     fetchError = err;
     didThrow = true;
@@ -248,7 +279,6 @@ export async function fetchWithRetry(
     clearTimeout(timeoutId);
     options.signal?.removeEventListener('abort', abortRequest);
   }
-
   if (didThrow) {
     if (options.signal?.aborted) throw fetchError;
     const isTimeoutAbort = isAbortError(fetchError);
@@ -1037,22 +1067,38 @@ async function fetchContributionsUncached(
         }
       }
     `;
+  const requestBody = JSON.stringify({
+    query,
+    variables: {
+      login: username,
+      from: options.from,
+      to: options.to,
+    },
+  });
 
-  const res = await fetchGraphQLWithRetry(
+  const requestKey = createRequestKey(
     GITHUB_GRAPHQL_URL,
     {
       method: 'POST',
-      headers: getHeaders(options.token),
-      body: JSON.stringify({
-        query,
-        variables: { login: username, from: options.from, to: options.to },
-      }),
-      cache: 'no-store',
-      signal: options.signal,
+      body: requestBody,
     },
-    0,
-    undefined,
     options.token
+  );
+
+  const res = await dedupeRequest(requestKey, () =>
+    fetchGraphQLWithRetry(
+      GITHUB_GRAPHQL_URL,
+      {
+        method: 'POST',
+        headers: getHeaders(options.token),
+        body: requestBody,
+        cache: 'no-store',
+        signal: options.signal,
+      },
+      0,
+      undefined,
+      options.token
+    )
   );
 
   if (!res.ok) {
@@ -1368,34 +1414,43 @@ async function fetchReposUncached(
  * ========================================================================== */
 
 export async function fetchOrgMembers(orgName: string, userToken?: string): Promise<string[]> {
-  const encodedOrgName = encodeURIComponent(orgName);
-  const allMembers: string[] = [];
-  const perPage = 100;
-  const maxMembers = 1000;
+  const cacheKey = `org-members:${orgName}`;
 
-  let page = 1;
-  while (allMembers.length < maxMembers) {
-    const res = await fetchWithRetry(
-      `${GITHUB_REST_URL}/orgs/${encodedOrgName}/members?per_page=${perPage}&page=${page}`,
-      {
-        headers: getHeaders(userToken),
-        cache: 'no-store',
+  return dedupeRequest(cacheKey, async () => {
+    const encodedOrgName = encodeURIComponent(orgName);
+    const allMembers: string[] = [];
+    const perPage = 100;
+    const maxMembers = 1000;
+
+    let page = 1;
+
+    while (allMembers.length < maxMembers) {
+      const res = await fetchWithRetry(
+        `${GITHUB_REST_URL}/orgs/${encodedOrgName}/members?per_page=${perPage}&page=${page}`,
+        {
+          headers: getHeaders(userToken),
+          cache: 'no-store',
+        }
+      );
+
+      if (!res.ok) {
+        throwIfRateLimited(res);
+        throw new Error(`Failed to fetch members for org ${orgName}`);
       }
-    );
-    if (!res.ok) {
-      throwIfRateLimited(res);
-      throw new Error(`Failed to fetch members for org ${orgName}`);
+
+      const members = (await res.json()) as { login: string }[];
+
+      if (members.length === 0) break;
+
+      allMembers.push(...members.map((m) => m.login));
+
+      if (members.length < perPage) break;
+
+      page++;
     }
-    const members = (await res.json()) as { login: string }[];
-    if (members.length === 0) break;
 
-    allMembers.push(...members.map((m) => m.login));
-
-    if (members.length < perPage) break;
-    page++;
-  }
-
-  return allMembers;
+    return allMembers;
+  });
 }
 export type OrgDashboardData = {
   profile: ReturnType<typeof buildProfileData> & {
