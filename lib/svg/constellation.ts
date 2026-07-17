@@ -307,7 +307,9 @@ export function generateConstellationSVG(
   const safeUser = escapeXML(truncateUsername(params.user));
   const bgColor = params.bg || '0d1117';
   const textColor = params.text || 'c9d1d9';
-  const accentColor = Array.isArray(params.accent) ? params.accent[0] : params.accent || '58a6ff';
+  const accentColor = Array.isArray(params.accent)
+    ? params.accent[params.accent.length - 1]
+    : params.accent || '58a6ff';
 
   // Determine year from calendar data
   const firstDay = calendar.weeks[0]?.contributionDays[0];

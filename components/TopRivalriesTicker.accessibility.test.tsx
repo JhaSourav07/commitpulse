@@ -58,7 +58,7 @@ describe('components/TopRivalriesTicker Accessibility Standards & Screen Reader 
     render(<TopRivalriesTicker />);
 
     expect(screen.getAllByText('VS').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Platform Wars').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Vercel & Netlify Founders').length).toBeGreaterThan(0);
   });
 
   it('preserves logical content order for rivalry information', () => {

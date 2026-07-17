@@ -1,12 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
 
-/**
- * Reads from localStorage synchronously with an SSR guard.
- * Used as a lazy useState initializer so the stored value is available
- * on the first render — consistent with useRecentSearches.ts.
- * Returns initialValue when running on the server or when the key is absent.
- */
 function readFromStorage<T>(key: string, initialValue: T): T {
   if (typeof window === 'undefined') return initialValue;
   try {
@@ -20,10 +14,6 @@ function readFromStorage<T>(key: string, initialValue: T): T {
 export function useLocalStorage<T>(key: string, initialValue: T): readonly [T, (value: T) => void] {
   const [storedValue, setStoredValue] = useState<T>(initialValue);
 
-  // Re-sync when the key changes (e.g. component reused with a different key).
-  // setState inside an effect is intentional here — we are synchronising React
-  // state with an external system (localStorage) when the key prop changes,
-  // which is exactly the use-case effects are designed for per React docs.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setStoredValue(readFromStorage(key, initialValue));
@@ -35,7 +25,6 @@ export function useLocalStorage<T>(key: string, initialValue: T): readonly [T, (
       setStoredValue(value);
       window.localStorage.setItem(key, JSON.stringify(value));
     } catch {
-      // Ignore storage errors (private browsing, quota exceeded, etc.)
       setStoredValue(value);
     }
   };
