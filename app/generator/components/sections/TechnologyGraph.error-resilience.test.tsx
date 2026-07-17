@@ -72,11 +72,12 @@ const BuggyDatabaseChild = () => {
 
 // Start testing suite
 describe('TechnologyGraph: Hydration Stability, Exception Safety & Error Fallbacks', () => {
-  let mockReset: ReturnType<typeof vi.fn>;
-
+  const mockReset = vi.fn();
   beforeEach(() => {
-    mockReset = vi.fn();
+    mockReset.mockClear();
     mockTelemetryLogger.mockClear();
+
+    vi.spyOn(console, 'error').mockImplementation(() => {});
 
     // Suppress console.error in tests to keep output clean when errors are thrown intentionally
     vi.spyOn(console, 'error').mockImplementation(() => {});
