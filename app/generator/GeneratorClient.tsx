@@ -25,6 +25,9 @@ const INITIAL_STATE: GeneratorState = {
   graphPlacement: 'bottom',
   showRepoSpotlight: false,
   spotlightRepo: '',
+  showArticles: false,
+  articlesPlatform: 'devto',
+  articlesUsername: '',
 };
 
 export function GeneratorClient() {
@@ -39,7 +42,8 @@ export function GeneratorClient() {
       (state.showCommitPulse && state.githubUsername.trim()) ||
       (state.showRepoSpotlight && state.spotlightRepo.trim()) ||
       (state.showSnakeGraph && state.githubUsername.trim()) ||
-      (state.showPacmanGraph && state.githubUsername.trim());
+      (state.showPacmanGraph && state.githubUsername.trim()) ||
+      (state.showArticles && state.articlesUsername?.trim());
 
     return hasContent ? generateReadme(state) : getEmptyReadme();
   }, [state]);
@@ -98,6 +102,9 @@ export function GeneratorClient() {
           onGraphPlacementChange={(v) => setState((s) => ({ ...s, graphPlacement: v }))}
           onShowRepoSpotlightChange={(v) => setState((s) => ({ ...s, showRepoSpotlight: v }))}
           onSpotlightRepoChange={(v) => setState((s) => ({ ...s, spotlightRepo: v }))}
+          onShowArticlesChange={(v) => setState((s) => ({ ...s, showArticles: v }))}
+          onArticlesPlatformChange={(v) => setState((s) => ({ ...s, articlesPlatform: v }))}
+          onArticlesUsernameChange={(v) => setState((s) => ({ ...s, articlesUsername: v }))}
           onApplyImport={handleApplyImport}
         />
       </div>

@@ -6,11 +6,16 @@ import { getValidationCacheForTests } from './validation-cache';
 // We only mock the two things that reach outside this process:
 // the GitHub API call and the wall-clock time helper.
 // calculateStreak and generateSVG run for real, giving us genuine end-to-end coverage.
-vi.mock('../../../lib/github', () => ({
-  fetchGitHubContributions: vi.fn(),
-  getOrgDashboardData: vi.fn(),
-  getCircuitTelemetry: vi.fn().mockReturnValue({ isOpen: false, resetInMs: 0 }),
-}));
+vi.mock('../../../lib/github', async () => {
+  const actual = await vi.importActual<typeof import('../../../lib/github')>('../../../lib/github');
+
+  return {
+    ...actual,
+    fetchGitHubContributions: vi.fn(),
+    getOrgDashboardData: vi.fn(),
+    getCircuitTelemetry: vi.fn().mockReturnValue({ isOpen: false, resetInMs: 0 }),
+  };
+});
 
 vi.mock('../../../utils/time', () => ({
   getSecondsUntilUTCMidnight: vi.fn(),
@@ -438,7 +443,7 @@ describe('GET /api/streak', () => {
     it('caches until UTC midnight by default, using the value from getSecondsUntilUTCMidnight', async () => {
       const response = await GET(makeRequest({ user: 'octocat' }));
       expect(response.headers.get('Cache-Control')).toBe(
-        'public, max-age=60, s-maxage=3600, stale-while-revalidate=60'
+        'public, max-age=60, s-maxage=3600, stale-while-revalidate=59'
       );
     });
 
@@ -446,7 +451,7 @@ describe('GET /api/streak', () => {
       vi.mocked(getSecondsUntilUTCMidnight).mockReturnValue(7200);
       const response = await GET(makeRequest({ user: 'octocat' }));
       expect(response.headers.get('Cache-Control')).toBe(
-        'public, max-age=60, s-maxage=7200, stale-while-revalidate=60'
+        'public, max-age=60, s-maxage=7200, stale-while-revalidate=59'
       );
     });
 
@@ -1008,7 +1013,7 @@ describe('GET /api/streak', () => {
       const response = await GET(makeRequest({ user: 'octocat', tz: 'America/New_York' }));
 
       expect(response.headers.get('Cache-Control')).toBe(
-        'public, max-age=60, s-maxage=7200, stale-while-revalidate=60'
+        'public, max-age=60, s-maxage=7200, stale-while-revalidate=59'
       );
       expect(getSecondsUntilMidnightInTimezone).toHaveBeenCalledWith('America/New_York');
       expect(getSecondsUntilUTCMidnight).not.toHaveBeenCalled();
@@ -1566,16 +1571,16 @@ describe('GET /api/streak', () => {
   });
 
   describe('stale-while-revalidate cache header', () => {
-    it('contains stale-while-revalidate=60 for normal request', async () => {
+    it('contains stale-while-revalidate=59 for normal request', async () => {
       const response = await GET(makeRequest({ user: 'octocat' }));
 
-      expect(response.headers.get('Cache-Control')).toContain('stale-while-revalidate=60');
+      expect(response.headers.get('Cache-Control')).toContain('stale-while-revalidate=59');
     });
 
     it('does NOT contain stale-while-revalidate when ?refresh=true', async () => {
       const response = await GET(makeRequest({ user: 'octocat', refresh: 'true' }));
 
-      expect(response.headers.get('Cache-Control')).not.toContain('stale-while-revalidate=60');
+      expect(response.headers.get('Cache-Control')).not.toContain('stale-while-revalidate=59');
     });
   });
 
@@ -1647,14 +1652,14 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(404);
     });
 
-    it('rejects requests with more than 2 users with a 400 Bad Request', async () => {
-      const response = await GET(makeRequest({ user: 'a, b, c, d' }));
+    it('rejects requests with more than 7 users with a 400 Bad Request', async () => {
+      const response = await GET(makeRequest({ user: 'a, b, c, d, e, f, g, h' }));
       expect(response.status).toBe(400);
 
       expect(fetchGitHubContributions).not.toHaveBeenCalled();
 
       const body = await response.text();
-      expect(body).toContain('a maximum of 2 usernames');
+      expect(body).toContain('maximum of 7 usernames');
     });
   });
 

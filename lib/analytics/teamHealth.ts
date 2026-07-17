@@ -114,7 +114,10 @@ function calculateSprintProgress(
     endDate: endDate.toISOString().split('T')[0],
     targetContributions,
     currentContributions,
-    progressPercentage: Math.round((currentContributions / targetContributions) * 100),
+    // Guard against 0/0 = NaN when every member has 0 total contributions
+    // (e.g. a brand-new team with no activity yet).
+    progressPercentage:
+      targetContributions > 0 ? Math.round((currentContributions / targetContributions) * 100) : 0,
   };
 }
 
@@ -135,15 +138,21 @@ function calculateTeamMetrics(members: TeamMember[]): TeamMetrics {
 }
 
 function calculateTeamHealthScore(metrics: TeamMetrics, burnoutRisk: BurnoutRisk): TeamHealthScore {
-  const productivity = Math.min(
-    100,
-    Math.round((metrics.activeMembers / metrics.totalMembers) * 100)
-  );
+  // Guard against 0/0 = NaN and x/0 = Infinity when the team has no members —
+  // an empty team should read as "no data" (0), not silently fail every
+  // overall >= N comparison below and fall through to 'critical'.
+  const productivity =
+    metrics.totalMembers > 0
+      ? Math.min(100, Math.round((metrics.activeMembers / metrics.totalMembers) * 100))
+      : 0;
   const sustainability = Math.max(0, 100 - burnoutRisk.score);
-  const collaboration = Math.min(
-    100,
-    Math.round((metrics.combinedCurrentStreak / (metrics.totalMembers * 7)) * 100)
-  );
+  const collaboration =
+    metrics.totalMembers > 0
+      ? Math.min(
+          100,
+          Math.round((metrics.combinedCurrentStreak / (metrics.totalMembers * 7)) * 100)
+        )
+      : 0;
   const overall = Math.round((productivity + sustainability + collaboration) / 3);
 
   let level: HealthScoreLevel;
@@ -176,6 +185,7 @@ export function aggregateTeamData(
     sprintProgress,
     velocityTrends,
     burnoutRisk,
+    healthScore,
     contributionCalendar,
     generatedAt: new Date().toISOString(),
   };

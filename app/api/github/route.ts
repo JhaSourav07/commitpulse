@@ -1,7 +1,7 @@
 // app/api/github/route.ts
 
 import { NextResponse, after } from 'next/server';
-import { getFullDashboardData } from '@/lib/github';
+import { getFullDashboardData, isAbortError } from '@/lib/github';
 import { githubParamsSchema, coerceQueryParams } from '@/lib/validations';
 import { getClientIp } from '@/utils/getClientIp';
 import { quotaMonitor } from '@/services/github/quota-monitor';
@@ -100,7 +100,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const { username, refresh, bypassCache: bypassCacheParam } = parseResult.data;
+  const { username, refresh, bypassCache: bypassCacheParam, org, excludeBots } = parseResult.data;
   // Treat either ?refresh=true or ?bypassCache=true as a cache-bypass request
   const isRefreshRequested = refresh || bypassCacheParam;
 
@@ -159,6 +159,8 @@ export async function GET(request: Request) {
     const data = await getFullDashboardData(username, {
       bypassCache: shouldBypassCache,
       signal: controller.signal,
+      org,
+      excludeBots,
     });
 
     // 4. Stale-While-Revalidate background refresh for normal cached requests
@@ -172,7 +174,7 @@ export async function GET(request: Request) {
 
     const cacheControl = shouldBypassCache
       ? 'no-cache, no-store, must-revalidate'
-      : 's-maxage=3600, stale-while-revalidate=86400';
+      : 's-maxage=1, stale-while-revalidate=59';
 
     const cacheStatus = shouldBypassCache ? 'MISS' : 'HIT';
 
@@ -236,6 +238,14 @@ export async function GET(request: Request) {
       return NextResponse.json(
         { error: 'GitHub API rate limit reached. Please configure GITHUB_TOKEN.' },
         { status: 403 }
+      );
+    }
+
+    // 504 - Upstream request timeout or AbortController abort
+    if (isAbortError(rootCause || error)) {
+      return NextResponse.json(
+        { error: 'Upstream request timed out after 10 seconds.' },
+        { status: 504 }
       );
     }
 

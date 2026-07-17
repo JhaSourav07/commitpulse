@@ -253,18 +253,16 @@ describe('TTLCache', () => {
       cache.destroy();
     });
 
-    it('falls back to default TTL when ttl is NaN', () => {
+    it('rejects NaN TTL values', () => {
       vi.useFakeTimers();
 
       const cache = new TTLCache<string>();
 
-      cache.set('nan-key', 'value', Number.NaN);
-
-      expect(cache.get('nan-key')).toBe('value');
+      expect(() => cache.set('nan-key', 'value', Number.NaN)).toThrow(RangeError);
+      expect(cache.get('nan-key')).toBeNull();
 
       vi.advanceTimersByTime(1_000);
-
-      expect(cache.get('nan-key')).toBe('value');
+      expect(cache.get('nan-key')).toBeNull();
 
       cache.destroy();
     });
@@ -661,37 +659,28 @@ describe('TTLCache', () => {
       cache.destroy();
     });
     // FIX: New test targeting the NaN boundary for Issue #1399
-    it('resolves NaN TTL to the default standard TTL duration', () => {
+    it('rejects NaN TTL values instead of falling back', () => {
       vi.useFakeTimers();
       const cache = new TTLCache<string>();
 
-      // Setting with NaN should not throw; it should fallback to the default TTL
-      expect(() => cache.set('nan-key', 'value', NaN)).not.toThrow();
+      expect(() => cache.set('nan-key', 'value', NaN)).toThrow(RangeError);
+      expect(cache.get('nan-key')).toBeNull();
 
-      // The item should be successfully stored
-      expect(cache.get('nan-key')).toBe('value');
-
-      // Advance by a small amount to ensure it didn't instantly expire
       vi.advanceTimersByTime(1000);
-      expect(cache.get('nan-key')).toBe('value');
-
-      // Advance past the default TTL (60s) to verify it eventually expires
-      vi.advanceTimersByTime(59_001);
       expect(cache.get('nan-key')).toBeNull();
 
       cache.destroy();
     });
 
-    it('verify TTLCache behavior for infinite TTL value (Variation 1)', () => {
+    it('rejects infinite TTL values', () => {
       const cache = new TTLCache<string>();
 
       expect(() => {
         cache.set('infinite-key', 'boundary-value', Infinity);
-      }).not.toThrow();
+      }).toThrow(RangeError);
 
-      expect(cache.get('infinite-key')).toBe('boundary-value');
-
-      expect(cache.has('infinite-key')).toBe(true);
+      expect(cache.get('infinite-key')).toBeNull();
+      expect(cache.has('infinite-key')).toBe(false);
 
       cache.destroy();
     });
@@ -1032,27 +1021,24 @@ describe('DistributedCache', () => {
 });
 
 describe('TTLCache with infinite TTL', () => {
-  it('should cap Infinity TTL to a realistic maximum threshold', () => {
+  it('should reject Infinity TTL values', () => {
     const cache = new TTLCache<string>();
-    cache.set('test-key', 'test-value', Infinity);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const internalCache = (cache as any).store;
-    const expiresAt = internalCache.get('test-key')?.expiresAt;
-    expect(expiresAt).toBeDefined();
-    // Infinity TTL should result in Infinity expiresAt until capped
-    expect(
-      expiresAt === Infinity || (Number.isFinite(expiresAt) && expiresAt - Date.now() > 0)
-    ).toBe(true);
-    expect(cache.get('test-key')).toBe('test-value');
+
+    expect(() => cache.set('test-key', 'test-value', Infinity)).toThrow(RangeError);
+    expect(cache.get('test-key')).toBeNull();
+    expect(cache.size()).toBe(0);
   });
 
-  it('should handle setting multiple values with Infinity TTL', () => {
+  it('should reject multiple Infinity TTL writes', () => {
     const cache = new TTLCache<string>();
-    cache.set('key1', 'value1', Infinity);
-    cache.set('key2', 'value2', Infinity);
-    cache.set('key3', 'value3', Infinity);
-    expect(cache.get('key1')).toBe('value1');
-    expect(cache.get('key2')).toBe('value2');
-    expect(cache.get('key3')).toBe('value3');
+
+    expect(() => cache.set('key1', 'value1', Infinity)).toThrow(RangeError);
+    expect(() => cache.set('key2', 'value2', Infinity)).toThrow(RangeError);
+    expect(() => cache.set('key3', 'value3', Infinity)).toThrow(RangeError);
+
+    expect(cache.get('key1')).toBeNull();
+    expect(cache.get('key2')).toBeNull();
+    expect(cache.get('key3')).toBeNull();
+    expect(cache.size()).toBe(0);
   });
 });

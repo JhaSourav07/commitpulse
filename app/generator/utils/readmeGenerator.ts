@@ -65,19 +65,22 @@ export function generateReadme(state: GeneratorState): string {
   const graphsMarkdown = buildGraphsMarkdown(state);
 
   // 1. Header Section
-  if (state.name) {
-    const headerLines: string[] = ['<div align="center">', '', `# 👋 Hi, I'm ${state.name}`];
+  const name = state.name?.trim();
+  const description = state.description?.trim();
 
-    if (state.description) {
+  if (name) {
+    const headerLines: string[] = ['<div align="center">', '', `# 👋 Hi, I'm ${name}`];
+
+    if (description) {
       headerLines.push('');
-      headerLines.push(`<p>${state.description}</p>`);
+      headerLines.push(`<p>${description}</p>`);
     }
 
     headerLines.push('');
     headerLines.push('</div>');
     sections.push(headerLines.join('\n'));
-  } else if (state.description) {
-    sections.push(`<div align="center">\n\n<p>${state.description}</p>\n\n</div>`);
+  } else if (description) {
+    sections.push(`<div align="center">\n\n<p>${description}</p>\n\n</div>`);
   }
 
   // Inject top graphs
@@ -206,6 +209,41 @@ export function generateReadme(state: GeneratorState): string {
     ];
 
     sections.push(spotlightLines.join('\n'));
+  }
+
+  // 6. Articles Section
+  if (state.showArticles && state.articlesUsername?.trim()) {
+    const username = state.articlesUsername.trim();
+    const platform = state.articlesPlatform || 'devto';
+    const params = new URLSearchParams({ user: username, platform });
+
+    // Optional: inherit the global accent color if set
+    if (state.commitPulseAccent) {
+      const cleaned = state.commitPulseAccent.replace(/^#/, '');
+      if (/^[0-9a-fA-F]{6}$/.test(cleaned)) {
+        params.set('accent', cleaned);
+      }
+    }
+
+    const articlesBadgeUrl = `https://commitpulse.vercel.app/api/articles?${params.toString()}`;
+    const blogUrl =
+      platform === 'devto'
+        ? `https://dev.to/${username}`
+        : `https://${username.replace('.hashnode.dev', '')}.hashnode.dev/`;
+
+    const altText = `Latest Articles from ${platform === 'devto' ? 'Dev.to' : 'Hashnode'}`;
+
+    const articlesLines = [
+      '## 📝 Latest Articles',
+      '',
+      '<div align="center">',
+      '',
+      `[![${altText}](${articlesBadgeUrl})](${blogUrl})`,
+      '',
+      '</div>',
+    ];
+
+    sections.push(articlesLines.join('\n'));
   }
 
   // Inject bottom graphs

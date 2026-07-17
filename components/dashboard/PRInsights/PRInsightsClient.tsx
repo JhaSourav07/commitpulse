@@ -5,6 +5,7 @@ import type { PRInsightData } from '@/services/github/pr-insights';
 import TopMetricsRow from './TopMetricsRow';
 import PRTrendChart from './PRTrendChart';
 import PRStatusDistribution from './PRStatusDistribution';
+import PRSizeDistribution from './PRSizeDistribution';
 import ReviewAnalytics from './ReviewAnalytics';
 import RepoPerformanceTable from './RepoPerformanceTable';
 import Highlights from './Highlights';
@@ -128,7 +129,14 @@ export default function PRInsightsClient({ username }: { username: string }) {
           </div>
         </div>
 
-        <Highlights highlights={data.highlights} />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2">
+            <PRSizeDistribution data={data} />
+          </div>
+          <div>
+            <Highlights highlights={data.highlights} />
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <ReviewAnalytics data={data} />

@@ -5,17 +5,17 @@ import { buildCacheControlHeader } from './cacheControl';
 describe('buildCacheControlHeader - Edge Cases & Empty/Missing Inputs Verification', () => {
   it('1. falls back to default cache control when options object is completely omitted', () => {
     // Calling the function with no arguments should fallback gracefully without throwing
-    expect(buildCacheControlHeader()).toBe('s-maxage=3600, stale-while-revalidate=86400');
+    expect(buildCacheControlHeader()).toBe('public, s-maxage=1, stale-while-revalidate=59');
   });
 
   it('2. falls back to default cache control when options is an empty object', () => {
-    expect(buildCacheControlHeader({})).toBe('s-maxage=3600, stale-while-revalidate=86400');
+    expect(buildCacheControlHeader({})).toBe('public, s-maxage=1, stale-while-revalidate=59');
   });
 
   it('3. falls back to default cache control when options object is null', () => {
     // Casting to any to test JavaScript-level null input resilience
     expect(buildCacheControlHeader(null as any)).toBe(
-      's-maxage=3600, stale-while-revalidate=86400'
+      'public, s-maxage=1, stale-while-revalidate=59'
     );
   });
 
@@ -26,7 +26,7 @@ describe('buildCacheControlHeader - Edge Cases & Empty/Missing Inputs Verificati
         secondsToMidnight: undefined,
         isHistoricalYear: undefined,
       })
-    ).toBe('s-maxage=3600, stale-while-revalidate=86400');
+    ).toBe('public, s-maxage=1, stale-while-revalidate=59');
 
     expect(
       buildCacheControlHeader({
@@ -34,7 +34,7 @@ describe('buildCacheControlHeader - Edge Cases & Empty/Missing Inputs Verificati
         secondsToMidnight: null as any,
         isHistoricalYear: null as any,
       })
-    ).toBe('s-maxage=3600, stale-while-revalidate=86400');
+    ).toBe('public, s-maxage=1, stale-while-revalidate=59');
   });
 
   it('5. prioritizes bypass=true even if other options are invalid/null/undefined', () => {

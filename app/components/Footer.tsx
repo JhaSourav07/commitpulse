@@ -12,6 +12,8 @@ import {
   BookOpen,
   GitBranch,
   HelpCircle,
+  Shield,
+  FileText,
 } from 'lucide-react';
 import { FaGithub, FaDiscord, FaLinkedin } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
@@ -41,7 +43,7 @@ function LinkComponent({
   className?: string;
   ariaLabel?: string;
 }) {
-  const baseClasses = `group inline-block px-1 rounded transition-all duration-300 hover:-translate-y-[2px] hover:font-medium hover:text-teal-800 dark:hover:text-violet-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-zinc-950 ${className}`;
+  const baseClasses = `group inline-block px-1 rounded transition-all duration-300 hover:-translate-y-[2px] hover:font-medium hover:text-teal-800 dark:hover:text-violet-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-zinc-950 footer-link ${className}`;
 
   if (isExternal) {
     return (
@@ -92,6 +94,8 @@ const RESOURCE_ICON_MAP: Record<string, React.ReactNode> = {
   github_repo: <GitBranch size={15} className="shrink-0" />,
   guidelines: <BookOpen size={15} className="shrink-0" />,
   faq: <HelpCircle size={15} className="shrink-0" />,
+  privacy: <Shield size={15} className="shrink-0" />,
+  terms: <FileText size={15} className="shrink-0" />,
 };
 
 export function Footer() {
@@ -126,6 +130,16 @@ export function Footer() {
     {
       label: t('footer.faq'),
       href: '/support',
+      isExternal: false,
+    },
+    {
+      label: t('footer.privacy'),
+      href: '/privacy',
+      isExternal: false,
+    },
+    {
+      label: t('footer.terms'),
+      href: '/terms',
       isExternal: false,
     },
   ];
@@ -207,6 +221,8 @@ export function Footer() {
                 if (link.href.includes('README')) iconKey = 'documentation';
                 else if (link.href.includes('CODE_OF_CONDUCT') || link.href.includes('guidelines'))
                   iconKey = 'guidelines';
+                else if (link.href === '/privacy') iconKey = 'privacy';
+                else if (link.href === '/terms') iconKey = 'terms';
                 else if (link.href.includes('support') || link.href.includes('faq'))
                   iconKey = 'faq';
 
