@@ -208,6 +208,57 @@ export function ExportPanel({
     }
   };
 
+  const handleDownloadStl = async () => {
+    if (!hasUsername || !snippet) return;
+
+    try {
+      setIsDownloading(true);
+
+      const urlMatch = snippet.match(/\((https?:\/\/[^)]+)\)/) || snippet.match(/src="([^"]+)"/);
+      let targetUrl = urlMatch ? urlMatch[1] : '';
+
+      if (!targetUrl) {
+        toast.error('Could not determine badge URL.');
+        return;
+      }
+
+      targetUrl = targetUrl.replace(/&amp;/g, '&');
+
+      if (targetUrl.includes('https://commitpulse.vercel.app')) {
+        targetUrl = targetUrl.replace('https://commitpulse.vercel.app', window.location.origin);
+      }
+
+      targetUrl = targetUrl.replace('/api/streak', '/api/export3d');
+      targetUrl = targetUrl.replace('/api/monthly', '/api/export3d'); // handle edge cases just in case
+      targetUrl = targetUrl.replace('/api/wrapped', '/api/export3d');
+
+      const response = await fetch(targetUrl);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch STL from backend');
+      }
+
+      const blob = await response.blob();
+      const stlUrl = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = stlUrl;
+      link.download = `commitpulse-${username || 'city'}.stl`;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      URL.revokeObjectURL(stlUrl);
+      toast.success('3D printable STL saved successfully!');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to download STL model.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4">
       {/* Code Block Header Control Deck */}
@@ -297,6 +348,21 @@ export function ExportPanel({
             {isDownloading
               ? t('customize.export.downloading', { defaultValue: 'Downloading...' })
               : t('customize.export.download_png', { defaultValue: 'Download PNG' })}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleDownloadStl}
+            disabled={!hasUsername || isDownloading || format === 'action'}
+            className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
+              !hasUsername || isDownloading || format === 'action'
+                ? 'bg-gray-200/90 border border-black/10 text-gray-500 cursor-not-allowed dark:bg-white/10 dark:border-white/10 dark:text-white/35'
+                : 'bg-purple-500/10 border border-purple-500/30 text-purple-500 hover:bg-purple-500/20 hover:scale-[1.03] active:scale-[0.97]'
+            }`}
+          >
+            {isDownloading
+              ? t('customize.export.downloading', { defaultValue: 'Downloading...' })
+              : t('customize.export.download_stl', { defaultValue: 'Download STL' })}
           </button>
 
           {/* Clipboard Copy Button */}
