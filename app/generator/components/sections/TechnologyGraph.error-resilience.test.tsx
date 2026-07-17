@@ -77,8 +77,6 @@ describe('TechnologyGraph: Hydration Stability, Exception Safety & Error Fallbac
     mockReset.mockClear();
     mockTelemetryLogger.mockClear();
 
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-
     // Suppress console.error in tests to keep output clean when errors are thrown intentionally
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
