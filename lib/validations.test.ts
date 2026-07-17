@@ -1675,3 +1675,38 @@ describe('githubUsernameSchema regression tests', () => {
     }
   });
 });
+
+describe('streakParamsSchema — days parameter validation', () => {
+  it('accepts days=365 (normal year)', () => {
+    const result = streakParamsSchema.safeParse({ user: 'octocat', days: '365' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.days).toBe(365);
+  });
+
+  it('accepts days=366 (leap year)', () => {
+    const result = streakParamsSchema.safeParse({ user: 'octocat', days: '366' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.days).toBe(366);
+  });
+
+  it('rejects days=367 (exceeds leap year max)', () => {
+    const result = streakParamsSchema.safeParse({ user: 'octocat', days: '367' });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects days=0 (must be positive)', () => {
+    const result = streakParamsSchema.safeParse({ user: 'octocat', days: '0' });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects negative days', () => {
+    const result = streakParamsSchema.safeParse({ user: 'octocat', days: '-1' });
+    expect(result.success).toBe(false);
+  });
+
+  it('leaves days undefined when omitted', () => {
+    const result = streakParamsSchema.safeParse({ user: 'octocat' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.days).toBeUndefined();
+  });
+});

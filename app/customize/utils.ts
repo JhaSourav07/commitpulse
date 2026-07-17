@@ -259,7 +259,7 @@ export function buildQueryParams(options: CustomizeOptions): string {
 
   if (options.scale !== 'linear') params.set('scale', options.scale);
   if (options.speed !== '8s') params.set('speed', options.speed);
-  if (options.font) params.set('font', options.font);
+  if (options.font && options.font !== 'Inter') params.set('font', options.font);
   if (options.year) params.set('year', options.year);
   if (options.radius !== 8) params.set('radius', options.radius.toString());
   if (options.size !== 'medium') params.set('size', options.size);

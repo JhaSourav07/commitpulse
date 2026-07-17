@@ -40,7 +40,7 @@ describe('NotFound Component - Empty & Missing Input Fallbacks', () => {
     expect(() => render(<NotFound />)).not.toThrow();
 
     // Verify backdrop headers exist and standard styling markers are present
-    expect(screen.getAllByText('𝒐𝒐𝒑𝒔')).toHaveLength(2);
+    expect(screen.getAllByText('404')).toHaveLength(3);
     expect(
       screen.getByRole('heading', {
         name: /Looks like this commit got force-pushed to \/dev\/null/i,

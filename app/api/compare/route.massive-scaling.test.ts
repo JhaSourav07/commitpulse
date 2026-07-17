@@ -86,7 +86,7 @@ describe('API Compare Route - Massive Data Sets and High Bounds Scaling', () => 
         const text = await response.text();
         if (text.includes('<svg')) svgText = text;
       }
-    } catch (e: unknown) {
+    } catch {
       // Ignored to strictly evaluate the bounding logic assertions below
     }
 
@@ -106,7 +106,7 @@ describe('API Compare Route - Massive Data Sets and High Bounds Scaling', () => 
 
     try {
       await GET(req);
-    } catch (e: unknown) {
+    } catch {
       // Graceful isolation boundary
     }
 

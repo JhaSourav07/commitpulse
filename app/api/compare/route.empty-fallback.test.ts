@@ -1,10 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { GET } from './route';
-
 vi.mock('@/lib/github', () => ({
   getFullDashboardData: vi.fn(),
 }));
 
+vi.mock('@/lib/githubtoken', () => ({
+  getUserGitHubToken: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('@/lib/rate-limit', () => ({
+  RateLimiter: vi.fn().mockImplementation(function () {
+    return { check: vi.fn().mockResolvedValue(true) };
+  }),
+}));
+import { GET } from './route';
 import { getFullDashboardData } from '@/lib/github';
 
 function makeRequest(search: string, headers: Record<string, string> = {}): Request {
@@ -58,7 +66,7 @@ describe('GET /api/compare - Empty & Missing Input Fallbacks', () => {
     const res = await GET(makeRequest('user1=alice&user2=bob'));
     expect(res.status).toBe(200);
     expect(res.headers.get('ETag')).toBeTruthy();
-    expect(res.headers.get('Cache-Control')).toBe('public, s-maxage=3600');
+    expect(res.headers.get('Cache-Control')).toBe('public, s-maxage=1');
   });
 
   it('returns 200 when If-None-Match is an empty string instead of crashing', async () => {

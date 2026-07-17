@@ -253,18 +253,16 @@ describe('TTLCache', () => {
       cache.destroy();
     });
 
-    it('falls back to default TTL when ttl is NaN', () => {
+    it('rejects NaN TTL values', () => {
       vi.useFakeTimers();
 
       const cache = new TTLCache<string>();
 
-      cache.set('nan-key', 'value', Number.NaN);
-
-      expect(cache.get('nan-key')).toBe('value');
+      expect(() => cache.set('nan-key', 'value', Number.NaN)).toThrow(RangeError);
+      expect(cache.get('nan-key')).toBeNull();
 
       vi.advanceTimersByTime(1_000);
-
-      expect(cache.get('nan-key')).toBe('value');
+      expect(cache.get('nan-key')).toBeNull();
 
       cache.destroy();
     });
@@ -661,37 +659,28 @@ describe('TTLCache', () => {
       cache.destroy();
     });
     // FIX: New test targeting the NaN boundary for Issue #1399
-    it('resolves NaN TTL to the default standard TTL duration', () => {
+    it('rejects NaN TTL values instead of falling back', () => {
       vi.useFakeTimers();
       const cache = new TTLCache<string>();
 
-      // Setting with NaN should not throw; it should fallback to the default TTL
-      expect(() => cache.set('nan-key', 'value', NaN)).not.toThrow();
+      expect(() => cache.set('nan-key', 'value', NaN)).toThrow(RangeError);
+      expect(cache.get('nan-key')).toBeNull();
 
-      // The item should be successfully stored
-      expect(cache.get('nan-key')).toBe('value');
-
-      // Advance by a small amount to ensure it didn't instantly expire
       vi.advanceTimersByTime(1000);
-      expect(cache.get('nan-key')).toBe('value');
-
-      // Advance past the default TTL (60s) to verify it eventually expires
-      vi.advanceTimersByTime(59_001);
       expect(cache.get('nan-key')).toBeNull();
 
       cache.destroy();
     });
 
-    it('verify TTLCache behavior for infinite TTL value (Variation 1)', () => {
+    it('rejects infinite TTL values', () => {
       const cache = new TTLCache<string>();
 
       expect(() => {
         cache.set('infinite-key', 'boundary-value', Infinity);
-      }).not.toThrow();
+      }).toThrow(RangeError);
 
-      expect(cache.get('infinite-key')).toBe('boundary-value');
-
-      expect(cache.has('infinite-key')).toBe(true);
+      expect(cache.get('infinite-key')).toBeNull();
+      expect(cache.has('infinite-key')).toBe(false);
 
       cache.destroy();
     });
@@ -938,30 +927,118 @@ describe('DistributedCache', () => {
 
     cache.destroy();
   });
+
+  describe('localLocks memory leak prevention', () => {
+    it('Behavior 1: Immediate Cleanup on Success/Failure', async () => {
+      const cache = new DistributedCache<string>();
+
+      let resolvePromise: (val: string) => void;
+      const loadFn = vi.fn().mockImplementation(
+        () =>
+          new Promise<string>((r) => {
+            resolvePromise = r;
+          })
+      );
+
+      const p = cache.getOrSet('test-key', loadFn, 60000);
+
+      // Wait for the internal await this.get() to complete
+      await new Promise((r) => setImmediate(r));
+
+      // While pending, localLocks should have it
+      expect(cache['localLocks'].has('test-key')).toBe(true);
+
+      resolvePromise!('success');
+      await p;
+
+      // After resolution, it should be deleted
+      expect(cache['localLocks'].has('test-key')).toBe(false);
+      cache.destroy();
+    });
+
+    it('Behavior 2: Lock Persistence During Normal Execution', async () => {
+      const cache = new DistributedCache<string>();
+
+      let resolvePromise: (val: string) => void;
+      const loadFn = vi.fn().mockImplementation(
+        () =>
+          new Promise<string>((r) => {
+            resolvePromise = r;
+          })
+      );
+
+      const p1 = cache.getOrSet('test-key', loadFn, 60000);
+      const p2 = cache.getOrSet('test-key', loadFn, 60000);
+
+      // Wait for internal awaits
+      await new Promise((r) => setImmediate(r));
+
+      expect(loadFn).toHaveBeenCalledTimes(1);
+
+      resolvePromise!('success');
+      await Promise.all([p1, p2]);
+      cache.destroy();
+    });
+
+    it('Behavior 3: Safety Eviction (Fixes #6177)', async () => {
+      vi.useFakeTimers();
+      const cache = new DistributedCache<string>();
+
+      // A promise that hangs indefinitely
+      const hangingLoadFn = vi.fn().mockImplementation(() => new Promise<string>(() => {}));
+
+      const p1 = cache.getOrSet('hang-key', hangingLoadFn, 60000);
+      expect(p1).toBeDefined(); // Use p1 to fix eslint warning
+
+      // Wait for microtasks so lock is established
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      // While pending, localLocks should have it
+      expect(cache['localLocks'].has('hang-key')).toBe(true);
+
+      // Advance by 30 seconds - should still be locked
+      vi.advanceTimersByTime(30000);
+      expect(cache['localLocks'].has('hang-key')).toBe(true);
+
+      // Advance past 60 seconds
+      vi.advanceTimersByTime(31000);
+
+      // Lock should have been forcefully evicted
+      expect(cache['localLocks'].has('hang-key')).toBe(false);
+
+      // A new call should trigger loadFn again because lock was evicted
+      const newLoadFn = vi.fn().mockResolvedValue('recovered');
+      const p2 = cache.getOrSet('hang-key', newLoadFn, 60000);
+
+      await expect(p2).resolves.toBe('recovered');
+      expect(newLoadFn).toHaveBeenCalledTimes(1);
+
+      cache.destroy();
+    });
+  });
 });
 
 describe('TTLCache with infinite TTL', () => {
-  it('should cap Infinity TTL to a realistic maximum threshold', () => {
+  it('should reject Infinity TTL values', () => {
     const cache = new TTLCache<string>();
-    cache.set('test-key', 'test-value', Infinity);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const internalCache = (cache as any).store;
-    const expiresAt = internalCache.get('test-key')?.expiresAt;
-    expect(expiresAt).toBeDefined();
-    // Infinity TTL should result in Infinity expiresAt until capped
-    expect(
-      expiresAt === Infinity || (Number.isFinite(expiresAt) && expiresAt - Date.now() > 0)
-    ).toBe(true);
-    expect(cache.get('test-key')).toBe('test-value');
+
+    expect(() => cache.set('test-key', 'test-value', Infinity)).toThrow(RangeError);
+    expect(cache.get('test-key')).toBeNull();
+    expect(cache.size()).toBe(0);
   });
 
-  it('should handle setting multiple values with Infinity TTL', () => {
+  it('should reject multiple Infinity TTL writes', () => {
     const cache = new TTLCache<string>();
-    cache.set('key1', 'value1', Infinity);
-    cache.set('key2', 'value2', Infinity);
-    cache.set('key3', 'value3', Infinity);
-    expect(cache.get('key1')).toBe('value1');
-    expect(cache.get('key2')).toBe('value2');
-    expect(cache.get('key3')).toBe('value3');
+
+    expect(() => cache.set('key1', 'value1', Infinity)).toThrow(RangeError);
+    expect(() => cache.set('key2', 'value2', Infinity)).toThrow(RangeError);
+    expect(() => cache.set('key3', 'value3', Infinity)).toThrow(RangeError);
+
+    expect(cache.get('key1')).toBeNull();
+    expect(cache.get('key2')).toBeNull();
+    expect(cache.get('key3')).toBeNull();
+    expect(cache.size()).toBe(0);
   });
 });

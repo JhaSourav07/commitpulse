@@ -179,7 +179,7 @@ function mockFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Respon
 describe('MSW: fetchGitHubContributions', () => {
   beforeEach(() => {
     clearGitHubApiCacheForTests();
-    process.env.GITHUB_PAT = 'test-token';
+    process.env.GITHUB_PAT = 'ghp_testtokenAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
     delete process.env.GITHUB_TOKEN;
     activeHandlers = [...defaultHandlers];
     globalThis.fetch = mockFetch as typeof fetch;
@@ -198,6 +198,7 @@ describe('MSW: fetchGitHubContributions', () => {
   it('returns 401 for missing auth token', async () => {
     delete process.env.GITHUB_PAT;
     delete process.env.GITHUB_TOKEN;
+    delete process.env.GITHUB_TOKENS;
     await expect(fetchGitHubContributions('octocat')).rejects.toThrow();
   });
 });
@@ -205,7 +206,7 @@ describe('MSW: fetchGitHubContributions', () => {
 describe('MSW: fetchUserProfile', () => {
   beforeEach(() => {
     clearGitHubApiCacheForTests();
-    process.env.GITHUB_PAT = 'test-token';
+    process.env.GITHUB_PAT = 'ghp_testtokenAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
     delete process.env.GITHUB_TOKEN;
     activeHandlers = [...defaultHandlers];
     globalThis.fetch = mockFetch as typeof fetch;
@@ -229,7 +230,7 @@ describe('MSW: fetchUserProfile', () => {
 describe('MSW: fetchUserRepos', () => {
   beforeEach(() => {
     clearGitHubApiCacheForTests();
-    process.env.GITHUB_PAT = 'test-token';
+    process.env.GITHUB_PAT = 'ghp_testtokenAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
     delete process.env.GITHUB_TOKEN;
     activeHandlers = [...defaultHandlers];
     globalThis.fetch = mockFetch as typeof fetch;
@@ -250,7 +251,7 @@ describe('MSW: fetchUserRepos', () => {
 describe('MSW: fetchContributedRepos', () => {
   beforeEach(() => {
     clearGitHubApiCacheForTests();
-    process.env.GITHUB_PAT = 'test-token';
+    process.env.GITHUB_PAT = 'ghp_testtokenAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
     delete process.env.GITHUB_TOKEN;
     activeHandlers = [...defaultHandlers];
     globalThis.fetch = mockFetch as typeof fetch;
@@ -270,7 +271,7 @@ describe('MSW: fetchContributedRepos', () => {
 describe('MSW: fetchOrgMembers', () => {
   beforeEach(() => {
     clearGitHubApiCacheForTests();
-    process.env.GITHUB_PAT = 'test-token';
+    process.env.GITHUB_PAT = 'ghp_testtokenAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
     delete process.env.GITHUB_TOKEN;
     activeHandlers = [...defaultHandlers];
     globalThis.fetch = mockFetch as typeof fetch;
@@ -298,7 +299,7 @@ describe('MSW: error handling', () => {
       });
     globalThis.fetch = mockFetch as typeof fetch;
 
-    process.env.GITHUB_PAT = 'test-token';
+    process.env.GITHUB_PAT = 'ghp_testtokenAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
     delete process.env.GITHUB_TOKEN;
     clearGitHubApiCacheForTests();
     await expect(fetchUserProfile('octocat')).rejects.toThrow();
@@ -309,7 +310,7 @@ describe('MSW: error handling', () => {
       throw new TypeError('Failed to fetch');
     }) as typeof fetch;
 
-    process.env.GITHUB_PAT = 'test-token';
+    process.env.GITHUB_PAT = 'ghp_testtokenAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
     delete process.env.GITHUB_TOKEN;
     clearGitHubApiCacheForTests();
     const result = await fetchUserProfile('octocat');

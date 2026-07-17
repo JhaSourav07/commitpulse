@@ -65,7 +65,10 @@ describe('GET /api/github - Interactive Tooltips, Cursor Hovers & Touch Event Pr
 
     expect(response.status).toBe(200);
 
-    expect(getFullDashboardData).toHaveBeenCalledWith('octocat', { bypassCache: true });
+    expect(getFullDashboardData).toHaveBeenCalledWith(
+      'octocat',
+      expect.objectContaining({ bypassCache: true })
+    );
 
     expect(response.headers.get('X-Refresh-Status')).toBe('Fresh');
     expect(response.headers.get('X-Cache-Status')).toBe('MISS');
@@ -125,7 +128,10 @@ describe('GET /api/github - Interactive Tooltips, Cursor Hovers & Touch Event Pr
 
     expect(response.status).toBe(200);
 
-    expect(getFullDashboardData).toHaveBeenCalledWith('octocat', { bypassCache: true });
+    expect(getFullDashboardData).toHaveBeenCalledWith(
+      'octocat',
+      expect.objectContaining({ bypassCache: true })
+    );
 
     expect(response.headers.get('Cache-Control')).toBe('no-cache, no-store, must-revalidate');
   });
@@ -165,7 +171,10 @@ describe('GET /api/github - Interactive Tooltips, Cursor Hovers & Touch Event Pr
 
     expect(response.status).toBe(200);
 
-    expect(getFullDashboardData).toHaveBeenLastCalledWith('octocat', { bypassCache: false });
+    expect(getFullDashboardData).toHaveBeenLastCalledWith(
+      'octocat',
+      expect.objectContaining({ bypassCache: false })
+    );
 
     expect(response.headers.get('X-Refresh-Status')).toBe('Cooldown-Served-Cached');
 

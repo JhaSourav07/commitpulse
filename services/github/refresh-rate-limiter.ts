@@ -1,3 +1,4 @@
+import 'server-only';
 import { TTLCache } from '../../lib/cache';
 
 interface RefreshLimitRecord {

@@ -86,8 +86,38 @@ export function sanitizeFont(font: string | undefined | null): string | null {
   if (!font) return null;
   const trimmed = font.trim();
   if (!trimmed) return null;
-  const cleaned = trimmed.replace(/[^a-zA-Z0-9\s\-']/g, '').trim();
+  const cleaned = trimmed.replace(/[^a-zA-Z0-9\s\-]/g, '').trim();
   return cleaned || null;
+}
+
+/**
+ * Sanitizes a width/height dimension destined for direct interpolation into
+ * an SVG attribute (e.g. `width="${w}"`, `viewBox="0 0 ${w} ${h}"`).
+ * ...
+ */
+export function sanitizeDimension(
+  value: string | number | undefined | null,
+  fallback: number,
+  min = 1,
+  max = 5000
+): number {
+  const safeFallback = Math.round(Math.max(min, Math.min(fallback, max)));
+
+  if (value === undefined || value === null) return safeFallback;
+
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) return safeFallback;
+    return Math.round(Math.max(min, Math.min(value, max)));
+  }
+
+  if (typeof value === 'string' && /^\d+(\.\d+)?$/.test(value.trim())) {
+    const parsed = Number(value.trim());
+    if (Number.isFinite(parsed)) {
+      return Math.round(Math.max(min, Math.min(parsed, max)));
+    }
+  }
+
+  return safeFallback;
 }
 
 /**

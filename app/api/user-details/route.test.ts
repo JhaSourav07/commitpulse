@@ -103,11 +103,33 @@ describe('GET /api/user-details', () => {
   });
   it('returns 429 when rate limit is exceeded', async () => {
     const { RateLimiter } = await import('@/lib/rate-limit');
-    vi.spyOn(RateLimiter.prototype, 'check').mockResolvedValueOnce(false);
+    vi.spyOn(RateLimiter.prototype, 'checkWithResult').mockResolvedValueOnce({
+      success: false,
+      limit: 20,
+      remaining: 0,
+      reset: Date.now() + 60000,
+    });
 
     const response = await GET(makeRequest({ username: 'testuser' }));
     expect(response.status).toBe(429);
     const body = await response.json();
     expect(body.error).toBe('Too many requests. Please try again later.');
+  });
+
+  it('returns 500 with generic error message for unexpected errors', async () => {
+    vi.mocked(fetchUserProfile).mockRejectedValue(new Error('Database connection failed'));
+    const response = await GET(makeRequest({ username: 'testuser' }));
+    expect(response.status).toBe(500);
+    const body = await response.json();
+    expect(body.error).toBe('Internal server error');
+    expect(body.error).not.toContain('Database');
+  });
+
+  it('returns 500 with generic error message for non-Error thrown values', async () => {
+    vi.mocked(fetchUserProfile).mockRejectedValue('unexpected failure');
+    const response = await GET(makeRequest({ username: 'testuser' }));
+    expect(response.status).toBe(500);
+    const body = await response.json();
+    expect(body.error).toBe('Internal server error');
   });
 });

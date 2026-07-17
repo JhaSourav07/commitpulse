@@ -16,6 +16,20 @@ const ACCENT_PRESETS = [
   { hex: '#14b8a6', label: 'Teal' },
 ];
 
+export interface ReviewFormData {
+  name: string;
+  handle: string;
+  platform: 'twitter' | 'github';
+  message: string;
+  accentColor: string;
+}
+
+export interface ReviewFormProps {
+  initialPlatform?: 'twitter' | 'github';
+  onSuccess?: (data: ReviewFormData) => void;
+  optionalField?: string;
+}
+
 export default function SubmitReviewPage() {
   const [formData, setFormData] = useState({
     name: '',
@@ -55,6 +69,16 @@ export default function SubmitReviewPage() {
       return;
     }
 
+    // Query local cache layer before triggering database retrieval
+    const cached = localStorage.getItem('last_review_submission');
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed.handle === formData.handle.trim() && Date.now() - parsed.timestamp < 60000) {
+        setError('Please wait before submitting another review.');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -76,6 +100,12 @@ export default function SubmitReviewPage() {
         setError(data.message ?? 'Something went wrong. Please try again.');
         return;
       }
+
+      // Complete cache sync written on success callback
+      localStorage.setItem(
+        'last_review_submission',
+        JSON.stringify({ handle: formData.handle.trim(), timestamp: Date.now() })
+      );
 
       setSubmitted(true);
 
@@ -135,8 +165,11 @@ export default function SubmitReviewPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Name */}
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-2">Full Name</label>
+                <label htmlFor="name" className="block text-sm font-medium text-zinc-400 mb-2">
+                  Full Name
+                </label>
                 <input
+                  id="name"
                   type="text"
                   required
                   maxLength={100}
@@ -149,10 +182,11 @@ export default function SubmitReviewPage() {
 
               {/* Handle */}
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-2">
+                <label htmlFor="handle" className="block text-sm font-medium text-zinc-400 mb-2">
                   Handle (@username)
                 </label>
                 <input
+                  id="handle"
                   type="text"
                   required
                   maxLength={50}

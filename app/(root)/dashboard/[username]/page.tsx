@@ -92,6 +92,7 @@ export default async function DashboardPage({
     month?: string;
     from?: string;
     to?: string;
+    excludeBots?: string;
   }>;
 }) {
   const { username } = await params;
@@ -116,9 +117,11 @@ async function DashboardContent({
     month?: string;
     from?: string;
     to?: string;
+    excludeBots?: string;
   };
 }) {
   const bypassCache = searchParams?.refresh === 'true';
+  const excludeBots = searchParams?.excludeBots === 'true';
   const compareUsername = searchParams?.compare;
   const period = resolveDashboardPeriod({
     year: searchParams?.year,
@@ -137,6 +140,7 @@ async function DashboardContent({
       to: period.to,
       rangeLabel: period.label,
       token: userToken,
+      excludeBots,
     });
   } catch (error) {
     if (error instanceof Error && error.message.includes('not found')) {
@@ -176,6 +180,7 @@ async function DashboardContent({
       compareData = await getFullDashboardData(compareUsername, {
         bypassCache,
         token: userToken,
+        excludeBots,
       });
     } catch {
       compareData = null;

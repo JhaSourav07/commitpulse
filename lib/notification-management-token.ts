@@ -1,3 +1,4 @@
+import 'server-only';
 import crypto from 'crypto';
 
 const TOKEN_BYTES = 32;

@@ -16,8 +16,25 @@ vi.mock('lucide-react', () => ({
   Globe: () => <div>GlobeIcon</div>,
   Sun: () => <div>SunIcon</div>,
   Moon: () => <div>MoonIcon</div>,
+
   Search: () => <div>SearchIcon</div>,
   ArrowRight: () => <div>ArrowRightIcon</div>,
+
+  ChevronDown: () => <div>ChevronDownIcon</div>,
+  Check: () => <div>CheckIcon</div>,
+  Keyboard: () => <div>KeyboardIcon</div>,
+}));
+
+vi.mock('@/components/NavbarSearch', () => ({
+  default: () => <div data-testid="navbar-search" />,
+}));
+
+vi.mock('@/components/KeyboardShortcutsModal', () => ({
+  default: () => null,
+}));
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
 }));
 
 vi.mock('@/context/TranslationContext', () => ({

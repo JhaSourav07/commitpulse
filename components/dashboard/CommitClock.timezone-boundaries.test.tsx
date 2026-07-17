@@ -34,33 +34,17 @@ interface MotionGProps extends React.SVGProps<SVGGElement> {
 vi.mock('framer-motion', () => {
   const motion = {
     div: React.forwardRef<HTMLDivElement, MotionDivProps>(
-      (
-        {
-          children,
-          className,
-          style,
-          initial,
-          animate,
-          whileInView,
-          viewport,
-          transition,
-          whileHover,
-          ...rest
-        },
-        ref
-      ) => (
+      ({ children, className, style, ...rest }, ref) => (
         <div ref={ref} className={className} style={style} {...rest}>
           {children}
         </div>
       )
     ),
-    g: React.forwardRef<SVGGElement, MotionGProps>(
-      ({ children, className, initial, animate, transition, ...rest }, ref) => (
-        <g ref={ref} className={className} {...rest}>
-          {children}
-        </g>
-      )
-    ),
+    g: React.forwardRef<SVGGElement, MotionGProps>(({ children, className, ...rest }, ref) => (
+      <g ref={ref} className={className} {...rest}>
+        {children}
+      </g>
+    )),
   };
 
   motion.div.displayName = 'motion.div';

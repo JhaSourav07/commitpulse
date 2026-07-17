@@ -4,8 +4,23 @@ import { POST } from './route';
 vi.mock('@/lib/rate-limit', () => {
   class MockRateLimiter {
     check = vi.fn().mockResolvedValue(true);
+    reset = vi.fn().mockResolvedValue(undefined);
+    checkWithResult!: ReturnType<typeof vi.fn>;
   }
-  return { RateLimiter: MockRateLimiter };
+  MockRateLimiter.prototype.checkWithResult = vi.fn().mockResolvedValue({
+    success: true,
+    limit: 5,
+    remaining: 4,
+    reset: Date.now() + 60000,
+  });
+  return {
+    RateLimiter: MockRateLimiter,
+    getRateLimitHeaders: vi.fn(() => ({
+      'X-RateLimit-Limit': '5',
+      'X-RateLimit-Remaining': '4',
+      'X-RateLimit-Reset': Date.now().toString(),
+    })),
+  };
 });
 
 vi.mock('@/lib/resume-parser', () => ({
@@ -80,13 +95,18 @@ describe('POST /api/student/resume/upload - Real Route Behavior', () => {
   it('returns 429 when rate limit is exceeded', async () => {
     const { RateLimiter } = await import('@/lib/rate-limit');
 
-    const mockCheck = vi.fn().mockRejectedValue(new Error('Rate limit exceeded'));
-    RateLimiter.prototype.check = mockCheck;
+    const mockCheckWithResult = vi.fn().mockResolvedValue({
+      success: false,
+      limit: 5,
+      remaining: 0,
+      reset: Date.now() + 60000,
+    });
+    RateLimiter.prototype.checkWithResult = mockCheckWithResult;
 
     const response = await POST(makeUploadRequest('%PDF-1.4 test', 'application/pdf'));
     const body = await response.json();
 
-    expect(response.status).toBe(200);
-    expect(body.success || body.message).toBeDefined();
+    expect(response.status).toBe(429);
+    expect(body.error).toBe('Too many requests, please try again later.');
   });
 });

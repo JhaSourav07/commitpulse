@@ -46,6 +46,11 @@ export function toGlowFlag(val?: string): boolean {
   return val === 'true' || val === '1';
 }
 
+export function toMinifyFlag(val?: string): boolean {
+  if (val === undefined) return true;
+  return val === 'true' || val === '1';
+}
+
 export function toRefreshFlag(val?: string): boolean {
   return val === 'true';
 }
@@ -94,7 +99,7 @@ export function toDimensionValue(val?: string): number | undefined {
 
 export function validateGitHubUsername(username: string): boolean {
   if (!username || typeof username !== 'string') return false;
-  return /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i.test(username);
+  return GITHUB_USERNAME_REGEX.test(username);
 }
 
 /**
@@ -211,7 +216,7 @@ const timeZoneParam = z
   .optional()
   .refine(isValidTimeZone, { message: 'Invalid timezone' });
 
-export const GITHUB_USERNAME_REGEX = /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9]))*$/;
+export const GITHUB_USERNAME_REGEX = /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i;
 
 export const githubUsernameSchema = z
   .string({ error: 'Invalid GitHub username' })
@@ -359,13 +364,13 @@ const baseStreakParamsSchema = z.object({
     }),
 
   // Silently fall back to 'linear' for unknown values (matches old behavior)
-  scale: z.enum(['linear', 'log']).catch('linear').default('linear'),
+  scale: z.enum(['linear', 'log', 'sqrt']).catch('linear').default('linear'),
 
   // Invalid size values fall back to 'medium' to preserve badge rendering.
   size: z.enum(['small', 'medium', 'large']).catch('medium').default('medium'),
 
   // to fetch N days contributions
-  days: z.coerce.number().int().positive().max(365).optional(),
+  days: z.coerce.number().int().positive().max(366).optional(),
 
   // Silently fall back to '8s' for invalid format (matches old behavior)
   speed: z
@@ -385,17 +390,32 @@ const baseStreakParamsSchema = z.object({
   year: z
     .string()
     .optional()
-    .refine(
-      (val) => {
-        if (!val) return true;
-        const yearNum = parseInt(val, 10);
-        const currentYear = new Date().getUTCFullYear();
-        return /^\d{4}$/.test(val) && yearNum >= 2008 && yearNum <= currentYear;
-      },
-      {
-        message: 'GitHub was founded in 2008. Please provide a year of 2008 or later.',
+    .superRefine((val, ctx) => {
+      if (!val) return;
+      if (!/^\d{4}$/.test(val)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Invalid year parameter. Must be a 4-digit year (e.g., 2023).',
+        });
+        return;
       }
-    ),
+      const yearNum = parseInt(val, 10);
+      const currentYear = new Date().getUTCFullYear();
+      if (yearNum < 2008) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Year ${yearNum} is before GitHub was founded in 2008. Please provide a year of 2008 or later.`,
+        });
+        return;
+      }
+      if (yearNum > currentYear) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Year ${yearNum} is in the future. Please provide a year up to ${currentYear}.`,
+        });
+        return;
+      }
+    }),
   from: z
     .string()
     .optional()
@@ -416,6 +436,26 @@ const baseStreakParamsSchema = z.object({
       },
       { message: 'Invalid "to" date format. Use ISO 8601 (e.g. 2023-12-31).' }
     ),
+  start_date: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        return validateStrictISODate(val);
+      },
+      { message: 'Invalid "start_date" format. Use ISO 8601 (e.g. 2023-01-01).' }
+    ),
+  end_date: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        return validateStrictISODate(val);
+      },
+      { message: 'Invalid "end_date" format. Use ISO 8601 (e.g. 2023-12-31).' }
+    ),
   date: z
     .string()
     .optional()
@@ -429,8 +469,14 @@ const baseStreakParamsSchema = z.object({
   refresh: z.string().optional().transform(toRefreshFlag),
   bypassCache: z.string().optional().transform(toRefreshFlag),
   hide_title: z.string().optional().transform(toBooleanFlag),
-  custom_title: z.string().optional(),
-  custom_subtitle: z.string().optional(),
+  custom_title: z
+    .string()
+    .max(200, { message: 'Title is too long (max 200 characters)' })
+    .optional(),
+  custom_subtitle: z
+    .string()
+    .max(200, { message: 'Subtitle is too long (max 200 characters)' })
+    .optional(),
   hide_background: z.string().optional().transform(toBooleanFlag),
   hide_stats: z.string().optional().transform(toBooleanFlag),
   lang: z.enum(supportedLanguages).catch('en').default('en'),
@@ -449,6 +495,8 @@ const baseStreakParamsSchema = z.object({
       'doughnut',
       'pie',
       'activity_graph',
+      'commit_clock',
+      'weekday',
     ])
     .catch('default')
     .default('default'),
@@ -514,6 +562,9 @@ const baseStreakParamsSchema = z.object({
     .max(200, {
       message: 'gradient_stops cannot exceed 200 characters',
     })
+    .refine((val) => !val || /^[0-9a-fA-F#, ]+$/.test(val), {
+      message: 'gradient_stops contains invalid characters',
+    })
     .optional(),
   gradient_dir: z.enum(['vertical', 'horizontal', 'diagonal']).catch('vertical').optional(),
   disable_particles: z
@@ -523,12 +574,16 @@ const baseStreakParamsSchema = z.object({
 
   // Glow effect — on by default. Accepts 'true'/'1' (true) or 'false' (false).
   glow: z.string().optional().transform(toGlowFlag).default(true),
+
+  // SVG optimization — on by default. Accepts 'true'/'1' (true) or 'false' (false).
+  minify: z.string().optional().transform(toMinifyFlag).default(true),
   opacity: z.string().optional().transform(toOpacityValue),
   entrance: z
     .enum(['rise', 'fade', 'slide', 'wave', 'bounce', 'none'])
     .catch('rise')
     .default('rise'),
   badges: z.string().optional().transform(toBooleanFlag).default(false),
+  hide_weekend: z.string().optional().transform(toBooleanFlag).default(false),
 
   // Output format: 'svg' (default), 'json', or 'png' for image export.
   // Invalid values silently fall back to 'svg'.
@@ -652,6 +707,14 @@ export const githubParamsSchema = z.object({
 
   refresh: z.preprocess((val) => val === 'true', z.boolean()).default(false),
   bypassCache: z.preprocess((val) => val === 'true', z.boolean()).default(false),
+  excludeBots: z.preprocess((val) => val === 'true', z.boolean()).default(false),
+  org: z
+    .string()
+    .max(39, { message: 'Organization name cannot exceed 39 characters' })
+    .refine((val) => validateGitHubUsername(val), {
+      message: 'Invalid organization name format',
+    })
+    .optional(),
 });
 
 export const compareParamsSchema = z
@@ -724,6 +787,7 @@ export const statsParamsSchema = z.object({
     }),
   refresh: z.string().optional().transform(toRefreshFlag),
   bypassCache: z.string().optional().transform(toRefreshFlag),
+  excludeBots: z.string().optional().transform(toRefreshFlag),
   tz: timeZoneParam,
 });
 
@@ -738,17 +802,32 @@ export const wrappedParamsSchema = z.object({
   year: z
     .string()
     .optional()
-    .refine(
-      (val) => {
-        if (!val) return true;
-        const yearNum = parseInt(val, 10);
-        const currentYear = new Date().getUTCFullYear();
-        return /^\d{4}$/.test(val) && yearNum >= 2008 && yearNum <= currentYear;
-      },
-      {
-        message: 'GitHub was founded in 2008. Please provide a year of 2008 or later.',
+    .superRefine((val, ctx) => {
+      if (!val) return;
+      if (!/^\d{4}$/.test(val)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Invalid year parameter. Must be a 4-digit year (e.g., 2023).',
+        });
+        return;
       }
-    ),
+      const yearNum = parseInt(val, 10);
+      const currentYear = new Date().getUTCFullYear();
+      if (yearNum < 2008) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Year ${yearNum} is before GitHub was founded in 2008. Please provide a year of 2008 or later.`,
+        });
+        return;
+      }
+      if (yearNum > currentYear) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Year ${yearNum} is in the future. Please provide a year up to ${currentYear}.`,
+        });
+        return;
+      }
+    }),
   theme: z.string().optional().transform(toValidTheme).default('dark'),
   bg: z
     .string()
@@ -810,7 +889,49 @@ export const wrappedParamsSchema = z.object({
   hide_background: z.string().optional().transform(toBooleanFlag), // ✅ Fixed: was toRefreshFlag
   width: dimensionParam('width', 100, 1200),
   height: dimensionParam('height', 80, 800),
+  org: z
+    .string()
+    .max(39, { message: 'Organization name cannot exceed 39 characters' })
+    .regex(GITHUB_USERNAME_REGEX, {
+      message: 'Invalid organization name format',
+    })
+    .optional(),
   tz: timeZoneParam,
+});
+
+export const spotifyParamsSchema = z.object({
+  theme: z.string().optional().transform(toValidTheme).default('dark'),
+  bg: z
+    .string()
+    .optional()
+    .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
+      message: 'bg must be a valid hex color (with or without #)',
+    })
+    .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
+  text: z
+    .string()
+    .optional()
+    .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
+      message: 'text must be a valid hex color (with or without #)',
+    })
+    .transform((val) => (val ? sanitizeHexColor(val, 'ffffff') : undefined)),
+  accent: z
+    .string()
+    .optional()
+    .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
+      message: 'accent must be a valid hex color',
+    })
+    .transform((val) => (val ? sanitizeHexColor(val, '00ffaa') : undefined)),
+  width: dimensionParam('width', 100, 1200).default(400),
+  height: dimensionParam('height', 80, 800).default(150),
+  radius: z
+    .string()
+    .transform((val) => sanitizeRadius(val, 8))
+    .default(8),
+  glow: z.string().optional().transform(toGlowFlag).default(true),
+  minify: z.string().optional().transform(toMinifyFlag).default(true),
+  refresh: z.string().optional().transform(toRefreshFlag),
+  bypassCache: z.string().optional().transform(toRefreshFlag),
 });
 
 export const notifyPostSchema = z.object({
@@ -959,7 +1080,64 @@ export const reviewPostSchema = z.object({
 
 export type ReviewPostParams = z.infer<typeof reviewPostSchema>;
 
+export const animatedStreakParamsSchema = baseStreakParamsSchema
+  .extend({
+    format: z.enum(['gif', 'webp'], {
+      message: 'format must be "gif" or "webp"',
+    }),
+    fps: z
+      .string()
+      .optional()
+      .refine(
+        (val) => {
+          if (val === undefined || val === '') return true;
+          const num = Number(val);
+          return !isNaN(num) && Number.isInteger(num) && num >= 1 && num <= 30;
+        },
+        { message: 'fps must be an integer between 1 and 30' }
+      )
+      .transform((val) => (val === undefined || val === '' ? 15 : Math.round(Number(val)))),
+
+    duration: z
+      .string()
+      .optional()
+      .refine(
+        (val) => {
+          if (val === undefined || val === '') return true;
+          const num = Number(val);
+          return !isNaN(num) && num >= 0.1 && num <= 10.0;
+        },
+        { message: 'duration must be a number between 0.1 and 10 seconds' }
+      )
+      .transform((val) => (val === undefined || val === '' ? 2.0 : Number(val))),
+
+    loop: z
+      .string()
+      .optional()
+      .refine(
+        (val) => {
+          if (val === undefined || val === '') return true;
+          const num = Number(val);
+          return !isNaN(num) && Number.isInteger(num) && num >= -1 && num <= 100;
+        },
+        { message: 'loop must be an integer between -1 and 100' }
+      )
+      .transform((val) => (val === undefined || val === '' ? 0 : Math.round(Number(val)))),
+
+    entrance: z
+      .enum(['rise', 'fade', 'slide', 'wave', 'bounce', 'none'], {
+        message: 'invalid entrance animation',
+      })
+      .optional()
+      .transform((val) => val || 'rise'),
+  })
+  .refine((data) => !data.from || !data.to || Date.parse(data.from) <= Date.parse(data.to), {
+    message: '"to" date must be after or equal to "from" date',
+    path: ['to'],
+  });
+
 export type StreakParams = z.infer<typeof streakParamsSchema>;
+export type AnimatedStreakParams = z.infer<typeof animatedStreakParamsSchema>;
 export type GithubParams = z.infer<typeof githubParamsSchema>;
 export type CompareParams = z.infer<typeof compareParamsSchema>;
 export type OgParams = z.infer<typeof ogParamsSchema>;
@@ -968,3 +1146,4 @@ export type WrappedParams = z.infer<typeof wrappedParamsSchema>;
 export type NotifyPostParams = z.infer<typeof notifyPostSchema>;
 export type NotifyGetParams = z.infer<typeof notifyGetSchema>;
 export type ResumeConfirmData = z.infer<typeof resumeConfirmDataSchema>;
+export type SpotifyParams = z.infer<typeof spotifyParamsSchema>;

@@ -1,14 +1,19 @@
+import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import ContributionForecast from './ContributionForecast';
 import type { ActivityData } from '@/types/dashboard';
-
 // Mock framer-motion to prevent animation issues during testing
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, className, whileHover, ...props }: Record<string, unknown>) => (
-      <div className={className as string} {...props}>
-        {children as React.ReactNode}
+    div: ({
+      children,
+      className,
+      whileHover: _whileHover,
+      ...props
+    }: React.HTMLAttributes<HTMLDivElement> & { whileHover?: unknown }) => (
+      <div className={className} {...props}>
+        {children}
       </div>
     ),
   },

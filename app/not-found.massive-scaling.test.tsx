@@ -21,7 +21,7 @@ describe('NotFound — massive scaling', () => {
   it('renders successfully across many repeated mounts', () => {
     for (let i = 0; i < 250; i++) {
       const { unmount } = render(<NotFound />);
-      expect(screen.getAllByText('𝒐𝒐𝒑𝒔').length).toBe(2);
+      expect(screen.getAllByText('404').length).toBe(3);
       unmount();
     }
   });

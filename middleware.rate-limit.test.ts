@@ -5,6 +5,12 @@ import { rateLimit } from './lib/rate-limit';
 
 vi.mock('./lib/rate-limit', () => ({
   rateLimit: vi.fn(),
+  getRateLimitHeaders: vi.fn((result: { limit: number; remaining: number; reset: number }) => ({
+    'X-RateLimit-Limit': result.limit.toString(),
+    'X-RateLimit-Remaining': result.remaining.toString(),
+    'X-RateLimit-Reset': result.reset.toString(),
+    'Retry-After': '60',
+  })),
 }));
 
 describe('Middleware rate-limit consistency', () => {

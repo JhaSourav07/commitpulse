@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
   streakParamsSchema,
-  githubParamsSchema,
   compareParamsSchema,
   reviewPostSchema,
   toGraceValue,

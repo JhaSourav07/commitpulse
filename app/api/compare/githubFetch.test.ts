@@ -2,8 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET } from './route';
 import { getFullDashboardData } from '../../../lib/github';
 
-vi.mock('../../../lib/github', () => ({
-  getFullDashboardData: vi.fn(),
+vi.mock('../../../lib/github', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../lib/github')>();
+  return {
+    ...actual,
+    getFullDashboardData: vi.fn(),
+  };
+});
+vi.mock('@/lib/githubtoken', () => ({
+  getUserGitHubToken: vi.fn().mockResolvedValue(undefined),
 }));
 
 function makeRequest(user1?: string, user2?: string): Request {
@@ -54,12 +61,12 @@ describe('compare API - githubFetch integration', () => {
     expect(data.error).toContain('GitHub API rate limit reached');
   });
 
-  it('Connection Timeout (500): safely catches unhandled timeouts', async () => {
+  it('Connection Timeout (504): safely catches unhandled timeouts', async () => {
     vi.mocked(getFullDashboardData).mockResolvedValueOnce({ totalContributions: 100 } as never);
     vi.mocked(getFullDashboardData).mockRejectedValueOnce(new Error('Connection timeout ETICK'));
 
     const response = await GET(makeRequest('userA', 'userB'));
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(504);
     const data = await response.json();
     expect(data.error).toContain('Connection timeout');
   });

@@ -1,6 +1,6 @@
 # CommitPulse Themes
 
-All 27 available themes for your CommitPulse badge. Use the `?theme=<slug>` query parameter to apply a theme.
+All 28 available themes for your CommitPulse badge. Use the `?theme=<slug>` query parameter to apply a theme.
 
 ```
 https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
@@ -35,11 +35,13 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | tokyonight       | `#1a1b26`  | `#c0caf5` | `#f7768e` |
 | tokyo_night      | `#1a1b26`  | `#c0caf5` | `#7aa2f7` |
 | cyberpunk        | `#fce22a`  | `#111111` | `#ff003c` |
+| cyberpunk_neon   | `#0d0d14`  | `#00f3ff` | `#ff0055` |
 | glacier          | `#e0f2fe`  | `#0369a1` | `#06b6d4` |
 | lumos            | `#0a0a0a`  | `#a7f3d0` | `#fbbf24` |
 | monokai          | `#272822`  | `#f8f8f2` | `#a6e22e` |
 | retro-terminal   | `#000000`  | `#00ff41` | `#00ff41` |
 | midnight_ocean   | `#020c1b`  | `#ccd6f6` | `#0af5ff` |
+| ayu_mirage       | `#212733`  | `#D9D7CE` | `#FFCC66` |
 
 ---
 
@@ -321,6 +323,18 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 
 ---
 
+### Cyberpunk Neon
+
+![cyberpunk_neon](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=cyberpunk_neon)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | 0d0d14 |
+| `text`    | 00f3ff |
+| `accent`  | ff0055 |
+
+---
+
 ### Tokyo Night Blue
 
 ![tokyo_night](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=tokyo_night)
@@ -380,6 +394,16 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | `accent`  | 0af5ff |
 
 ---
+
+### Ayu Mirage
+
+![ayu_mirage](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=ayu_mirage)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | 212733 |
+| `text`    | D9D7CE |
+| `accent`  | FFCC66 |
 
 ## Custom Theme
 

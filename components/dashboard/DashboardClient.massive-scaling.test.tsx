@@ -13,7 +13,7 @@ global.IntersectionObserver = class IntersectionObserver {
   unobserve = vi.fn();
   disconnect = vi.fn();
   takeRecords = vi.fn(() => []);
-  constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {}
+  constructor() {}
 } as unknown as typeof IntersectionObserver;
 
 // Mock the useRouter and useSearchParams hooks from Next.js navigation
@@ -22,7 +22,7 @@ vi.mock('next/navigation', () => ({
     replace: vi.fn(),
   }),
   useSearchParams: () => ({
-    get: vi.fn((key: string) => null),
+    get: vi.fn(() => null),
     entries: vi.fn(() => []),
   }),
 }));
@@ -140,7 +140,9 @@ describe('DashboardClient - Massive Data Sets and Extreme High Bounds Scaling', 
   // Test Case 3: SVG Coordinate Scaling Integrity
   it('should scale mock chart attributes correctly without generating invalid NaN parameters', () => {
     const edgeCaseData = generateMassiveMockData(100);
-    edgeCaseData.commitClock = edgeCaseData.commitClock.map((d) => ({ ...d, commits: 0 }));
+    edgeCaseData.commitClock = edgeCaseData.commitClock.map(
+      (d: { day: string; commits: number }) => ({ ...d, commits: 0 })
+    );
 
     render(<DashboardClient initialData={edgeCaseData} username="testuser" period={mockPeriod} />);
 

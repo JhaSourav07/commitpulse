@@ -12,6 +12,7 @@ import { ExportPanel } from './components/ExportPanel';
 import InteractiveViewer from '@/components/InteractiveViewer';
 import { Footer } from '@/app/components/Footer';
 import DOMPurify from 'dompurify';
+import { Check, Link as LinkIcon } from 'lucide-react';
 import type {
   ExportFormat,
   Font,
@@ -80,6 +81,7 @@ function CustomizePageInner(): ReactElement {
   const [timezone, setTimezone] = useState<Timezone>('UTC');
   const [exportFormat, setExportFormat] = useState<ExportFormat>('markdown');
   const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [copyStatusMessage, setCopyStatusMessage] = useState('');
   const copyResetTimeoutRef = useRef<number | null>(null);
   const [svgContent, setSvgContent] = useState<string>('');
@@ -207,8 +209,11 @@ function CustomizePageInner(): ReactElement {
   // On change sync state to URL
   useEffect(() => {
     if (!queryString) return;
-    router.replace(`/customize?${queryString}`, { scroll: false });
-  }, [queryString, router]);
+    // Guard: skip if the URL already matches the computed params.
+    if (window.location.search === `?${queryString}`) return;
+    const newUrl = `${window.location.pathname}?${queryString}`;
+    window.history.replaceState({ ...window.history.state, as: newUrl, url: newUrl }, '', newUrl);
+  }, [queryString]);
 
   useEffect(() => {
     // Safe: resets error state as the first synchronous step when any preview
@@ -306,7 +311,7 @@ function CustomizePageInner(): ReactElement {
 
     return () => controller.abort();
     // By changing this list, useEffect only runs when previewSrc finishes debouncing
-  }, [previewSrc, hasUsername, trimmedUsername]);
+  }, [previewSrc, hasUsername, trimmedUsername, svgCache]);
 
   const exportSnippet = getExportSnippet(exportFormat, queryString);
 
@@ -377,9 +382,25 @@ function CustomizePageInner(): ReactElement {
       );
     }
   };
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleDownloadimage = () => {
-    alert('Download image functionality coming soon!');
+
+  const copyShareLink = async (): Promise<void> => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        try {
+          await navigator.clipboard.writeText(window.location.href);
+        } catch {
+          const copiedSuccessfully = fallbackCopyToClipboard(window.location.href);
+          if (!copiedSuccessfully) throw new Error('Fallback clipboard copy failed.');
+        }
+      } else {
+        const copiedSuccessfully = fallbackCopyToClipboard(window.location.href);
+        if (!copiedSuccessfully) throw new Error('Fallback clipboard copy failed.');
+      }
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    } catch {
+      setCopiedLink(false);
+    }
   };
 
   return (
@@ -397,36 +418,49 @@ function CustomizePageInner(): ReactElement {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="flex items-center gap-4 mb-8"
+          className="flex items-center justify-between mb-8"
         >
-          <Link
-            href="/"
-            id="back-to-home-link"
-            className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-black dark:text-white/55 dark:hover:text-white transition-colors group"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
+          <div className="flex items-center gap-4">
+            <Link
+              href="/"
+              id="back-to-home-link"
+              className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-black dark:text-white/55 dark:hover:text-white transition-colors group"
             >
-              <path d="M19 12H5M12 5l-7 7 7 7" />
-            </svg>
-            {t('customize.back_to_home')}
-          </Link>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M19 12H5M12 5l-7 7 7 7" />
+              </svg>
+              {t('customize.back_to_home')}
+            </Link>
 
-          <div className="h-4 w-px bg-white/10" />
+            <div className="h-4 w-px bg-white/10" />
 
-          <div>
-            <span className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400">
-              {t('customize_cta.studio_badge')}
-            </span>
+            <div>
+              <span className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400">
+                {t('customize_cta.studio_badge')}
+              </span>
+            </div>
           </div>
+
+          <button
+            type="button"
+            onClick={copyShareLink}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-xs font-medium text-gray-600 dark:text-white/60 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+          >
+            {copiedLink ? <Check size={14} /> : <LinkIcon size={14} />}
+            {copiedLink
+              ? t('customize.top_bar.copied_link', { defaultValue: 'Copied!' })
+              : t('customize.top_bar.share_link', { defaultValue: 'Share Link' })}
+          </button>
         </motion.div>
 
         {/* ── Page heading ─────────────────────────────────────────────────── */}
@@ -508,28 +542,7 @@ function CustomizePageInner(): ReactElement {
               </p>
 
               {/* ─── MOVING THE INTERACTION LISTENER DIRECTLY TO THE OUTER WRAPPER CONTAINER ROW ─── */}
-              <div
-                className="group relative"
-                onClick={(e) => {
-                  // Only trigger the focus highlight workflow if the placeholder box is actively rendering
-                  if (!hasUsername) {
-                    e.stopPropagation();
-                    const input = document.getElementById('username-input') as HTMLInputElement;
-                    if (input) {
-                      input.focus();
-                      input.style.outline = '4px solid #10b981';
-                      input.style.outlineOffset = '2px';
-                      input.style.transform = 'scale(1.02)';
-                      input.style.transition = 'all 0.3s ease';
-
-                      setTimeout(() => {
-                        input.style.outline = 'none';
-                        input.style.transform = 'scale(1)';
-                      }, 1000);
-                    }
-                  }
-                }}
-              >
+              <div className="group relative">
                 {/* Glow ring */}
                 <div className="absolute -inset-px bg-gradient-to-br from-emerald-500/20 to-purple-500/20 rounded-[1.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-lg pointer-events-none" />
 
@@ -606,7 +619,29 @@ function CustomizePageInner(): ReactElement {
                       )}
                     </div>
                   ) : (
-                    <div className="relative z-10 flex w-full max-w-xl flex-col items-center justify-center rounded-[1.25rem] border border-dashed border-black/10 bg-gray-100/80 backdrop-blur-md dark:border-white/10 dark:bg-white/3 hover:border-black/30 dark:hover:border-white/30 transition-colors cursor-pointer px-6 py-12 text-center">
+                    <button
+                      type="button"
+                      aria-label="Enter GitHub username"
+                      onClick={() => {
+                        const input = document.getElementById(
+                          'username-input'
+                        ) as HTMLInputElement | null;
+
+                        if (input) {
+                          input.focus();
+                          input.style.outline = '4px solid #10b981';
+                          input.style.outlineOffset = '2px';
+                          input.style.transform = 'scale(1.02)';
+                          input.style.transition = 'all 0.3s ease';
+
+                          setTimeout(() => {
+                            input.style.outline = 'none';
+                            input.style.transform = 'scale(1)';
+                          }, 1000);
+                        }
+                      }}
+                      className="relative z-10 flex w-full max-w-xl flex-col items-center justify-center rounded-[1.25rem] border border-dashed border-black/10 bg-gray-100/80 backdrop-blur-md dark:border-white/10 dark:bg-white/3 hover:border-black/30 dark:hover:border-white/30 transition-colors cursor-pointer px-6 py-12 text-center"
+                    >
                       <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-black/10 bg-gray-100/80 dark:border-white/10 dark:bg-white/4 text-gray-500 dark:text-emerald-300/70">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -629,7 +664,7 @@ function CustomizePageInner(): ReactElement {
                       <p className="mt-2 max-w-md text-sm leading-relaxed text-gray-500 dark:text-white/65">
                         {t('customize.empty_preview_desc')}
                       </p>
-                    </div>
+                    </button>
                   )}
                 </InteractiveViewer>
               </div>

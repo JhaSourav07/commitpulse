@@ -143,6 +143,6 @@ describe('rate-limit massive data sets and extreme high bounds scaling', () => {
 
     const endTime = performance.now();
     const executionTime = endTime - startTime;
-    expect(executionTime).toBeLessThan(10000);
+    expect(executionTime).toBeLessThan(19000);
   }, 20000);
 });

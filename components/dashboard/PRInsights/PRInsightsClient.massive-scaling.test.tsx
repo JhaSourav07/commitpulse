@@ -91,6 +91,7 @@ describe('PRInsightsClient Massive Data Sets and Extreme High Bounds Scaling', (
   });
 
   afterEach(() => {
+    localStorage.clear();
     vi.unstubAllGlobals();
   });
 

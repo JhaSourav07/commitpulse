@@ -77,13 +77,25 @@ Frontend Developer at XYZ 2022-2024
     const result = await parseResume(Buffer.from(''), 'application/pdf');
 
     expect(result).toEqual({
-      name: '',
-      email: '',
-      phone: '',
+      name: 'N/A',
+      email: 'N/A',
+      phone: 'N/A',
       skills: [],
       education: [],
       experience: [],
     });
+  });
+
+  it('handles international phone and plus-addressed email formatting', async () => {
+    const resume = `
+John Doe
+john.doe+filter@example.co.uk
++91 98765 43210
+`;
+    const result = await parseResume(Buffer.from(resume), 'application/pdf');
+    expect(result.name).toBe('John Doe');
+    expect(result.email).toBe('john.doe+filter@example.co.uk');
+    expect(result.phone).toBe('+91 98765 43210');
   });
 
   it('returns sensible fallbacks when sections are missing', async () => {

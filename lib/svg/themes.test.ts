@@ -41,11 +41,11 @@ describe('themes object', () => {
 // ── Theme count ───────────────────────────────────────────────────────────────
 
 describe('theme count', () => {
-  it('contains exactly 28 preset themes matching THEMES.md documentation', () => {
+  it('contains exactly 29 preset themes matching THEMES.md documentation', () => {
     // If this fails, either a theme was added to themes.ts without updating
     // THEMES.md, or a theme was removed without updating the docs.
     // Update this count when intentionally adding/removing themes.
-    expect(themeNames).toHaveLength(29);
+    expect(themeNames).toHaveLength(33);
   });
 
   it('contains all expected theme keys', () => {
@@ -76,9 +76,11 @@ describe('theme count', () => {
       'lumos',
       'tokyonight',
       'cyberpunk',
+      'cyberpunk_neon',
       'tokyo_night',
       'monokai',
       'midnight_ocean',
+      'india',
     ];
     for (const key of expectedKeys) {
       expect(themeNames).toContain(key);
@@ -128,7 +130,7 @@ describe('hex validity — all theme color values must be valid 6-char hex strin
   });
 
   it('no theme has a hex value with a leading # (values must be without #)', () => {
-    for (const [name, theme] of themeEntries) {
+    for (const [, theme] of themeEntries) {
       expect(theme.bg.startsWith('#')).toBe(false);
       expect(theme.text.startsWith('#')).toBe(false);
       expect(theme.accent.startsWith('#')).toBe(false);
@@ -136,7 +138,7 @@ describe('hex validity — all theme color values must be valid 6-char hex strin
   });
 
   it('no theme has a hex value shorter than 6 characters', () => {
-    for (const [name, theme] of themeEntries) {
+    for (const [, theme] of themeEntries) {
       expect(theme.bg.length).toBeGreaterThanOrEqual(6);
       expect(theme.text.length).toBeGreaterThanOrEqual(6);
       expect(theme.accent.length).toBeGreaterThanOrEqual(6);
@@ -240,6 +242,12 @@ describe('getNormalizedThemeKey', () => {
 
   it('matches keys when user provides screaming uppercase inputs', () => {
     expect(getNormalizedThemeKey('DRACULA')).toBe('dracula');
+  });
+
+  it('matches keys when user provides padded whitespace inputs', () => {
+    expect(getNormalizedThemeKey('  dark  ')).toBe('dark');
+    expect(getNormalizedThemeKey('\tneon\n')).toBe('neon');
+    expect(getNormalizedThemeKey(' DARK ')).toBe('dark');
   });
 
   it('returns default fallback when theme name does not exist', () => {

@@ -7,22 +7,23 @@ import AIInsightsSkeleton from './AIInsightsSkeleton';
 
 describe('AIInsightsSkeleton Accessibility', () => {
   // 1. ARIA & Accessible Markup
-  // Verify that the skeleton does not expose incorrect roles or attributes.
-  // Since it is a loading placeholder, we document the missing ARIA attributes as TODOs.
-  it('does not expose incorrect roles or accessibility names during loading state', () => {
+  // Verify that the skeleton correctly exposes the status role.
+  it('exposes correct roles and accessibility names during loading state', () => {
     const { container } = render(<AIInsightsSkeleton />);
 
-    // Ensure the container or inner divs do not carry inappropriate roles.
-    const divs = container.querySelectorAll('div');
-    divs.forEach((div) => {
+    const wrapper = container.firstChild as HTMLElement;
+    expect(wrapper).toHaveAttribute('role', 'status');
+    expect(wrapper).toHaveAttribute('aria-busy', 'true');
+    expect(wrapper).toHaveAttribute('aria-live', 'polite');
+
+    // Ensure the inner divs do not carry inappropriate roles.
+    const innerDivs = Array.from(container.querySelectorAll('div')).slice(1);
+    innerDivs.forEach((div) => {
       expect(div.getAttribute('role')).toBeNull();
     });
-
-    // TODO: Add `aria-busy="true"` and `role="status"` to the outer wrapper container
-    // in the production AIInsightsSkeleton component to explicitly announce to screen
-    // readers that content is loading.
-    // TODO: Ensure relationships like aria-labelledby or aria-describedby are added
-    // if the skeleton is updated to have a header or label.
+    // Verify that conflicting labeling attributes are avoided since aria-label is present.
+    expect(wrapper).not.toHaveAttribute('aria-labelledby');
+    expect(wrapper).not.toHaveAttribute('aria-describedby');
   });
 
   // 2. Keyboard Focus
@@ -41,15 +42,16 @@ describe('AIInsightsSkeleton Accessibility', () => {
   // 3. Screen Reader Labels
   // Verify that assistive technologies do not receive inappropriate semantic roles or labels.
   it('does not expose interactive roles or semantic elements to assistive technologies', () => {
-    render(<AIInsightsSkeleton />);
+    const { container } = render(<AIInsightsSkeleton />);
 
     // Since the component only has placeholders, there shouldn't be any buttons, links, or inputs.
     expect(screen.queryByRole('button')).toBeNull();
     expect(screen.queryByRole('link')).toBeNull();
     expect(screen.queryByRole('textbox')).toBeNull();
 
-    // TODO: Expose a visually hidden label or description (e.g. using aria-describedby or aria-label)
-    // such as "Loading insights..." so screen readers understand what this skeleton represents.
+    // Ensure that the skeleton wrapper exposes a descriptive aria-label.
+    const wrapper = container.firstChild as HTMLElement;
+    expect(wrapper).toHaveAttribute('aria-label', 'Loading AI Insights');
   });
 
   // 4. Keyboard Navigation Flow
@@ -81,12 +83,27 @@ describe('AIInsightsSkeleton Accessibility', () => {
   // 5. Heading Hierarchy
   // Ensure that the skeleton does not introduce out-of-order headings before actual data loads.
   it('renders no heading elements ensuring heading hierarchy is not disrupted', () => {
-    render(<AIInsightsSkeleton />);
+    const { container } = render(<AIInsightsSkeleton />);
 
     // There should be no heading elements within the loading skeleton.
     expect(screen.queryByRole('heading')).toBeNull();
 
-    // TODO: When the loaded state (AIInsights) is implemented/rendered, ensure its headings
-    // follow a logical order relative to the page container layout (e.g., an H3 tag).
+    // Verify that the skeleton does not mistakenly use bold text elements as pseudo-headings
+    const strongElements = container.querySelectorAll('strong, b, h1, h2, h3, h4, h5, h6');
+    expect(strongElements).toHaveLength(0);
+  });
+
+  // 6. Reduced Motion Preference
+  // While JSDOM does not natively process CSS media queries, we assert that the component
+  // structure allows the global CSS (prefers-reduced-motion) to override the animation.
+  it('relies on the global .shimmer class to handle prefers-reduced-motion overrides', () => {
+    const { container } = render(<AIInsightsSkeleton />);
+
+    // Select an element that uses the shimmer animation
+    const shimmerElement = container.querySelector('.shimmer');
+    expect(shimmerElement).toBeInTheDocument();
+
+    // We document that standard `.shimmer` class is responsible for the fallback.
+    // CSS ensures that `.shimmer` sets `animation: none` on `prefers-reduced-motion: reduce`.
   });
 });

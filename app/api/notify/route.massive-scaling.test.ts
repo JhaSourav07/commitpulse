@@ -18,7 +18,6 @@ vi.mock('@/lib/rate-limit', () => ({
     'X-RateLimit-Reset': result.reset.toString(),
   })),
   notifyRateLimiter: {
-    check: vi.fn().mockResolvedValue(true),
     checkWithResult: vi.fn().mockResolvedValue({
       success: true,
       limit: 5,
@@ -58,7 +57,6 @@ describe('POST /api/notify massive scaling: Massive Data Sets and Extreme High B
   beforeEach(() => {
     vi.clearAllMocks();
     process.env = { ...originalEnv, MONGODB_URI: 'mongodb://localhost/test' };
-    vi.mocked(notifyRateLimiter.check).mockResolvedValue(true);
     vi.mocked(notifyRateLimiter.checkWithResult).mockResolvedValue({
       success: true,
       limit: 5,

@@ -3,6 +3,7 @@ import { GET } from './route';
 import { getFullDashboardData } from '@/lib/github';
 import { getUserGitHubToken } from '@/lib/githubtoken';
 import { RateLimiter } from '@/lib/rate-limit';
+import { fetchPRInsights } from '@/services/github/pr-insights';
 
 vi.mock('@/lib/github', () => ({
   getFullDashboardData: vi.fn(),
@@ -10,6 +11,10 @@ vi.mock('@/lib/github', () => ({
 
 vi.mock('@/lib/githubtoken', () => ({
   getUserGitHubToken: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('@/services/github/pr-insights', () => ({
+  fetchPRInsights: vi.fn(),
 }));
 
 function makeRequest(params: Record<string, string> = {}): Request {
@@ -74,6 +79,7 @@ describe('GET /api/achievements', () => {
     vi.spyOn(RateLimiter.prototype, 'check').mockResolvedValue(true);
     vi.mocked(getUserGitHubToken).mockResolvedValue('mock-token');
     vi.mocked(getFullDashboardData).mockResolvedValue(mockDashboardData as never);
+    vi.mocked(fetchPRInsights).mockResolvedValue({ mergedPRs: 7 } as never);
   });
 
   // ── Validation ────────────────────────────────────────────────────────────
@@ -155,6 +161,20 @@ describe('GET /api/achievements', () => {
     expect(commitChampion.state.currentTier).toBe('silver');
     expect(commitChampion.state.currentValue).toBe(500);
     expect(commitChampion.state.xpEarned).toBe(150);
+  });
+
+  it('computes merge-master progress using mergedPRs from fetchPRInsights instead of totalPRs', async () => {
+    vi.mocked(fetchPRInsights).mockResolvedValueOnce({ mergedPRs: 15 } as never);
+    const res = await GET(makeRequest({ username: 'octocat' }));
+    const data = await res.json();
+    const prCategory = data.categories.find(
+      (c: { category: string }) => c.category === 'pull-request'
+    );
+    const mergeMaster = prCategory.achievements.find(
+      (a: { def: { id: string } }) => a.def.id === 'merge-master'
+    );
+
+    expect(mergeMaster.state.currentValue).toBe(15);
   });
 
   it('groups achievements into all five categories', async () => {
@@ -272,7 +292,7 @@ describe('GET /api/achievements', () => {
     const res = await GET(makeRequest({ username: 'octocat' }));
     expect(res.status).toBe(500);
     const data = await res.json();
-    expect(data.error).toBe('Database connection failed');
+    expect(data.error).toBe('Internal server error');
   });
 
   it('returns 500 with "Unknown error" for non-Error thrown values', async () => {
@@ -280,7 +300,7 @@ describe('GET /api/achievements', () => {
     const res = await GET(makeRequest({ username: 'octocat' }));
     expect(res.status).toBe(500);
     const data = await res.json();
-    expect(data.error).toBe('Unknown error');
+    expect(data.error).toBe('Internal server error');
   });
 
   it('returns 429 when rate limit is exceeded', async () => {

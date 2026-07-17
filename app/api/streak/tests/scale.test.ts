@@ -1,48 +1,63 @@
-import { describe, expect, it, vi, beforeAll, afterAll } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { GET } from '../route';
 
 describe('Integration Test: API Streak Scale Parameter Group', () => {
-  beforeAll(() => {
+  beforeEach(() => {
     // 1. Safely stub the environment variables
-    vi.stubEnv('GITHUB_TOKEN', 'mock_test_token_123');
-    vi.stubEnv('GITHUB_PAT', 'mock_test_token_123');
+    vi.stubEnv('GITHUB_TOKEN', 'ghp_testtokenAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
+    vi.stubEnv('GITHUB_PAT', 'ghp_testtokenAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
 
     // 2. Intercept the network request and return a true native Web Response
     // We mix low and high counts to ensure log vs linear output drastically differs.
     vi.stubGlobal(
       'fetch',
-      vi.fn(() => {
-        const mockBody = JSON.stringify({
-          data: {
-            user: {
-              contributionsCollection: {
-                contributionCalendar: {
-                  totalContributions: 105,
-                  weeks: [
-                    {
-                      contributionDays: [
-                        { contributionCount: 5, date: '2026-01-01' },
-                        { contributionCount: 100, date: '2026-01-02' },
-                      ],
-                    },
-                  ],
+      vi.fn((url: string | URL) => {
+        const urlStr = url.toString();
+        if (urlStr.includes('graphql')) {
+          const mockBody = JSON.stringify({
+            data: {
+              user: {
+                contributionsCollection: {
+                  contributionCalendar: {
+                    totalContributions: 105,
+                    weeks: [
+                      {
+                        contributionDays: [
+                          { contributionCount: 5, date: '2026-01-01' },
+                          { contributionCount: 100, date: '2026-01-02' },
+                        ],
+                      },
+                    ],
+                  },
                 },
               },
             },
-          },
-        });
-
-        return Promise.resolve(
-          new Response(mockBody, {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-          })
-        );
+          });
+          return Promise.resolve(
+            new Response(mockBody, {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            })
+          );
+        } else {
+          // Mock REST API profile
+          const mockBody = JSON.stringify({
+            login: 'JhaSourav07',
+            name: 'Sourav Jha',
+            avatar_url: 'https://github.com/JhaSourav07.png',
+          });
+          return Promise.resolve(
+            new Response(mockBody, {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            })
+          );
+        }
       })
     );
   });
 
-  afterAll(() => {
+  afterEach(() => {
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
   });

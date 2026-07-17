@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { DistributedCache, LockConfig } from './cache';
+import { DistributedCache } from './cache';
 
 describe('DistributedCache distributed lock improvements', () => {
   const originalEnv = { ...process.env };

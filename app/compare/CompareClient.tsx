@@ -45,6 +45,7 @@ import {
   Camera,
 } from 'lucide-react';
 import { validateGitHubUsername } from '@/lib/validations';
+import { toast } from 'sonner';
 
 // Reuse the existing recent-search infrastructure so users can quickly
 // access previously compared GitHub usernames.
@@ -979,17 +980,29 @@ export default function CompareClient() {
   // and limits the history size automatically.
   const { searches, addSearch, clearSearches, removeSearch } = useRecentSearches();
   const lastComparedRef = useRef({ user1: '', user2: '' });
+  const activeRequestRef = useRef<{
+    key: string;
+    controller: AbortController;
+  } | null>(null);
   const dataRef = useRef(data);
   useEffect(() => {
     dataRef.current = data;
   }, [data]);
 
-  const handleShareBattle = () => {
+  const handleShareBattle = async () => {
     const url = window.location.href;
-    navigator.clipboard.writeText(url).then(() => {
+
+    try {
+      await navigator.clipboard.writeText(url);
+
       setCopied(true);
+      toast.success('Comparison link copied!');
+
       setTimeout(() => setCopied(false), 2000);
-    });
+    } catch (error) {
+      console.error('Failed to copy comparison link:', error);
+      toast.error('Failed to copy comparison link');
+    }
   };
 
   const handleTwitterShare = () => {
@@ -1077,7 +1090,7 @@ export default function CompareClient() {
   };
 
   const handleCompare = useCallback(
-    async (u1: string, u2: string) => {
+    async (u1: string, u2: string): Promise<void> => {
       const trimmedUser1 = u1.trim();
       const trimmedUser2 = u2.trim();
 
@@ -1106,6 +1119,12 @@ export default function CompareClient() {
         return;
       }
 
+      const requestKey = `${trimmedUser1.toLowerCase()}|${trimmedUser2.toLowerCase()}`;
+
+      if (activeRequestRef.current?.key === requestKey) {
+        return;
+      }
+
       if (
         lastComparedRef.current.user1.toLowerCase() === trimmedUser1.toLowerCase() &&
         lastComparedRef.current.user2.toLowerCase() === trimmedUser2.toLowerCase() &&
@@ -1114,6 +1133,12 @@ export default function CompareClient() {
         return;
       }
 
+      activeRequestRef.current?.controller.abort();
+
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 20_000);
+
+      activeRequestRef.current = { key: requestKey, controller };
       lastComparedRef.current = { user1: trimmedUser1, user2: trimmedUser2 };
       setLoading(true);
       setData(null);
@@ -1124,7 +1149,7 @@ export default function CompareClient() {
       );
 
       try {
-        const cached = await readCompareCache(u1, u2);
+        const cached = await readCompareCache(trimmedUser1, trimmedUser2);
 
         if (cached) {
           setData(cached);
@@ -1136,10 +1161,11 @@ export default function CompareClient() {
         }
 
         const res = await fetch(
-          `/api/compare?user1=${encodeURIComponent(trimmedUser1)}&user2=${encodeURIComponent(trimmedUser2)}`
+          `/api/compare?user1=${encodeURIComponent(trimmedUser1)}&user2=${encodeURIComponent(trimmedUser2)}`,
+          { signal: controller.signal }
         );
 
-        const json = await res.json();
+        const json = (await res.json()) as CompareResponse;
 
         if (!res.ok) {
           setError(json.error || 'Failed to fetch comparison data.');
@@ -1152,29 +1178,55 @@ export default function CompareClient() {
         // revisit previously compared developers.
         addSearch(`${trimmedUser1} vs ${trimmedUser2}`);
 
-        await writeCompareCache(u1, u2, json);
+        await writeCompareCache(trimmedUser1, trimmedUser2, json);
         setMonolithKey((k) => k + 1);
-      } catch {
-        setError('Network error. Please try again.');
+      } catch (err: unknown) {
+        if (activeRequestRef.current?.key !== requestKey) {
+          return;
+        }
+
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          setError('Comparison timed out. Please try again.');
+        } else {
+          setError('Network error. Please try again.');
+        }
       } finally {
-        setLoading(false);
+        window.clearTimeout(timeoutId);
+
+        if (activeRequestRef.current?.key === requestKey) {
+          activeRequestRef.current = null;
+          setLoading(false);
+        }
       }
     },
     [router, addSearch]
   );
 
-  // Auto-compare if URL has params on mount or param changes
+  // Auto-compare if URL has params on mount or param changes.
   useEffect(() => {
     const u1 = searchParams.get('user1');
     const u2 = searchParams.get('user2');
+
     if (u1 && u2) {
       setUser1(u1); // eslint-disable-line react-hooks/set-state-in-effect -- syncing URL params to input state
       setUser2(u2);
-      handleCompare(u1, u2);
+
+      const requestKey = `${u1.trim().toLowerCase()}|${u2.trim().toLowerCase()}`;
+      const lastRequestKey = `${lastComparedRef.current.user1.toLowerCase()}|${lastComparedRef.current.user2.toLowerCase()}`;
+
+      if (requestKey !== lastRequestKey && activeRequestRef.current?.key !== requestKey) {
+        void handleCompare(u1, u2);
+      }
     } else {
       setData(null);
     }
   }, [searchParams, handleCompare]);
+
+  useEffect(() => {
+    return () => {
+      activeRequestRef.current?.controller.abort();
+    };
+  }, []);
 
   const d1 = data?.user1;
   const d2 = data?.user2;

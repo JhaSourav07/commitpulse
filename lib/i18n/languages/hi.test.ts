@@ -10,9 +10,9 @@ const requiredKeys = [
 ] as const;
 
 const expectedHindiLabels = {
-  CURRENT_STREAK: 'वर्तमान_स्ट्रीक',
-  ANNUAL_SYNC_TOTAL: 'वार्षिक_कुल',
-  PEAK_STREAK: 'अधिकतम_स्ट्रीक',
+  CURRENT_STREAK: 'वर्तमान स्ट्रीक',
+  ANNUAL_SYNC_TOTAL: 'वार्षिक कुल',
+  PEAK_STREAK: 'अधिकतम स्ट्रीक',
   COMMITS_THIS_MONTH: 'इस महीने के कमिट्स',
   VS_LAST_MONTH: 'पिछले महीने की तुलना में',
 };

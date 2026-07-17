@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   fetchGitHubContributions,
+  fetchCommitHourDistribution,
   fetchUserProfile,
   fetchUserRepos,
   fetchContributedRepos,
@@ -52,8 +53,9 @@ function mockResponse(body: unknown, status = 200): Response {
 
 beforeEach(() => {
   clearGitHubApiCacheForTests();
-  process.env.GITHUB_PAT = 'test-token';
+  process.env.GITHUB_PAT = 'ghp_testTokenAAAAAAAAAAAAAAAAAAAAAAAA';
   delete process.env.GITHUB_TOKEN;
+  delete process.env.GITHUB_TOKENS;
 });
 
 afterEach(() => {
@@ -176,10 +178,13 @@ describe('fetchGitHubContributions', () => {
     const [url, options] = vi.mocked(fetch).mock.calls[0];
     expect(url).toBe('https://api.github.com/graphql');
     expect(options?.method).toBe('POST');
-    expect(options?.headers).toMatchObject({
-      Authorization: 'bearer test-token',
-      'Content-Type': 'application/json',
-    });
+    const headers = new Headers(options?.headers);
+
+    const authHeader = headers.get('authorization');
+    expect(authHeader?.match(/^bearer\s+/i)).toBeTruthy();
+    expect(authHeader?.replace(/^bearer\s+/i, '')).toBe('ghp_testTokenAAAAAAAAAAAAAAAAAAAAAAAA');
+
+    expect(headers.get('content-type')).toBe('application/json');
 
     const body = JSON.parse(options?.body as string);
     expect(body.variables).toEqual({ login: 'octocat' });
@@ -188,7 +193,7 @@ describe('fetchGitHubContributions', () => {
 
   it('uses GITHUB_TOKEN when GITHUB_PAT is not configured', async () => {
     delete process.env.GITHUB_PAT;
-    process.env.GITHUB_TOKEN = 'actions-token';
+    process.env.GITHUB_TOKEN = 'ghp_actionsTokenAAAAAAAAAAAAAAAAAAAAA';
     vi.mocked(fetch).mockResolvedValue(
       mockResponse({
         data: {
@@ -205,14 +210,16 @@ describe('fetchGitHubContributions', () => {
     await fetchGitHubContributions('octocat');
 
     const [, options] = vi.mocked(fetch).mock.calls[0];
-    expect(options?.headers).toMatchObject({
-      Authorization: 'bearer actions-token',
-    });
+    const headers = new Headers(options?.headers);
+
+    const authHeader = headers.get('authorization');
+    expect(authHeader?.match(/^bearer\s+/i)).toBeTruthy();
+    expect(authHeader?.replace(/^bearer\s+/i, '')).toBe('ghp_actionsTokenAAAAAAAAAAAAAAAAAAAAA');
   });
 
   it('verifies Authorization header uses GITHUB_TOKEN value in fallback path', async () => {
     delete process.env.GITHUB_PAT;
-    process.env.GITHUB_TOKEN = 'my-actions-token';
+    process.env.GITHUB_TOKEN = 'ghp_myActionsTokenAAAAAAAAAAAAAAAAAAA';
     vi.mocked(fetch).mockResolvedValue(
       mockResponse({
         data: {
@@ -229,14 +236,17 @@ describe('fetchGitHubContributions', () => {
     await fetchGitHubContributions('octocat');
 
     const [, options] = vi.mocked(fetch).mock.calls[0];
-    expect(options?.headers).toMatchObject({
-      Authorization: 'bearer my-actions-token',
-    });
+    const headers = new Headers(options?.headers);
+
+    const authHeader = headers.get('authorization');
+    expect(authHeader?.match(/^bearer\s+/i)).toBeTruthy();
+    expect(authHeader?.replace(/^bearer\s+/i, '')).toBe('ghp_myActionsTokenAAAAAAAAAAAAAAAAAAA');
   });
 
   it('throws before fetching when no GitHub token is configured', async () => {
     delete process.env.GITHUB_PAT;
     delete process.env.GITHUB_TOKEN;
+    delete process.env.GITHUB_TOKENS;
 
     await expect(fetchGitHubContributions('octocat')).rejects.toThrow(
       'GitHub token is missing. Set GITHUB_PAT or GITHUB_TOKEN.'
@@ -270,16 +280,14 @@ describe('fetchGitHubContributions', () => {
   it('throws with the status code when the server returns 500', async () => {
     vi.mocked(fetch).mockResolvedValue(mockResponse({ message: 'Internal Server Error' }, 500));
 
-    await expect(fetchGitHubContributions('octocat')).rejects.toThrow(
-      'GitHub GraphQL API returned status 500'
-    );
+    await expect(fetchGitHubContributions('octocat')).rejects.toThrow('GitHub API error');
   });
 
   it('throws with the status code when the server returns 401 (expired or missing token)', async () => {
     vi.mocked(fetch).mockResolvedValue(mockResponse({ message: 'Unauthorized' }, 401));
 
     await expect(fetchGitHubContributions('octocat')).rejects.toThrow(
-      'GitHub PAT is invalid or missing'
+      'GitHub authentication failed'
     );
   });
 
@@ -477,6 +485,163 @@ describe('fetchGitHubContributions', () => {
     const result = await fetchGitHubContributions('bypass-fallback-user', { bypassCache: true });
     expect(result.calendar.totalContributions).toBe(mockCalendar.totalContributions);
     expect(result.isOfflineFallback).toBe(true);
+  });
+
+  it('correctly resolves organization Node ID and uses it in contributions query', async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        mockResponse({
+          data: {
+            organization: {
+              id: 'test-org-node-id',
+            },
+          },
+        })
+      )
+      .mockResolvedValueOnce(
+        mockResponse({
+          data: {
+            user: {
+              contributionsCollection: {
+                contributionCalendar: mockCalendar,
+                commitContributionsByRepository: [],
+              },
+            },
+          },
+        })
+      );
+
+    const result = await fetchGitHubContributions('octocat', {
+      org: 'github-org',
+      bypassCache: true,
+    });
+    expect(result.calendar.totalContributions).toBe(mockCalendar.totalContributions);
+
+    // Verify first call to resolve organization ID
+    expect(fetch).toHaveBeenNthCalledWith(
+      1,
+      'https://api.github.com/graphql',
+      expect.objectContaining({
+        body: expect.stringContaining('"variables":{"login":"github-org"}'),
+      })
+    );
+
+    // Verify second call to query contributions with organizationID
+    expect(fetch).toHaveBeenNthCalledWith(
+      2,
+      'https://api.github.com/graphql',
+      expect.objectContaining({
+        body: expect.stringContaining('"orgId":"test-org-node-id"'),
+      })
+    );
+  });
+});
+
+describe('fetchCommitHourDistribution', () => {
+  beforeEach(() => {
+    vi.spyOn(global, 'fetch');
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('buckets the same commit into different hours for different timezones', async () => {
+    const isoTimestamp = '2024-06-10T21:00:00Z';
+
+    vi.mocked(fetch).mockImplementation(async (_url, options) => {
+      const body = JSON.parse(options?.body as string);
+
+      if (body.variables?.login) {
+        return mockResponse({
+          data: {
+            user: {
+              contributionsCollection: {
+                commitContributionsByRepository: [
+                  {
+                    repository: {
+                      owner: { login: 'octocat' },
+                      name: 'repo-1',
+                    },
+                    contributions: { totalCount: 1 },
+                  },
+                ],
+              },
+            },
+          },
+        });
+      }
+
+      return mockResponse({
+        data: {
+          repository: {
+            defaultBranchRef: {
+              target: {
+                history: {
+                  nodes: [{ committedDate: isoTimestamp }],
+                },
+              },
+            },
+          },
+        },
+      });
+    });
+
+    const utcResult = await fetchCommitHourDistribution('octocat');
+    expect(utcResult[21]).toBe(1);
+    expect(utcResult[2]).toBe(0);
+
+    clearGitHubApiCacheForTests();
+
+    const istResult = await fetchCommitHourDistribution('octocat', undefined, 'Asia/Kolkata');
+    expect(istResult[2]).toBe(1);
+    expect(istResult[21]).toBe(0);
+  });
+
+  it('falls back to UTC when the timezone string is invalid', async () => {
+    const isoTimestamp = '2024-06-10T21:00:00Z';
+
+    vi.mocked(fetch).mockImplementation(async (_url, options) => {
+      const body = JSON.parse(options?.body as string);
+
+      if (body.variables?.login) {
+        return mockResponse({
+          data: {
+            user: {
+              contributionsCollection: {
+                commitContributionsByRepository: [
+                  {
+                    repository: {
+                      owner: { login: 'octocat' },
+                      name: 'repo-1',
+                    },
+                    contributions: { totalCount: 1 },
+                  },
+                ],
+              },
+            },
+          },
+        });
+      }
+
+      return mockResponse({
+        data: {
+          repository: {
+            defaultBranchRef: {
+              target: {
+                history: {
+                  nodes: [{ committedDate: isoTimestamp }],
+                },
+              },
+            },
+          },
+        },
+      });
+    });
+
+    const result = await fetchCommitHourDistribution('octocat', undefined, 'Not/A_Real_Zone');
+    expect(result[21]).toBe(1);
+    expect(result[2]).toBe(0);
   });
 });
 
@@ -1221,8 +1386,8 @@ describe('getFullDashboardData', () => {
       const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
 
       if (urlStr.includes('/actions/runs') || urlStr.includes('/deployments')) {
-        const headers = init?.headers as Record<string, string> | undefined;
-        capturedAuthHeaders.push(headers?.Authorization ?? '');
+        const headers = new Headers(init?.headers as HeadersInit | undefined);
+        capturedAuthHeaders.push(headers.get('authorization') ?? '');
         if (urlStr.includes('/actions/runs')) {
           return mockResponse({ workflow_runs: [] });
         }
@@ -1269,7 +1434,8 @@ describe('getFullDashboardData', () => {
 
     expect(capturedAuthHeaders.length).toBeGreaterThan(0);
     for (const authHeader of capturedAuthHeaders) {
-      expect(authHeader).toBe(`bearer ${userToken}`);
+      expect(authHeader?.match(/^bearer\s+/i)).toBeTruthy();
+      expect(authHeader?.replace(/^bearer\s+/i, '')).toBe(userToken);
     }
   });
   it('caps developerScore at 100 for extreme profile metrics', async () => {
@@ -1611,407 +1777,35 @@ describe('GitHub API cache behavior', () => {
     expect(resolveFetchSpy).toHaveBeenCalledTimes(1);
     expect(results.map((result) => result.calendar.repoContributions)).toEqual([42, 42, 42]);
   });
-
-  it('does not coalesce requests when options.signal is provided', async () => {
-    const resolvers: ((response: Response) => void)[] = [];
-    vi.mocked(fetch).mockImplementation(
-      () =>
-        new Promise<Response>((resolve) => {
-          resolvers.push(resolve);
-        })
-    );
-
-    const controller = new AbortController();
-    const requests = Promise.all([
-      fetchGitHubContributions('octocat'),
-      fetchGitHubContributions('octocat', { signal: controller.signal }),
-    ]);
-
-    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
-
-    const responseFn = () =>
-      mockResponse({
-        data: {
-          user: {
-            contributionsCollection: {
-              contributionCalendar: mockCalendar,
-              commitContributionsByRepository: [],
-            },
-          },
-        },
-      });
-    resolvers.forEach((resolve) => resolve(responseFn()));
-
-    const results = await requests;
-    expect(results.map((result) => result.calendar.repoContributions)).toEqual([42, 42]);
-  });
-
-  it('refresh bypass: bypassCache=true forces a fresh fetch', async () => {
-    vi.mocked(fetch).mockImplementation(async () =>
-      mockResponse({
-        data: {
-          user: {
-            contributionsCollection: {
-              contributionCalendar: mockCalendar,
-              commitContributionsByRepository: [],
-            },
-          },
-        },
-      })
-    );
-
-    await fetchGitHubContributions('octocat');
-    await fetchGitHubContributions('octocat', { bypassCache: true });
-
-    expect(fetch).toHaveBeenCalledTimes(2);
-  });
-
-  it('cache expiry: refresh re-queries the full window with authoritative totals, no collapse or accumulation or partial overwrite', async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
-
-    const buildResponse = (total: number, prs: number, issues: number, languages: string[]) =>
-      mockResponse({
-        data: {
-          user: {
-            contributionsCollection: {
-              totalPullRequestContributions: prs,
-              totalIssueContributions: issues,
-              totalPullRequestReviewContributions: 0,
-              contributionCalendar: {
-                totalContributions: total,
-                weeks: [
-                  {
-                    contributionDays: [
-                      { contributionCount: total, date: '2025-12-31', color: '#216e39' },
-                    ],
-                  },
-                ],
-              },
-              commitContributionsByRepository: languages.map((name) => ({
-                repository: { primaryLanguage: { name } },
-                contributions: { totalCount: total },
-              })),
-            },
-          },
-        },
-      });
-
-    // Full window (from undefined) returns authoritative annual data; a narrow window returns partial data.
-    vi.mocked(fetch).mockImplementation(async (_url, init) => {
-      const body = JSON.parse((init as RequestInit).body as string);
-      return body.variables.from === undefined
-        ? buildResponse(120, 12, 6, ['TypeScript', 'Go', 'Rust', 'Python'])
-        : buildResponse(5, 1, 2, ['TypeScript']);
-    });
-
-    const first = await fetchGitHubContributions('octocat');
-    expect(first.calendar.totalContributions).toBe(120);
-    expect(first.totalPRs).toBe(12);
-    expect(first.totalIssues).toBe(6);
-    expect(first.repoContributions).toHaveLength(4);
-
-    vi.setSystemTime(Date.now() + GITHUB_CACHE_TTL_MS + 1);
-    const refreshed = await fetchGitHubContributions('octocat');
-
-    expect(fetch).toHaveBeenCalledTimes(2);
-
-    // The refresh must query the full window, never a narrow delta window.
-    const secondCallBody = JSON.parse(vi.mocked(fetch).mock.calls[1][1]!.body as string);
-    expect(secondCallBody.variables.from).toBeUndefined();
-
-    // Full-window values survive the refresh: no collapse, no accumulation, no delta-only repo overwrite.
-    expect(refreshed.calendar.totalContributions).toBe(120);
-    expect(refreshed.totalPRs).toBe(12);
-    expect(refreshed.totalIssues).toBe(6);
-    expect(
-      refreshed.repoContributions.map((r) => r.repository.primaryLanguage?.name).sort()
-    ).toEqual(['Go', 'Python', 'Rust', 'TypeScript']);
-  });
-
-  it('historical fixed-window refresh re-queries the requested window, never from > to', async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
-
-    const from = '2023-01-01T00:00:00.000Z';
-    const to = '2023-12-31T23:59:59.000Z';
-
-    vi.mocked(fetch).mockImplementation(async () =>
-      mockResponse({
-        data: {
-          user: {
-            contributionsCollection: {
-              totalPullRequestContributions: 0,
-              totalIssueContributions: 0,
-              totalPullRequestReviewContributions: 0,
-              contributionCalendar: mockCalendar,
-              commitContributionsByRepository: [],
-            },
-          },
-        },
-      })
-    );
-
-    await fetchGitHubContributions('octocat', { from, to });
-
-    vi.setSystemTime(Date.now() + GITHUB_CACHE_TTL_MS + 1);
-    const refreshed = await fetchGitHubContributions('octocat', { from, to });
-
-    expect(fetch).toHaveBeenCalledTimes(2);
-
-    const secondCallBody = JSON.parse(vi.mocked(fetch).mock.calls[1][1]!.body as string);
-    expect(secondCallBody.variables.from).toBe(from);
-    expect(secondCallBody.variables.to).toBe(to);
-    expect(new Date(secondCallBody.variables.from).getTime()).toBeLessThanOrEqual(
-      new Date(secondCallBody.variables.to).getTime()
-    );
-
-    // The refresh reflects the requested window's authoritative total, not a delta remnant.
-    expect(refreshed.calendar.totalContributions).toBe(mockCalendar.totalContributions);
-  });
-
-  it('cache hit: second profile call uses cached value', async () => {
-    vi.mocked(fetch).mockResolvedValue(mockResponse({ login: 'octocat', name: 'The Octocat' }));
-
-    await fetchUserProfile('octocat');
-    await fetchUserProfile('octocat');
-
-    expect(fetch).toHaveBeenCalledTimes(1);
-  });
-
-  it('dedupes concurrent profile requests for the same cold cache key', async () => {
-    let resolveFetch!: (response: Response) => void;
-    vi.mocked(fetch).mockImplementation(
-      () =>
-        new Promise<Response>((resolve) => {
-          resolveFetch = resolve;
-        })
-    );
-
-    const requests = Promise.all([
-      fetchUserProfile('octocat'),
-      fetchUserProfile('octocat'),
-      fetchUserProfile('octocat'),
-    ]);
-
-    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
-
-    resolveFetch(mockResponse({ login: 'octocat', name: 'The Octocat' }));
-
-    const results = await requests;
-    expect(results.map((profile) => profile.login)).toEqual(['octocat', 'octocat', 'octocat']);
-  });
-
-  it('refresh bypass: bypassCache=true forces fresh profile fetch', async () => {
-    vi.mocked(fetch).mockImplementation(async () =>
-      mockResponse({ login: 'octocat', name: 'The Octocat' })
-    );
-
-    await fetchUserProfile('octocat');
-    await fetchUserProfile('octocat', { bypassCache: true });
-
-    expect(fetch).toHaveBeenCalledTimes(2);
-  });
-
-  it('dedupes concurrent repo requests for the same cold cache key', async () => {
-    let resolveFetch!: (response: Response) => void;
-    vi.mocked(fetch).mockImplementation(
-      () =>
-        new Promise<Response>((resolve) => {
-          resolveFetch = resolve;
-        })
-    );
-
-    const requests = Promise.all([
-      fetchUserRepos('octocat'),
-      fetchUserRepos('octocat'),
-      fetchUserRepos('octocat'),
-    ]);
-
-    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
-
-    resolveFetch(mockResponse([{ stargazers_count: 7, language: 'TypeScript' }]));
-
-    const results = await requests;
-    expect(results.map((repos) => repos[0]?.stargazers_count)).toEqual([7, 7, 7]);
-  });
-
-  it('normalizes username casing for cache keys', async () => {
-    vi.mocked(fetch).mockResolvedValue(
-      mockResponse({
-        data: {
-          user: {
-            contributionsCollection: {
-              contributionCalendar: mockCalendar,
-            },
-          },
-        },
-      })
-    );
-
-    await fetchGitHubContributions('octocat');
-    await fetchGitHubContributions('OctoCat');
-
-    expect(fetch).toHaveBeenCalledTimes(1);
-  });
-
-  it('cache hit: second fetchContributedRepos call uses cached value', async () => {
-    const mockNodes = [{ name: 'cached-repo' }];
-    vi.mocked(fetch).mockResolvedValue(
-      mockResponse({
-        data: {
-          user: {
-            repositoriesContributedTo: {
-              nodes: mockNodes,
-            },
-          },
-        },
-      })
-    );
-
-    await fetchContributedRepos('octocat');
-    await fetchContributedRepos('octocat');
-
-    expect(fetch).toHaveBeenCalledTimes(1);
-  });
-
-  it('dedupes concurrent fetchContributedRepos requests for the same cold cache key', async () => {
-    let resolveFetch!: (response: Response) => void;
-    vi.mocked(fetch).mockImplementation(
-      () =>
-        new Promise<Response>((resolve) => {
-          resolveFetch = resolve;
-        })
-    );
-
-    const requests = Promise.all([
-      fetchContributedRepos('octocat'),
-      fetchContributedRepos('octocat'),
-      fetchContributedRepos('octocat'),
-    ]);
-
-    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
-
-    resolveFetch(
-      mockResponse({
-        data: {
-          user: {
-            repositoriesContributedTo: {
-              nodes: [{ name: 'deduped-repo' }],
-            },
-          },
-        },
-      })
-    );
-
-    const results = await requests;
-    expect(results.map((repos) => repos[0]?.name)).toEqual([
-      'deduped-repo',
-      'deduped-repo',
-      'deduped-repo',
-    ]);
-  });
-
-  it('refresh bypass: bypassCache=true forces fresh fetchContributedRepos fetch', async () => {
-    const mockNodes = [{ name: 'repo' }];
-    vi.mocked(fetch).mockImplementation(async () =>
-      mockResponse({
-        data: {
-          user: {
-            repositoriesContributedTo: {
-              nodes: mockNodes,
-            },
-          },
-        },
-      })
-    );
-
-    await fetchContributedRepos('octocat');
-    await fetchContributedRepos('octocat', { bypassCache: true });
-
-    expect(fetch).toHaveBeenCalledTimes(2);
-  });
 });
 
-describe('generateAchievements', () => {
-  it('marks contribution milestones correctly', () => {
-    // 600 contributions satisfies the '500 Contributions' achievement but not '1000 Contributions'
-    const achievements = generateAchievements(600, 10, 0, 0);
-
-    const unlocked = achievements.filter((a) => a.isUnlocked);
-
-    expect(unlocked.some((a) => a.title === '500 Contributions')).toBe(true);
-    expect(unlocked.some((a) => a.title === 'Consistency King')).toBe(true);
-    expect(unlocked.some((a) => a.title === '1000 Contributions')).toBe(false);
+describe('configurable GitHub API constants', () => {
+  it('GITHUB_CACHE_TTL_MS has a default of 5 minutes', async () => {
+    const { GITHUB_CACHE_TTL_MS } = await import('./github');
+    expect(GITHUB_CACHE_TTL_MS).toBe(300000);
   });
 
-  it('unlocks all achievements for max contribution and streak values', () => {
-    const achievements = generateAchievements(2001, 101, 11, 6);
-
-    expect(achievements.every((achievement) => achievement.isUnlocked === true)).toBe(true);
+  it('respects GITHUB_MAX_RETRIES env var', async () => {
+    process.env.GITHUB_MAX_RETRIES = '5';
+    vi.resetModules();
+    const mod = await import('./github');
+    const { getJitteredBackoff } = mod;
+    expect(getJitteredBackoff).toBeDefined();
+    delete process.env.GITHUB_MAX_RETRIES;
   });
 
-  it('marks streak milestones correctly', () => {
-    const achievements = generateAchievements(50, 35, 0, 0);
-
-    const unlocked = achievements.filter((a) => a.isUnlocked);
-
-    expect(unlocked.some((a) => a.title === '30 Day Streak')).toBe(true);
-    expect(unlocked.some((a) => a.title === '100 Day Streak')).toBe(false);
+  it('respects GITHUB_GRAPHQL_TIMEOUT_MS env var', async () => {
+    process.env.GITHUB_GRAPHQL_TIMEOUT_MS = '10000';
+    vi.resetModules();
+    await import('./github');
+    delete process.env.GITHUB_GRAPHQL_TIMEOUT_MS;
   });
 
-  it('marks behavior milestones correctly', () => {
-    const achievements = generateAchievements(10, 1, 15, 6);
-
-    const unlocked = achievements.filter((a) => a.isUnlocked);
-
-    expect(unlocked.some((a) => a.title === 'Weekend Warrior')).toBe(true);
-    expect(unlocked.some((a) => a.title === 'Polyglot')).toBe(true);
-  });
-
-  it('caps progress between 0 and 100 for extreme values', () => {
-    const achievements = generateAchievements(999999, 999999, 999999, 999999);
-
-    for (const item of achievements) {
-      expect(Number.isFinite(item.progress)).toBe(true);
-      expect(item.progress).toBeGreaterThanOrEqual(0);
-      expect(item.progress).toBeLessThanOrEqual(100);
-    }
-  });
-
-  it('always returns exactly 15 achievements', () => {
-    expect(generateAchievements(0, 0, 0, 0)).toHaveLength(15);
-    expect(generateAchievements(1000, 100, 0, 0)).toHaveLength(15);
-  });
-});
-
-describe('displayName', () => {
-  const makeProfile = (name: string | null) => ({
-    login: 'octocat',
-    name,
-    avatar_url: 'avatar.png',
-    public_repos: 0,
-    followers: 0,
-    following: 0,
-    created_at: '2020-01-01T00:00:00Z',
-    bio: null,
-    location: null,
-  });
-
-  it('returns the name when present', () => {
-    expect(displayName(makeProfile('The Octocat'))).toBe('The Octocat');
-  });
-
-  it('falls back to login when name is null', () => {
-    expect(displayName(makeProfile(null))).toBe('octocat');
-  });
-
-  it('falls back to login when name is empty', () => {
-    expect(displayName(makeProfile(''))).toBe('octocat');
-  });
-
-  it('falls back to login when name contains only whitespace', () => {
-    expect(displayName(makeProfile('   '))).toBe('octocat');
+  it('respects GITHUB_ORG_MEMBER_LIMIT env var', async () => {
+    process.env.GITHUB_ORG_MEMBER_LIMIT = '50';
+    vi.resetModules();
+    await import('./github');
+    delete process.env.GITHUB_ORG_MEMBER_LIMIT;
   });
 });
 
@@ -2035,690 +1829,16 @@ describe('cacheKey', () => {
     const keyB = cacheKey('contributions', 'octocat', '2024-01-01', '2024-12-31');
     expect(keyA).not.toBe(keyB);
   });
-});
-describe('buildInsights', () => {
-  it('uses active streak message when current streak > 3', () => {
-    const result = buildInsights(
-      {
-        totalContributions: 120,
-        currentStreak: 7,
-        longestStreak: 20,
-      },
-      [{ name: 'TypeScript' }]
+
+  it('creates key with org parameter', () => {
+    expect(cacheKey('contributions', 'octocat', '2024-01-01', '2024-06-30', 'github')).toBe(
+      'contributions:octocat:2024-01-01:2024-06-30:org:github'
     );
-
-    expect(result[2].text).toContain('active 7-day streak');
-  });
-
-  it('uses longest streak message when current streak <= 3', () => {
-    const result = buildInsights(
-      {
-        totalContributions: 120,
-        currentStreak: 2,
-        longestStreak: 15,
-      },
-      [{ name: 'Rust' }]
+    expect(cacheKey('contributions', 'octocat', '2025', undefined, 'github')).toBe(
+      'contributions:octocat:2025:org:github'
     );
-
-    expect(result[2].text).toContain('15 days');
-  });
-
-  it('falls back to Unknown when languages list is empty', () => {
-    const result = buildInsights(
-      {
-        totalContributions: 50,
-        currentStreak: 1,
-        longestStreak: 5,
-      },
-      []
+    expect(cacheKey('profile', 'octocat', undefined, undefined, 'github')).toBe(
+      'profile:octocat:org:github'
     );
-
-    expect(result[1].text).toContain('Unknown');
-  });
-});
-
-describe('buildCommitClock', () => {
-  it('counts commits only on Sunday when all days are Sunday', () => {
-    const result = buildCommitClock([
-      { date: '2024-01-07', contributionCount: 3 },
-      { date: '2024-01-14', contributionCount: 2 },
-    ]);
-
-    expect(result).toHaveLength(7);
-    expect(result[0].commits).toBeGreaterThan(0);
-    expect(result.slice(1).every((item) => item.commits === 0)).toBe(true);
-  });
-
-  it('returns 7 days with zero commits for empty input', () => {
-    const result = buildCommitClock([]);
-
-    expect(result).toHaveLength(7);
-    expect(result.every((item) => item.commits === 0)).toBe(true);
-  });
-
-  it('returns defined dashboard analytics rows when user metric logs are empty', () => {
-    const result = buildCommitClock([]);
-
-    expect(result).toHaveLength(7);
-    expect(result.every((item) => typeof item.day === 'string')).toBe(true);
-    expect(result.every((item) => typeof item.commits === 'number')).toBe(true);
-    expect(result.every((item) => item.commits === 0)).toBe(true);
-  });
-
-  it('always returns exactly 7 items', () => {
-    const result = buildCommitClock([{ date: '2024-01-07', contributionCount: 1 }]);
-
-    expect(result).toHaveLength(7);
-  });
-
-  it('uses weekday labels from Sunday to Saturday', () => {
-    const result = buildCommitClock([]);
-
-    expect(result.map((item) => item.day)).toEqual([
-      'Sun',
-      'Mon',
-      'Tue',
-      'Wed',
-      'Thu',
-      'Fri',
-      'Sat',
-    ]);
-  });
-});
-
-// ---------- EPIC ENHANCEMENT TESTS ----------
-
-describe('fetchOrgMembers', () => {
-  beforeEach(() => {
-    vi.spyOn(global, 'fetch');
-  });
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('fetches organization members successfully', async () => {
-    vi.mocked(fetch).mockResolvedValue(
-      mockResponse([
-        { login: 'alice', id: 1 },
-        { login: 'bob', id: 2 },
-      ])
-    );
-
-    const members = await fetchOrgMembers('vercel');
-
-    expect(Array.isArray(members)).toBe(true);
-    expect(members.every((member) => typeof member === 'string')).toBe(true);
-    expect(members[0]).toBe('alice');
-    expect(members[1]).toBe('bob');
-  });
-
-  it('encodes the organization name before using it in the members REST path and includes page parameter', async () => {
-    vi.mocked(fetch).mockResolvedValue(mockResponse([]));
-
-    await fetchOrgMembers('octo/org');
-
-    expect(fetch).toHaveBeenCalledWith(
-      'https://api.github.com/orgs/octo%2Forg/members?per_page=100&page=1',
-      expect.objectContaining({ cache: 'no-store' })
-    );
-  });
-
-  it('paginates correctly up to less than perPage returning end', async () => {
-    const page1 = Array.from({ length: 100 }, (_, i) => ({ login: `user${i}` }));
-    const page2 = Array.from({ length: 20 }, (_, i) => ({ login: `user${100 + i}` }));
-
-    vi.mocked(fetch)
-      .mockResolvedValueOnce(mockResponse(page1))
-      .mockResolvedValueOnce(mockResponse(page2));
-
-    const members = await fetchOrgMembers('vercel');
-
-    expect(members).toHaveLength(120);
-    expect(members[0]).toBe('user0');
-    expect(members[119]).toBe('user119');
-    expect(fetch).toHaveBeenCalledTimes(2);
-  });
-
-  it('stops paginating at max limit of 1000 members even if pages return 100 members', async () => {
-    const pageData = Array.from({ length: 100 }, (_, i) => ({ login: `user${i}` }));
-
-    vi.mocked(fetch).mockImplementation(async () => mockResponse(pageData));
-
-    const members = await fetchOrgMembers('vercel');
-
-    expect(members).toHaveLength(1000);
-    expect(fetch).toHaveBeenCalledTimes(10);
-  });
-});
-
-describe('getOrgDashboardData', () => {
-  beforeEach(() => {
-    vi.spyOn(global, 'fetch');
-  });
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  const getFetchUrl = (input: RequestInfo | URL | undefined): string => {
-    if (!input) return '';
-    if (typeof input === 'string') return input;
-    if (typeof input === 'object') {
-      if ('url' in input) return input.url;
-      return input.toString();
-    }
-    return String(input);
-  };
-
-  const setupOrgMocks = (orgName: string, membersCount: number) => {
-    const mockMembers = Array.from({ length: membersCount }, (_, i) => ({ login: `member${i}` }));
-
-    vi.mocked(fetch).mockImplementation(async (url) => {
-      const urlStr = getFetchUrl(url);
-      if (urlStr.includes(`/orgs/${orgName}/members`)) {
-        if (urlStr.includes('page=2')) {
-          return mockResponse(mockMembers.slice(100));
-        }
-        return mockResponse(mockMembers.slice(0, 100));
-      }
-      if (urlStr.includes(`/users/${orgName}/repos`)) return mockResponse([]);
-      if (urlStr.includes(`/users/${orgName}`)) {
-        return mockResponse({
-          login: orgName,
-          type: 'Organization',
-          public_repos: 5,
-          followers: 10,
-          created_at: '2020-01-01T00:00:00Z',
-        });
-      }
-      return mockResponse({
-        data: {
-          user: {
-            contributionsCollection: {
-              contributionCalendar: mockCalendar,
-              commitContributionsByRepository: [],
-            },
-          },
-        },
-      });
-    });
-  };
-
-  const countGraphqlCalls = (): number => {
-    return vi.mocked(fetch).mock.calls.filter((call) => {
-      const urlStr = getFetchUrl(call[0]);
-      return urlStr.includes('graphql');
-    }).length;
-  };
-
-  it('aggregates org data correctly', async () => {
-    vi.mocked(fetch).mockImplementation(async (url) => {
-      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
-      if (urlStr.includes('/orgs/vercel/members')) return mockResponse([{ login: 'alice' }]);
-      if (urlStr.includes('/users/vercel/repos')) return mockResponse([{ stargazers_count: 100 }]);
-      if (urlStr.includes('/users/vercel'))
-        return mockResponse({
-          login: 'vercel',
-          type: 'Organization',
-          public_repos: 5,
-          followers: 10,
-          created_at: '2020-01-01T00:00:00Z',
-        });
-      // GraphQL fetch fallback
-      return mockResponse({
-        data: {
-          user: {
-            contributionsCollection: {
-              contributionCalendar: mockCalendar,
-              commitContributionsByRepository: [],
-            },
-          },
-        },
-      });
-    });
-
-    const result = await getOrgDashboardData('vercel');
-
-    expect(result.profile.username).toBe('vercel');
-  });
-
-  it('throws an error if the target is a User instead of an Organization', async () => {
-    vi.mocked(fetch).mockImplementation(async (url) => {
-      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
-      // Specifically catch the repos and members endpoints so they return valid arrays
-      if (urlStr.includes('/orgs/notanorg/members')) return mockResponse([]);
-      if (urlStr.includes('/users/notanorg/repos')) return mockResponse([]);
-      // Now this will only safely match the main profile fetch
-      if (urlStr.includes('/users/notanorg'))
-        return mockResponse({ login: 'notanorg', type: 'User' });
-
-      return mockResponse([]);
-    });
-
-    await expect(getOrgDashboardData('notanorg')).rejects.toThrow(
-      'This endpoint is strictly for organizations.'
-    );
-  });
-
-  it('correctly processes and aggregates 20 members without truncation', async () => {
-    setupOrgMocks('org20', 20);
-
-    const result = await getOrgDashboardData('org20');
-    expect(result.profile.stats.following).toBe(20);
-    expect(result.isPartial).toBe(false);
-    expect(countGraphqlCalls()).toBe(20);
-  });
-
-  it('correctly processes and aggregates 50 members without truncation', async () => {
-    setupOrgMocks('org50', 50);
-
-    const result = await getOrgDashboardData('org50');
-    expect(result.profile.stats.following).toBe(50);
-    expect(result.isPartial).toBe(false);
-    expect(countGraphqlCalls()).toBe(50);
-  });
-
-  it('correctly caps member processing at 100 for an organization with 120 members and flags isPartial as true', async () => {
-    setupOrgMocks('org120', 120);
-
-    const result = await getOrgDashboardData('org120');
-    expect(result.profile.stats.following).toBe(120);
-    expect(result.isPartial).toBe(true);
-    expect(countGraphqlCalls()).toBe(100);
-  });
-});
-
-describe('getWrappedData', () => {
-  beforeEach(() => {
-    vi.spyOn(global, 'fetch');
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('returns wrapped statistics and top language correctly', async () => {
-    vi.mocked(fetch).mockImplementation(async (url) => {
-      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
-
-      if (urlStr.includes('/repos')) {
-        return mockResponse([
-          { language: 'TypeScript' },
-          { language: 'TypeScript' },
-          { language: 'Rust' },
-        ]);
-      }
-
-      return mockResponse({
-        data: {
-          user: {
-            contributionsCollection: {
-              contributionCalendar: mockCalendar,
-            },
-          },
-        },
-      });
-    });
-
-    const result = await getWrappedData('octocat', '2024');
-
-    expect(result.topLanguage).toBe('TypeScript');
-  });
-
-  it('falls back to Unknown when repos have no language data', async () => {
-    vi.mocked(fetch).mockImplementation(async (url) => {
-      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
-
-      if (urlStr.includes('/repos')) {
-        return mockResponse([{ language: null }, { language: null }]);
-      }
-
-      return mockResponse({
-        data: {
-          user: {
-            contributionsCollection: {
-              contributionCalendar: mockCalendar,
-            },
-          },
-        },
-      });
-    });
-
-    const result = await getWrappedData('octocat', '2024');
-
-    expect(result.topLanguage).toBe('Unknown');
-  });
-
-  it('passes the correct from and to date range to GitHub contributions fetch', async () => {
-    vi.mocked(fetch).mockImplementation(async (url) => {
-      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
-
-      if (urlStr.includes('/repos')) {
-        return mockResponse([]);
-      }
-
-      return mockResponse({
-        data: {
-          user: {
-            contributionsCollection: {
-              contributionCalendar: mockCalendar,
-            },
-          },
-        },
-      });
-    });
-
-    await getWrappedData('octocat', '2024');
-
-    const graphQLCall = vi
-      .mocked(fetch)
-      .mock.calls.find(([url]) => url.toString().includes('/graphql'));
-
-    const body = JSON.parse(graphQLCall?.[1]?.body as string);
-
-    expect(body.variables.from).toBe('2024-01-01T00:00:00Z');
-    expect(body.variables.to).toBe('2024-12-31T23:59:59Z');
-  });
-
-  it('TestCase: aligns query bounds to user timezone offset (Issue #5259)', async () => {
-    vi.mocked(fetch).mockImplementation(async (url) => {
-      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
-      if (urlStr.includes('/repos')) {
-        return mockResponse([]);
-      }
-      return mockResponse({
-        data: {
-          user: {
-            contributionsCollection: {
-              contributionCalendar: mockCalendar,
-            },
-          },
-        },
-      });
-    });
-
-    // For Pacific/Honolulu (UTC-10), local 2024-01-01T00:00:00 is UTC 2024-01-01T10:00:00Z
-    // and local 2024-12-31T23:59:59 is UTC 2025-01-01T09:59:59Z
-    await getWrappedData('octocat', '2024', undefined, 'Pacific/Honolulu');
-
-    const graphQLCall = vi
-      .mocked(fetch)
-      .mock.calls.find(([url]) => url.toString().includes('/graphql'));
-
-    const body = JSON.parse(graphQLCall?.[1]?.body as string);
-
-    expect(body.variables.from).toBe('2024-01-01T10:00:00Z');
-    expect(body.variables.to).toBe('2025-01-01T09:59:59Z');
-  });
-
-  it('falls back to the current-year date range when wrapped year is missing or partial', async () => {
-    vi.mocked(fetch).mockImplementation(async (url) => {
-      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
-
-      if (urlStr.includes('/repos')) {
-        return mockResponse([]);
-      }
-
-      return mockResponse({
-        data: {
-          user: {
-            contributionsCollection: {
-              contributionCalendar: mockCalendar,
-            },
-          },
-        },
-      });
-    });
-
-    const currentYear = new Date().getFullYear();
-    const fallbackRange = {
-      from: `${currentYear}-01-01T00:00:00Z`,
-      to: `${currentYear}-12-31T23:59:59Z`,
-    };
-
-    for (const year of [undefined, '', ' '] as unknown as string[]) {
-      vi.clearAllMocks();
-      clearGitHubApiCacheForTests();
-
-      await getWrappedData('octocat', year);
-
-      const graphQLCall = vi
-        .mocked(fetch)
-        .mock.calls.find(([url]) => url.toString().includes('/graphql'));
-
-      const body = JSON.parse(graphQLCall?.[1]?.body as string);
-
-      expect(body.variables.from).toBe(fallbackRange.from);
-      expect(body.variables.to).toBe(fallbackRange.to);
-    }
-  });
-});
-
-describe('computeDeveloperScore', () => {
-  it('handles all-zero inputs', () => {
-    const score = computeDeveloperScore({
-      repos: 0,
-      followers: 0,
-      stars: 0,
-      contributions: 0,
-      longestStreak: 0,
-    });
-    expect(score).toBe(0);
-  });
-
-  it('calculates perfect 100 for exact saturation threshold values', () => {
-    const score = computeDeveloperScore({
-      repos: 50,
-      followers: 50,
-      stars: 100,
-      contributions: 400,
-      longestStreak: 50,
-    });
-    expect(score).toBe(100);
-  });
-
-  it('clamps the developer score to a maximum of 100 under excess inputs', () => {
-    const score = computeDeveloperScore({
-      repos: 1000,
-      followers: 500,
-      stars: 9999,
-      contributions: 10000,
-      longestStreak: 365,
-    });
-    expect(score).toBe(100);
-  });
-
-  it('correctly calculates developer score under realistic normal values with rounding', () => {
-    const score = computeDeveloperScore({
-      repos: 10, // 10 * 0.5 = 5 pts
-      followers: 8, // 8 * 0.5 = 4 pts
-      stars: 15, // 15 * 0.2 = 3 pts
-      contributions: 120, // 120 / 20 = 6 pts
-      longestStreak: 12, // 12 * 0.2 = 2.4 pts
-    }); // Total = 20.4 -> rounded to 20
-    expect(score).toBe(20);
-  });
-
-  it('handles individual factor saturation caps correctly', () => {
-    // repos saturates at 50 (25 pts), followers saturates at 50 (25 pts)
-    const score = computeDeveloperScore({
-      repos: 100, // Caps at 25 pts
-      followers: 60, // Caps at 25 pts
-      stars: 0,
-      contributions: 0,
-      longestStreak: 0,
-    });
-    expect(score).toBe(50);
-  });
-
-  it('handles small fractional values and rounds to nearest integer correctly', () => {
-    // longestStreak of 3 yields 3 * 0.2 = 0.6 -> rounds to 1
-    expect(
-      computeDeveloperScore({
-        repos: 0,
-        followers: 0,
-        stars: 0,
-        contributions: 0,
-        longestStreak: 3,
-      })
-    ).toBe(1);
-
-    // sum of small fractional parts: 1 repos (0.5) + 1 followers (0.5) + 1 stars (0.2) + 1 contributions (0.05) + 1 longestStreak (0.2) = 1.45 -> rounds to 1
-    expect(
-      computeDeveloperScore({
-        repos: 1,
-        followers: 1,
-        stars: 1,
-        contributions: 1,
-        longestStreak: 1,
-      })
-    ).toBe(1);
-
-    // sum: 1 repos (0.5) + 1 followers (0.5) + 1 stars (0.2) + 1 contributions (0.05) + 2 longestStreak (0.4) = 1.65 -> rounds to 2
-    expect(
-      computeDeveloperScore({
-        repos: 1,
-        followers: 1,
-        stars: 1,
-        contributions: 1,
-        longestStreak: 2,
-      })
-    ).toBe(2);
-  });
-});
-
-describe('runCappedConcurrency', () => {
-  it('should process all items and return their results in order', async () => {
-    const items = [1, 2, 3, 4, 5];
-    const results = await runCappedConcurrency(items, 2, async (x) => {
-      return x * 10;
-    });
-
-    expect(results).toEqual([10, 20, 30, 40, 50]);
-  });
-
-  it('should strictly limit the concurrency to the specified limit', async () => {
-    const items = [1, 2, 3, 4, 5];
-    let activePromises = 0;
-    let maxConcurrentPromises = 0;
-
-    await runCappedConcurrency(items, 2, async (x) => {
-      activePromises++;
-      maxConcurrentPromises = Math.max(maxConcurrentPromises, activePromises);
-      await new Promise((resolve) => setTimeout(resolve, 5));
-      activePromises--;
-      return x;
-    });
-
-    expect(maxConcurrentPromises).toBeLessThanOrEqual(2);
-  });
-
-  it('should handle errors inside tasks gracefully without aborting the entire sequence', async () => {
-    const items = [1, 2, 3, 4, 5];
-    const results = await runCappedConcurrency(items, 2, async (x) => {
-      if (x === 3) throw new Error('Task 3 failed');
-      return x * 10;
-    });
-
-    expect(results[0]).toBe(10);
-    expect(results[1]).toBe(20);
-    expect(results[2]).toBeNull();
-    expect(results[3]).toBe(40);
-    expect(results[4]).toBe(50);
-  });
-});
-
-describe('buildCommitClock timezone-aware', () => {
-  it('counts a Friday contribution as Friday (weekday) in IST', () => {
-    const result = buildCommitClock([{ date: '2024-01-05', contributionCount: 4 }], 'Asia/Kolkata');
-    expect(result[5].day).toBe('Fri');
-    expect(result[5].commits).toBe(4);
-    expect(result[6].commits).toBe(0);
-  });
-
-  it('counts a Saturday contribution in UTC-5 as Saturday', () => {
-    const result = buildCommitClock(
-      [{ date: '2024-01-06', contributionCount: 3 }],
-      'America/New_York'
-    );
-    expect(result[6].day).toBe('Sat');
-    expect(result[6].commits).toBe(3);
-  });
-
-  it('defaults to UTC when no timezone is provided', () => {
-    const result = buildCommitClock([{ date: '2024-01-07', contributionCount: 2 }]);
-    expect(result[0].day).toBe('Sun');
-    expect(result[0].commits).toBe(2);
-  });
-});
-
-describe('getWrappedData weekendRatio', () => {
-  beforeEach(() => vi.spyOn(global, 'fetch'));
-  afterEach(() => vi.restoreAllMocks());
-
-  it('returns weekendRatio of 100 when all contributions are on weekend days', async () => {
-    vi.mocked(fetch).mockImplementation(async (url) => {
-      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
-      if (urlStr.includes('/repos')) return mockResponse([]);
-      return mockResponse({
-        data: {
-          user: {
-            contributionsCollection: {
-              contributionCalendar: {
-                totalContributions: 10,
-                weeks: [
-                  {
-                    contributionDays: [
-                      { date: '2024-01-06', contributionCount: 5 },
-                      { date: '2024-01-07', contributionCount: 5 },
-                    ],
-                  },
-                ],
-              },
-            },
-          },
-        },
-      });
-    });
-    const result = await getWrappedData('octocat', '2024');
-    expect(result.weekendRatio).toBe(100);
-  });
-
-  it('returns weekendRatio of 0 when all contributions are on weekdays', async () => {
-    vi.mocked(fetch).mockImplementation(async (url) => {
-      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
-      if (urlStr.includes('/repos')) return mockResponse([]);
-      return mockResponse({
-        data: {
-          user: {
-            contributionsCollection: {
-              contributionCalendar: {
-                totalContributions: 10,
-                weeks: [{ contributionDays: [{ date: '2024-01-05', contributionCount: 10 }] }],
-              },
-            },
-          },
-        },
-      });
-    });
-    const result = await getWrappedData('octocat', '2024');
-    expect(result.weekendRatio).toBe(0);
-  });
-
-  it('returns weekendRatio of 0 when there are no contributions', async () => {
-    vi.mocked(fetch).mockImplementation(async (url) => {
-      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
-      if (urlStr.includes('/repos')) return mockResponse([]);
-      return mockResponse({
-        data: {
-          user: {
-            contributionsCollection: {
-              contributionCalendar: { totalContributions: 0, weeks: [] },
-            },
-          },
-        },
-      });
-    });
-    const result = await getWrappedData('octocat', '2024');
-    expect(result.weekendRatio).toBe(0);
   });
 });

@@ -9,6 +9,7 @@ import {
   LOG_SCALE_MULTIPLIER,
   MAX_LINEAR_HEIGHT,
   MAX_LOG_HEIGHT,
+  MAX_SQRT_HEIGHT,
   TILE_HEIGHT_HALF,
   TILE_WIDTH_HALF,
 } from './layoutConstants';
@@ -74,12 +75,16 @@ describe('layoutConstants massive scaling', () => {
     const start = now();
     const linearHeights = counts.map((count) => computeTowerHeight(count, 'linear', false));
     const logHeights = counts.map((count) => computeTowerHeight(count, 'log', false));
+    const maxCount = Math.max(...counts);
+    const sqrtHeights = counts.map((count) => computeTowerHeight(count, 'sqrt', false, maxCount));
     const duration = now() - start;
 
     expect(linearHeights.every((height) => height >= 0 && height <= MAX_LINEAR_HEIGHT)).toBe(true);
     expect(logHeights.every((height) => height >= 0 && height <= MAX_LOG_HEIGHT)).toBe(true);
+    expect(sqrtHeights.every((height) => height >= 0 && height <= MAX_SQRT_HEIGHT)).toBe(true);
     expect(linearHeights).toContain(MAX_LINEAR_HEIGHT);
     expect(logHeights).toContain(MAX_LOG_HEIGHT);
+    expect(sqrtHeights).toContain(MAX_SQRT_HEIGHT);
     expect(computeTowerHeight(0, 'linear', true)).toBe(GHOST_HEIGHT_PX);
     expect(duration).toBeLessThan(75);
   });

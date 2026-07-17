@@ -1,3 +1,4 @@
+// Resolves Issue #6213 and Issue #6212 (Contribution Forecast Engine)
 'use client';
 
 import { useMemo } from 'react';

@@ -59,16 +59,21 @@ export const themes: Record<string, BadgeTheme> = {
   lumos: makeTheme('0a0a0a', 'a7f3d0', 'fbbf24', 'ef4444'),
   tokyonight: makeTheme('1a1b26', 'c0caf5', 'f7768e'),
   cyberpunk: makeTheme('fce22a', '111111', 'ff003c', '2d0000'),
+  cyberpunk_neon: makeTheme('0d0d14', '00f3ff', 'ff0055', 'b800ff'),
   tokyo_night: makeTheme('1a1b26', 'c0caf5', '7aa2f7'),
   monokai: makeTheme('272822', 'f8f8f2', 'a6e22e', 'f92672'),
   midnight_ocean: makeTheme('020c1b', 'ccd6f6', '0af5ff', 'ff4d6d'),
+  enterprise: makeTheme('1a1a2e', 'e2e8f0', '6366f1', '8b5cf6'),
+  // India theme — saffron accent (#FF9933), India green negative (#138808)
+  india: makeTheme('0a0a0a', 'ffffff', 'FF9933', '138808'),
+  ayu_mirage: makeTheme('212733', 'D9D7CE', 'FFCC66', 'FF3333'),
 };
 
 // Auto-theme pairs: the SVG switches between these two palettes
 // using @media (prefers-color-scheme) so the badge adapts to the
 // viewer's OS-level light/dark setting without any JavaScript.
-export const AUTO_THEME_LIGHT: BadgeTheme = themes.light;
-export const AUTO_THEME_DARK: BadgeTheme = themes.dark;
+export const AUTO_THEME_LIGHT: BadgeTheme = themes.light ?? themes.default;
+export const AUTO_THEME_DARK: BadgeTheme = themes.dark ?? themes.default;
 
 /**
  * Resolves a theme case-insensitively by matching the normalized user input
@@ -77,7 +82,7 @@ export const AUTO_THEME_DARK: BadgeTheme = themes.dark;
 export function getNormalizedThemeKey(themeInput: string | undefined | null): string {
   if (!themeInput) return 'default'; // fallback key
 
-  const target = themeInput.toLowerCase();
+  const target = themeInput.trim().toLowerCase();
   const matchedKey = Object.keys(themes).find((key) => key.toLowerCase() === target);
 
   return matchedKey || 'default';

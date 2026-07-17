@@ -1,3 +1,4 @@
+import 'server-only';
 import { fetchWithRetry, getGitHubTokens } from '@/lib/github';
 import { DistributedCache } from '@/lib/cache';
 
@@ -27,6 +28,12 @@ interface PRNode {
 
 const GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql';
 const MAX_PAGES = 3;
+
+export interface PRSizeDistribution {
+  atomic: number;
+  standard: number;
+  massive: number;
+}
 
 export interface PRInsightData {
   totalPRs: number;
@@ -61,6 +68,7 @@ export interface PRInsightData {
     largest?: { title: string; url: string; additions: number; deletions: number };
   };
   prs: { title: string; url: string; state: string; createdAt: string; repo: string }[];
+  sizeDistribution?: PRSizeDistribution;
 }
 
 const prInsightsCache = new DistributedCache<PRInsightData>(500);
@@ -82,7 +90,8 @@ function getHeaders(userToken?: string) {
 
 export async function fetchPRInsights(
   username: string,
-  userToken?: string
+  userToken?: string,
+  signal?: AbortSignal
 ): Promise<PRInsightData> {
   const cacheKey = `pr-insights:${username.toLowerCase()}`;
   const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes cache
@@ -90,7 +99,7 @@ export async function fetchPRInsights(
   return prInsightsCache.getOrSet(
     cacheKey,
     async () => {
-      return fetchPRInsightsUncached(username, userToken);
+      return fetchPRInsightsUncached(username, userToken, signal);
     },
     CACHE_TTL_MS
   );
@@ -98,7 +107,8 @@ export async function fetchPRInsights(
 
 async function fetchPRInsightsUncached(
   username: string,
-  userToken?: string
+  userToken?: string,
+  signal?: AbortSignal
 ): Promise<PRInsightData> {
   // We use the GraphQL search API to get PRs authored by the user and PRs reviewed by the user.
   // This is more efficient than iterating through user.pullRequests.
@@ -168,6 +178,7 @@ async function fetchPRInsightsUncached(
       headers: getHeaders(userToken),
       body: JSON.stringify({ query, variables: { ...variables, after } }),
       cache: 'no-store',
+      signal,
     });
 
     if (!res.ok) {
@@ -217,12 +228,26 @@ async function fetchPRInsightsUncached(
 
   const weeklyActivityMap = new Map<string, number>();
   const monthlyActivityMap = new Map<string, number>();
+  const sizeDistribution: PRSizeDistribution = {
+    atomic: 0,
+    standard: 0,
+    massive: 0,
+  };
 
   for (const pr of authoredPRs) {
     // Basic stats
     if (pr.state === 'OPEN') openPRs++;
     else if (pr.state === 'MERGED') mergedPRs++;
     else closedPRs++;
+
+    const totalLines = (pr.additions ?? 0) + (pr.deletions ?? 0);
+    if (totalLines < 100) {
+      sizeDistribution.atomic++;
+    } else if (totalLines <= 500) {
+      sizeDistribution.standard++;
+    } else {
+      sizeDistribution.massive++;
+    }
 
     // Activity timelines
     const createdDate = new Date(pr.createdAt);
@@ -357,6 +382,7 @@ async function fetchPRInsightsUncached(
       createdAt: pr.createdAt,
       repo: pr.repository?.nameWithOwner ?? 'Unknown',
     })),
+    sizeDistribution,
   };
 }
 

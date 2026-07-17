@@ -3,7 +3,7 @@ import { fetchUserProfile, fetchGitHubContributions } from '@/lib/github';
 import { calculateStreak } from '@/lib/calculate';
 import { validateGitHubUsername } from '@/lib/validations';
 import { getClientIp } from '@/utils/getClientIp';
-import { RateLimiter } from '@/lib/rate-limit';
+import { getRateLimitHeaders, RateLimiter } from '@/lib/rate-limit';
 
 const userDetailsLimiter = new RateLimiter(20, 60_000, 1);
 
@@ -12,10 +12,11 @@ export async function GET(request: Request) {
   const rateLimitKey =
     ip && ip !== 'unknown' ? ip : `unknown:${request.headers.get('user-agent') ?? 'no-agent'}`;
 
-  if (!(await userDetailsLimiter.check(rateLimitKey))) {
+  const rateLimitResult = await userDetailsLimiter.checkWithResult(rateLimitKey);
+  if (!rateLimitResult.success) {
     return NextResponse.json(
       { error: 'Too many requests. Please try again later.' },
-      { status: 429 }
+      { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
     );
   }
 
@@ -65,6 +66,6 @@ export async function GET(request: Request) {
     if (message.includes('not found') || message.includes('404')) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-    return NextResponse.json({ error: message || 'Failed to fetch user details' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

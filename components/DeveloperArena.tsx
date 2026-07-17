@@ -38,10 +38,10 @@ const SHOWDOWNS = [
     badgeColor: 'border-purple-500/30 text-purple-400 bg-purple-500/5',
   },
   {
-    u1: 'vercel',
-    u2: 'netlify',
+    u1: 'rauchg',
+    u2: 'biilmann',
     label: 'Vercel vs Netlify',
-    desc: 'Platform Wars',
+    desc: 'Founder Showdown',
     badgeColor: 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5',
   },
   {
@@ -248,11 +248,11 @@ const PREDICTIONS = [
     accent: 'from-amber-400 to-orange-500',
   },
 ];
-
-// CountUp counter subcomponent
 function CountUp({ to, duration = 1800 }: { to: number; duration?: number }) {
   const supportsObserver = typeof window !== 'undefined' && 'IntersectionObserver' in window;
+
   const [count, setCount] = useState(() => (supportsObserver ? 0 : to));
+
   const elementRef = useRef<HTMLSpanElement>(null);
   const hasAnimated = useRef(!supportsObserver);
 
@@ -263,15 +263,17 @@ function CountUp({ to, duration = 1800 }: { to: number; duration?: number }) {
       (entries) => {
         if (entries[0].isIntersecting && !hasAnimated.current) {
           hasAnimated.current = true;
+
           let start = 0;
           const end = to;
-          const totalMiliseconds = duration;
-          const incrementTime = Math.max(Math.floor(totalMiliseconds / 60), 10);
-          const steps = totalMiliseconds / incrementTime;
+          const totalMilliseconds = duration;
+          const incrementTime = Math.max(Math.floor(totalMilliseconds / 60), 10);
+          const steps = totalMilliseconds / incrementTime;
           const increment = Math.ceil(end / steps);
 
           const timer = setInterval(() => {
             start += increment;
+
             if (start >= end) {
               clearInterval(timer);
               setCount(end);
@@ -293,7 +295,6 @@ function CountUp({ to, duration = 1800 }: { to: number; duration?: number }) {
 
   return <span ref={elementRef}>{count.toLocaleString()}</span>;
 }
-
 export default function DeveloperArena({ onSelectBattle }: DeveloperArenaProps) {
   const arenaRef = useRef<HTMLDivElement>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });

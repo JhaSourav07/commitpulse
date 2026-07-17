@@ -10,51 +10,52 @@ URL Parameter > Theme Default > System Fallback
 
 ## 📋 Parameter Reference
 
-| Parameter           | Type      | Required   | Default                        | Description                                                                                                                                                                                                                                |
-| ------------------- | --------- | ---------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `user`              | `string`  | ✅ **Yes** | —                              | GitHub username to render                                                                                                                                                                                                                  |
-| `theme`             | `string`  | No         | `dark`                         | Preset theme name (see below)                                                                                                                                                                                                              |
-| `bg`                | `hex`     | No         | Theme default                  | Background color — **without** `#`                                                                                                                                                                                                         |
-| `accent`            | `hex`     | No         | Theme default                  | Tower & glow color — **without** `#`                                                                                                                                                                                                       |
-| `text`              | `hex`     | No         | Theme default                  | Label & stat text color — **without** `#`                                                                                                                                                                                                  |
-| `radius`            | `number`  | No         | `8`                            | Border corner radius in pixels                                                                                                                                                                                                             |
-| `border`            | `string`  | No         | —                              | Custom stroke color around the main SVG container — **without** `#`                                                                                                                                                                        |
-| `speed`             | `string`  | No         | `8s`                           | Radar scan duration (`2s`–`20s`, default `8s`)                                                                                                                                                                                             |
-| `scale`             | `string`  | No         | `linear`                       | Tower height scaling: `linear` or `log` (logarithmic)                                                                                                                                                                                      |
-| `size`              | `string`  | No         | `medium`                       | Badge dimensions: `small` (400×280), `medium` (600×420), `large` (800×560)                                                                                                                                                                 |
-| `font`              | `string`  | No         | CommitPulse default typography | Any **Google Font** name (e.g. `Orbitron`, `Inter`)                                                                                                                                                                                        |
-| `refresh`           | `boolean` | No         | `false`                        | Bypass cache for real-time data                                                                                                                                                                                                            |
-| `year`              | `string`  | No         | —                              | Calendar year to render (e.g. `2023`, `2024`)                                                                                                                                                                                              |
-| `days`              | `number`  | No         | —                              | Number of days of contribution history to fetch and render. Accepts a positive integer up to `365` (e.g. `days=90`).                                                                                                                       |
-| `from`              | `string`  | No         | —                              | Start date for the contribution query in ISO 8601 format (e.g. `2023-01-01`). Must be less than or equal to `to` date.                                                                                                                     |
-| `to`                | `string`  | No         | —                              | End date for the contribution query in ISO 8601 format (e.g. `2023-12-31`). Must be greater than or equal to `from` date.                                                                                                                  |
-| `hide_title`        | `boolean` | No         | `false`                        | Hide GitHub username/title from the SVG badge                                                                                                                                                                                              |
-| `custom_title`      | `string`  | No         | —                              | Render a custom title instead of username/title                                                                                                                                                                                            |
-| `custom_subtitle`   | `string`  | No         | —                              | Render a custom subtitle right below the title                                                                                                                                                                                             |
-| `hide_background`   | `boolean` | No         | `false`                        | Remove the background rect, letting the monolith float on the page                                                                                                                                                                         |
-| `hide_stats`        | `boolean` | No         | `false`                        | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`.                                                                                                                        |
-| `tz`                | `string`  | No         | Omitted = UTC                  | IANA timezone (e.g. `Asia/Kolkata`, `America/New_York`) — aligns "today" with the user local midnight. Note: `?tz=UTC` is valid but cached separately from omitting `tz`.                                                                  |
-| `lang`              | `string`  | No         | `en`                           | Language code for labels (`en`, `es`, `hi`, `fr`, `pt`, `ko`, `ja`, `de`, `zh`)                                                                                                                                                            |
-| `view`              | `string`  | No         | `default`                      | Rendering mode: `default` (3D Monolith), `monthly` (Compact monthly stats), `heatmap` (flat 2D heatmap), `pulse` (heartbeat pulse), `skyline` (city skyline), `languages` (top languages skyline), or `constellation` (celestial star-map) |
-| `entrance`          | `string`  | No         | `rise`                         | Entrance animation for towers: `rise` (default), `fade`, `slide`, or `none`.                                                                                                                                                               |
-| `disable_particles` | `boolean` | No         | `false`                        | Disable floating heat particle animations on the monolith towers when set to `true` or `1`.                                                                                                                                                |
-| `glow`              | `boolean` | No         | `true`                         | Enable neon-style glow/blur effects for the towers. Accepts `true`/`1` (enable) or `false`/`0` (disable).                                                                                                                                  |
-| `delta_format`      | `string`  | No         | `percent`                      | Format for month-over-month delta in monthly view: `percent` (e.g. +12%), `absolute` (e.g. +15 commits), or `both`                                                                                                                         |
-| `width`             | `number`  | No         | `300`                          | Custom width for the SVG canvas (applies to `view=monthly`, `pulse`, `skyline`)                                                                                                                                                            |
-| `height`            | `number`  | No         | `120`                          | Custom height for the SVG canvas (applies to `view=monthly`, `pulse`, `skyline`)                                                                                                                                                           |
-| `grace`             | `number`  | No         | `1`                            | Grace period in days before a streak resets (0–7). `grace=0` = strict mode (no missed days), `grace=2` = lenient (forgives up to 2 missed days). Default is `1`.                                                                           |
-| `mode`              | `string`  | No         | `commits`                      | Rendering mode: `commits` (default) or `loc` (Lines of Code landscape)                                                                                                                                                                     |
-| `repo`              | `string`  | No         | —                              | Render the monolith for a specific repository (e.g. `owner/repo`) instead of the whole profile                                                                                                                                             |
-| `org`               | `string`  | No         | —                              | Organization name to generate a Mega-City for                                                                                                                                                                                              |
-| `labels`            | `boolean` | No         | `false`                        | Render optional 3D isometric month headers and weekday labels                                                                                                                                                                              |
-| `labelColor`        | `hex`     | No         | —                              | Custom text color for the isometric labels — **without** `#`                                                                                                                                                                               |
-| `versus`            | `string`  | No         | —                              | GitHub username of an opponent to compare against in side-by-side versus mode                                                                                                                                                              |
-| `shading`           | `boolean` | No         | `false`                        | Apply intensity-based opacity shading to tower faces so lower intensity levels appear slightly dimmer                                                                                                                                      |
-| `dim_weekends`      | `boolean` | No         | `false`                        | Dim towers representing weekend commits (Saturdays and Sundays) to `opacity: 0.3` to highlight weekday schedules                                                                                                                           |
-| `opacity`           | `number`  | No         | `1.0`                          | Global opacity scalar for all tower fill-opacity values (0.1–1.0). `opacity=0.5` = semi-transparent ghost look. `opacity=0.8` = faded, great on light backgrounds.                                                                         |
-| `gradient`          | `boolean` | No         | `false`                        | Opt-in to show volumetric gradients on the monolith floor                                                                                                                                                                                  |
-| `gradient_stops`    | `string`  | No         | —                              | Comma-separated list of hex colors (e.g. `ff6b35,ff007f`) for custom floor gradient. Requires `gradient=true` and at least two valid colors. Hex prefix `#` is optional.                                                                   |
-| `gradient_dir`      | `string`  | No         | `vertical`                     | Direction of the volumetric floor gradient: `vertical` (default), `horizontal`, or `diagonal`.                                                                                                                                             |
+| Parameter           | Type      | Required   | Default                        | Description                                                                                                                                                                                                                                                                                        |
+| ------------------- | --------- | ---------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `user`              | `string`  | ✅ **Yes** | —                              | GitHub username to render                                                                                                                                                                                                                                                                          |
+| `theme`             | `string`  | No         | `dark`                         | Preset theme name (see below)                                                                                                                                                                                                                                                                      |
+| `bg`                | `hex`     | No         | Theme default                  | Background color — **without** `#`                                                                                                                                                                                                                                                                 |
+| `accent`            | `hex`     | No         | Theme default                  | Tower & glow color — **without** `#`                                                                                                                                                                                                                                                               |
+| `text`              | `hex`     | No         | Theme default                  | Label & stat text color — **without** `#`                                                                                                                                                                                                                                                          |
+| `radius`            | `number`  | No         | `8`                            | Border corner radius in pixels                                                                                                                                                                                                                                                                     |
+| `border`            | `string`  | No         | —                              | Custom stroke color around the main SVG container — **without** `#`                                                                                                                                                                                                                                |
+| `speed`             | `string`  | No         | `8s`                           | Radar scan duration (`2s`–`20s`, default `8s`)                                                                                                                                                                                                                                                     |
+| `scale`             | `string`  | No         | `linear`                       | Tower height scaling: `linear`, `log` (logarithmic), or `sqrt` (square root)                                                                                                                                                                                                                       |
+| `size`              | `string`  | No         | `medium`                       | Badge dimensions: `small` (400×280), `medium` (600×420), `large` (800×560)                                                                                                                                                                                                                         |
+| `font`              | `string`  | No         | CommitPulse default typography | Any **Google Font** name (e.g. `Orbitron`, `Inter`)                                                                                                                                                                                                                                                |
+| `refresh`           | `boolean` | No         | `false`                        | Bypass cache for real-time data                                                                                                                                                                                                                                                                    |
+| `year`              | `string`  | No         | —                              | Calendar year to render (e.g. `2023`, `2024`)                                                                                                                                                                                                                                                      |
+| `days`              | `number`  | No         | —                              | Number of days of contribution history to fetch and render. Accepts a positive integer up to `365` (e.g. `days=90`).                                                                                                                                                                               |
+| `from`              | `string`  | No         | —                              | Start date for the contribution query in ISO 8601 format (e.g. `2023-01-01`). Must be less than or equal to `to` date.                                                                                                                                                                             |
+| `to`                | `string`  | No         | —                              | End date for the contribution query in ISO 8601 format (e.g. `2023-12-31`). Must be greater than or equal to `from` date.                                                                                                                                                                          |
+| `hide_title`        | `boolean` | No         | `false`                        | Hide GitHub username/title from the SVG badge                                                                                                                                                                                                                                                      |
+| `custom_title`      | `string`  | No         | —                              | Render a custom title instead of username/title                                                                                                                                                                                                                                                    |
+| `custom_subtitle`   | `string`  | No         | —                              | Render a custom subtitle right below the title                                                                                                                                                                                                                                                     |
+| `hide_background`   | `boolean` | No         | `false`                        | Remove the background rect, letting the monolith float on the page                                                                                                                                                                                                                                 |
+| `hide_stats`        | `boolean` | No         | `false`                        | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`.                                                                                                                                                                                |
+| `tz`                | `string`  | No         | Omitted = UTC                  | IANA timezone (e.g. `Asia/Kolkata`, `America/New_York`) — aligns "today" with the user local midnight. Note: `?tz=UTC` is valid but cached separately from omitting `tz`.                                                                                                                          |
+| `lang`              | `string`  | No         | `en`                           | Language code for labels (`en`, `es`, `hi`, `fr`, `pt`, `ko`, `ja`, `de`, `zh`)                                                                                                                                                                                                                    |
+| `view`              | `string`  | No         | `default`                      | Rendering mode: `default` (3D Monolith), `monthly` (Compact monthly stats), `heatmap` (flat 2D heatmap), `pulse` (heartbeat pulse), `skyline` (city skyline), `languages` (top languages skyline), `constellation` (celestial star-map), or `weekday` (contribution totals grouped by day of week) |
+| `entrance`          | `string`  | No         | `rise`                         | Entrance animation for towers: `rise` (default), `fade`, `slide`, or `none`.                                                                                                                                                                                                                       |
+| `disable_particles` | `boolean` | No         | `false`                        | Disable floating heat particle animations on the monolith towers when set to `true` or `1`.                                                                                                                                                                                                        |
+| `glow`              | `boolean` | No         | `true`                         | Enable neon-style glow/blur effects for the towers. Accepts `true`/`1` (enable) or `false`/`0` (disable).                                                                                                                                                                                          |
+| `delta_format`      | `string`  | No         | `percent`                      | Format for month-over-month delta in monthly view: `percent` (e.g. +12%), `absolute` (e.g. +15 commits), or `both`                                                                                                                                                                                 |
+| `width`             | `number`  | No         | `300`                          | Custom width for the SVG canvas (applies to `view=monthly`, `pulse`, `skyline`)                                                                                                                                                                                                                    |
+| `height`            | `number`  | No         | `120`                          | Custom height for the SVG canvas (applies to `view=monthly`, `pulse`, `skyline`)                                                                                                                                                                                                                   |
+| `grace`             | `number`  | No         | `1`                            | Grace period in days before a streak resets (0–7). `grace=0` = strict mode (no missed days), `grace=2` = lenient (forgives up to 2 missed days). Default is `1`.                                                                                                                                   |
+| `mode`              | `string`  | No         | `commits`                      | Rendering mode: `commits` (default) or `loc` (Lines of Code landscape)                                                                                                                                                                                                                             |
+| `repo`              | `string`  | No         | —                              | Render the monolith for a specific repository (e.g. `owner/repo`) instead of the whole profile                                                                                                                                                                                                     |
+| `org`               | `string`  | No         | —                              | Organization name to generate a Mega-City for                                                                                                                                                                                                                                                      |
+| `labels`            | `boolean` | No         | `false`                        | Render optional 3D isometric month headers and weekday labels                                                                                                                                                                                                                                      |
+| `labelColor`        | `hex`     | No         | —                              | Custom text color for the isometric labels — **without** `#`                                                                                                                                                                                                                                       |
+| `versus`            | `string`  | No         | —                              | GitHub username of an opponent to compare against in side-by-side versus mode                                                                                                                                                                                                                      |
+| `shading`           | `boolean` | No         | `false`                        | Apply intensity-based opacity shading to tower faces so lower intensity levels appear slightly dimmer                                                                                                                                                                                              |
+| `dim_weekends`      | `boolean` | No         | `false`                        | Dim towers representing weekend commits (Saturdays and Sundays) to `opacity: 0.3` to highlight weekday schedules                                                                                                                                                                                   |
+| `opacity`           | `number`  | No         | `1.0`                          | Global opacity scalar for all tower fill-opacity values (0.1–1.0). `opacity=0.5` = semi-transparent ghost look. `opacity=0.8` = faded, great on light backgrounds.                                                                                                                                 |
+| `gradient`          | `boolean` | No         | `false`                        | Opt-in to show volumetric gradients on the monolith floor                                                                                                                                                                                                                                          |
+| `gradient_stops`    | `string`  | No         | —                              | Comma-separated list of hex colors (e.g. `ff6b35,ff007f`) for custom floor gradient. Requires `gradient=true` and at least two valid colors. Hex prefix `#` is optional.                                                                                                                           |
+| `gradient_dir`      | `string`  | No         | `vertical`                     | Direction of the volumetric floor gradient: `vertical` (default), `horizontal`, or `diagonal`.                                                                                                                                                                                                     |
+| `minify`            | `boolean` | No         | `true`                         | Enable lightweight SVG minification to reduce payload size by 15–30%. Accepts `true`/`1` (enable) or `false`/`0` (disable).                                                                                                                                                                        |
 
 > All parameters below are optional except `user`. Append them to the base URL as query string key-value pairs (e.g. `?user=YOUR_USERNAME&theme=neon&size=large`). Boolean parameters accept `true` or `false`. Hex color values are provided **without** the `#` prefix.
 
@@ -68,7 +69,7 @@ URL Parameter > Theme Default > System Fallback
 | `radius`          | Border corner radius in pixels                                                                  | `8`                | Numeric value                                                                   | `?radius=16`               |
 | `border`          | Custom stroke color around the SVG container                                                    | —                  | Hex color code (without `#`)                                                    | `?border=ff0000`           |
 | `speed`           | Radar scan duration                                                                             | `8s`               | `2s`–`20s`                                                                      | `?speed=4s`                |
-| `scale`           | Tower height scaling                                                                            | `linear`           | `linear`, `log`                                                                 | `?scale=log`               |
+| `scale`           | Tower height scaling                                                                            | `linear`           | `linear`, `log`, `sqrt`                                                         | `?scale=sqrt`              |
 | `size`            | Badge dimensions                                                                                | `medium`           | `small`, `medium`, `large`                                                      | `?size=large`              |
 | `font`            | Custom font for text                                                                            | Default typography | Any valid Google Font name                                                      | `?font=Orbitron`           |
 | `refresh`         | Bypass cache for real-time data                                                                 | `false`            | `true`, `false`                                                                 | `?refresh=true`            |
@@ -80,7 +81,7 @@ URL Parameter > Theme Default > System Fallback
 | `hide_stats`      | Hide bottom row displaying stats                                                                | `false`            | `true`, `false`                                                                 | `?hide_stats=true`         |
 | `tz`              | IANA timezone                                                                                   | `UTC`              | Valid IANA timezone                                                             | `?tz=Asia/Kolkata`         |
 | `lang`            | Language code for labels                                                                        | `en`               | `en`, `es`, `hi`, `fr`, `pt`, `ko`, `ja`, `de`, `zh`                            | `?lang=hi`                 |
-| `view`            | Rendering mode                                                                                  | `default`          | `default`, `monthly`, `heatmap`, `pulse`, `skyline`, `languages`                | `?view=skyline`            |
+| `view`            | Rendering mode                                                                                  | `default`          | `default`, `monthly`, `heatmap`, `pulse`, `skyline`, `languages`, `weekday`     | `?view=weekday`            |
 | `entrance`        | Entrance animation for towers                                                                   | `rise`             | `rise`, `fade`, `slide`, `none`                                                 | `?entrance=fade`           |
 | `delta_format`    | Month-over-month delta format (`view=monthly`)                                                  | `percent`          | `percent`, `absolute`, `both`                                                   | `?delta_format=absolute`   |
 | `width`           | Custom width for SVG canvas (`view=monthly`, `pulse`, `skyline`)                                | `300`              | Numeric value                                                                   | `?width=400`               |
@@ -96,6 +97,7 @@ URL Parameter > Theme Default > System Fallback
 | `dim_weekends`    | Dim weekend towers (Saturdays and Sundays)                                                      | `false`            | `true`, `false`                                                                 | `?dim_weekends=true`       |
 | `opacity`         | Global opacity scalar for tower fill                                                            | `1.0`              | `0.1`–`1.0`                                                                     | `?opacity=0.8`             |
 | `gradient`        | Show volumetric gradients on the floor                                                          | `false`            | `true`, `false`                                                                 | `?gradient=true`           |
+| `minify`          | Enable SVG minification and payload optimization                                                | `true`             | `true`, `false`                                                                 | `?minify=false`            |
 
 ---
 
@@ -131,6 +133,7 @@ URL Parameter > Theme Default > System Fallback
 | `random`           | Surprise theme on reload    | _varies_ | _varies_ | _varies_ |
 | `highcontrast`     | Accessibility high contrast | `0a0a0a` | `ff4500` | `ffffff` |
 | `cyber-pulse`      | AMOLED true-black & cyan    | `000000` | `00ffee` | `ffffff` |
+| `retro-terminal`   | Classic CRT terminal        | `000000` | `00ff41` | `00ff41` |
 | `obsidian`         | Deep charcoal & amber gold  | `1a1a2e` | `f59e0b` | `e2e8f0` |
 | `glacier`          | Icy sky blue & cyan         | `e0f2fe` | `06b6d4` | `0369a1` |
 | `lumos`            | Void black & mint gold      | `0a0a0a` | `fbbf24` | `a7f3d0` |
@@ -251,4 +254,203 @@ Explore some of the built-in CommitPulse themes and quickly copy the style you l
 <!-- Heatmap with Neon theme -->
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&view=heatmap&theme=neon)
+
+<!-- Weekday breakdown — contributions grouped by day of week -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&view=weekday)
+
+<!-- Weekday breakdown with Dracula theme -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&view=weekday&theme=dracula)
 ```
+
+---
+
+## 🚀 Advanced Usage Examples
+
+### 🎨 Custom Gradient Backgrounds
+
+Create stunning visual effects with custom gradient backgrounds using the `gradient`, `gradient_stops`, and `gradient_dir` parameters.
+
+```md
+<!-- Vertical gradient with sunset colors -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&gradient=true&gradient_stops=ff6b35,ff007f,7b2cbf&gradient_dir=vertical)
+
+<!-- Horizontal gradient with ocean tones -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&gradient=true&gradient_stops=0077b6,00b4d8,90e0ef&gradient_dir=horizontal)
+
+<!-- Diagonal gradient with neon cyberpunk colors -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&gradient=true&gradient_stops=ff00ff,00ffff,ff0080&gradient_dir=diagonal)
+
+<!-- Custom gradient with specific theme -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=dark&gradient=true&gradient_stops=1a1a2e,16213e,0f3460&gradient_dir=vertical)
+```
+
+**Parameters:**
+
+- `gradient=true` - Enable volumetric gradients on the monolith floor
+- `gradient_stops` - Comma-separated hex colors (without `#`) for the gradient
+- `gradient_dir` - Direction: `vertical`, `horizontal`, or `diagonal`
+
+---
+
+### 👥 Multi-User Comparison
+
+Compare contribution patterns between multiple users or team members using comma-separated usernames.
+
+```md
+<!-- Compare two users side-by-side -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07,octocat)
+
+<!-- Team comparison with custom theme -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07,octocat&theme=neon)
+
+<!-- Small team comparison (up to 7 users) -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07,octocat,torvalds,gaearon&size=large)
+
+<!-- Multi-user with skyline view -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07,octocat&view=skyline)
+
+<!-- Versus mode for direct comparison -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&versus=octocat)
+
+<!-- Versus comparison with custom styling -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&versus=octocat&theme=dracula&size=large)
+```
+
+**Parameters:**
+
+- `user=user1,user2` - Comma-separated usernames for multi-user views
+- `versus=username` - Direct side-by-side comparison mode
+- `view=skyline` - City skyline visualization for multiple users
+
+---
+
+### 🏢 Organization Dashboards
+
+Generate comprehensive organization-wide contribution dashboards using the `org` parameter.
+
+```md
+<!-- Organization mega-city dashboard -->
+
+![](https://commitpulse.vercel.app/api/streak?org=vercel)
+
+<!-- Organization with custom theme -->
+
+![](https://commitpulse.vercel.app/api/streak?org=vercel&theme=github)
+
+<!-- Organization dashboard with labels -->
+
+![](https://commitpulse.vercel.app/api/streak?org=vercel&labels=true&labelColor=ffffff)
+
+<!-- Large organization view -->
+
+![](https://commitpulse.vercel.app/api/streak?org=vercel&size=large&hide_title=false)
+
+<!-- Organization with custom dimensions -->
+
+![](https://commitpulse.vercel.app/api/streak?org=vercel&width=800&height=600)
+
+<!-- Organization monthly stats -->
+
+![](https://commitpulse.vercel.app/api/streak?org=vercel&view=monthly)
+```
+
+**Parameters:**
+
+- `org=organization-name` - Generate mega-city dashboard for an organization
+- `labels=true` - Show isometric month and weekday labels
+- `labelColor` - Custom color for labels (hex without `#`)
+
+---
+
+### 📅 Custom Date Ranges
+
+Analyze contributions for specific time periods using `from`, `to`, `start_date`, `end_date`, or `year` parameters.
+
+```md
+<!-- Specific year analysis -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&year=2023)
+
+<!-- Custom date range (ISO 8601 format) -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&from=2023-01-01&to=2023-12-31)
+
+<!-- First quarter of 2024 -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&from=2024-01-01&to=2024-03-31)
+
+<!-- Recent 90 days using days parameter -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&days=90)
+
+<!-- Last 30 days with custom styling -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&days=30&theme=neon)
+
+<!-- Historical comparison: same period last year -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&from=2023-06-01&to=2023-08-31)
+
+<!-- Custom date range with monthly view -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&from=2024-01-01&to=2024-06-30&view=monthly)
+
+<!-- Date range with custom subtitle -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&start_date=2024-01-01&end_date=2024-06-30&custom_subtitle=Q1%20%26%20Q2%202024)
+```
+
+**Parameters:**
+
+- `year=YYYY` - Full calendar year
+- `from=YYYY-MM-DD` - Start date (ISO 8601 format)
+- `to=YYYY-MM-DD` - End date (ISO 8601 format)
+- `start_date=YYYY-MM-DD` - Alternative start date parameter
+- `end_date=YYYY-MM-DD` - Alternative end date parameter
+- `days=N` - Last N days of contributions (1-365)
+
+**Important Notes:**
+
+- Date ranges must be in ISO 8601 format (`YYYY-MM-DD`)
+- `from` date must be less than or equal to `to` date
+- `days` parameter takes precedence over date ranges when both are specified
+- Historical data is limited to GitHub's availability (founded in 2008)
+
+---
+
+### 💡 Pro Tips for Advanced Usage
+
+1. **Combine Parameters**: Mix and match parameters for unique effects
+
+   ```md
+   ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon&gradient=true&gradient_stops=ff00ff,00ffff&from=2024-01-01&to=2024-06-30)
+   ```
+
+2. **Performance Optimization**: Use `refresh=true` sparingly as it bypasses cache
+
+   ```md
+   ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&refresh=true)
+   ```
+
+3. **Accessibility**: Use high-contrast themes for better readability
+
+   ```md
+   ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=highcontrast)
+   ```
+
+4. **Embedding**: Adjust opacity for seamless integration with different backgrounds
+   ```md
+   ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&opacity=0.8)
+   ```

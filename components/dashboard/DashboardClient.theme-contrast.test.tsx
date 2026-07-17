@@ -135,6 +135,10 @@ vi.mock('./ResumeProfileSection', () => ({
   default: () => <div data-testid="resume" />,
 }));
 
+vi.mock('./DeveloperJourneyTimeline', () => ({
+  default: () => <div data-testid="journey-timeline" />,
+}));
+
 /* -----------------------------
    TEST DATA
 ------------------------------ */

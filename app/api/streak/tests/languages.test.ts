@@ -81,9 +81,9 @@ describe('GET /api/streak — languages (lang) parameter', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('CURRENT_STREAK');
-    expect(body).toContain('ANNUAL_SYNC_TOTAL');
-    expect(body).toContain('PEAK_STREAK');
+    expect(body).toContain('Current Streak');
+    expect(body).toContain('Annual Total');
+    expect(body).toContain('Peak Streak');
   });
 
   it('returns English labels when lang=en is explicitly provided', async () => {
@@ -91,8 +91,8 @@ describe('GET /api/streak — languages (lang) parameter', () => {
     const body = await response.text();
 
     expect(response.status).toBe(200);
-    expect(body).toContain('CURRENT_STREAK');
-    expect(body).toContain('PEAK_STREAK');
+    expect(body).toContain('Current Streak');
+    expect(body).toContain('Peak Streak');
   });
 
   it('sets Cache-Control and Content-Security-Policy headers for a valid lang parameter', async () => {

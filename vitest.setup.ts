@@ -24,7 +24,9 @@ if (typeof window !== 'undefined') {
 // 1. Next-Auth ko crash hone se bachane ke liye env variables defaults set karo
 process.env.AUTH_SECRET = 'a-super-secret-32-character-dummy-string-for-tests';
 process.env.NEXTAUTH_SECRET = 'a-super-secret-32-character-dummy-string-for-tests';
-process.env.GITHUB_TOKEN = 'mock-github-token-for-testing';
+// Ensure global fallback matches length and prefix requirements in github.ts
+process.env.GITHUB_TOKEN = 'ghp_mocktokenfortesting123456789012345';
+process.env.GITHUB_PAT = 'ghp_mockpatfortesting12345678901234567';
 
 // Next.js ke dynamic headers context ko mock karo taaki tests crash na hon
 vi.mock('next/headers', () => {
@@ -69,6 +71,14 @@ if (typeof window !== 'undefined' && typeof window.Storage !== 'undefined') {
       dispatchEvent: vi.fn(),
     })),
   });
+
+  window.XMLSerializer =
+    window.XMLSerializer ||
+    class {
+      serializeToString() {
+        return '';
+      }
+    };
 
   Object.defineProperty(window.Storage.prototype, 'length', {
     get() {
@@ -174,3 +184,46 @@ if (typeof globalThis.fetch !== 'undefined') {
     globalThis.fetch = guardedFetch;
   });
 }
+
+import enTranslations from './locales/en.json';
+
+// Global Translation Context Mock
+vi.mock('@/context/TranslationContext', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/context/TranslationContext')>();
+
+  const getNestedValue = (obj: Record<string, unknown>, path: string): unknown => {
+    return path.split('.').reduce((acc: unknown, part) => {
+      if (acc && typeof acc === 'object') {
+        return (acc as Record<string, unknown>)[part];
+      }
+      return undefined;
+    }, obj);
+  };
+
+  return {
+    ...actual,
+    useTranslation: () => ({
+      t: (key: string, options?: Record<string, string | number> & { defaultValue?: string }) => {
+        let val = getNestedValue(enTranslations as Record<string, unknown>, key) as string;
+
+        if (!val) {
+          if (options && typeof options.defaultValue === 'string') {
+            val = options.defaultValue;
+          } else {
+            const parts = key.split('.');
+            val = parts[parts.length - 1];
+          }
+        }
+
+        if (options && typeof val === 'string') {
+          Object.keys(options).forEach((k) => {
+            if (k !== 'defaultValue') {
+              val = val.replace(`{{${k}}}`, String(options[k]));
+            }
+          });
+        }
+        return val;
+      },
+    }),
+  };
+});

@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
 import { validateGitHubUsername } from '@/lib/validations';
 import { getFullDashboardData } from '@/lib/github';
+import { fetchPRInsights } from '@/services/github/pr-insights';
 import type {
   AchievementDef,
-  AchievementLevelDef,
   AchievementCategory,
-  AchievementRarity,
   AchievementState,
   AchievementData,
   AchievementsResponse,
@@ -572,9 +571,13 @@ export async function GET(request: Request) {
 
   try {
     const userToken = await getUserGitHubToken();
-    const dashboardData = await getFullDashboardData(username, { token: userToken });
+    const [dashboardData, prInsightsData] = await Promise.all([
+      getFullDashboardData(username, { token: userToken }),
+      fetchPRInsights(username, userToken).catch(() => null),
+    ]);
 
     const { profile, stats, languages } = dashboardData;
+
     const totalStars = profile.stats.stars;
     const totalForks =
       (dashboardData.popularRepos as Array<{ forkCount: number }> | undefined)?.reduce(
@@ -628,7 +631,6 @@ export async function GET(request: Request) {
     const totalEngagement = totalStars + totalForks + stats.totalIssues + stats.totalPRs;
 
     const totalContributions = stats.totalContributions;
-    const currentStreak = stats.currentStreak;
     const longestStreak = stats.peakStreak;
 
     const allCategories: AchievementCategory[] = [
@@ -647,7 +649,7 @@ export async function GET(request: Request) {
       'weekend-warrior': weekendContributions,
       'pr-rookie': stats.totalPRs,
       'pr-master': stats.totalPRs,
-      'merge-master': stats.totalPRs,
+      'merge-master': prInsightsData?.mergedPRs ?? 0,
       'review-expert': stats.totalReviews,
       'pr-legend': stats.totalPRs,
       'star-collector': totalStars,
@@ -737,10 +739,10 @@ export async function GET(request: Request) {
     if (message.toLowerCase().includes('rate limit') || message.includes('API limit reached')) {
       return NextResponse.json(
         { error: 'GitHub API rate limit reached. Please try again later.' },
-        { status: 429 }
+        { status: 429, headers: { 'Retry-After': '60' } }
       );
     }
 
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

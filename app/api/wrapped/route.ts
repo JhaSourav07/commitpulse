@@ -57,6 +57,7 @@ export async function GET(request: Request) {
       hide_background,
       width,
       height,
+      org,
       tz,
     } = parseResult.data;
 
@@ -121,14 +122,15 @@ export async function GET(request: Request) {
       if (!refreshPolicy.isRefreshAllowed(user)) {
         shouldBypassCache = false;
       } else {
+        console.log('recordRefresh executed');
         refreshPolicy.recordRefresh(user);
       }
     }
 
     // Fetch the wrapped stats for the year (calendar is included to avoid a duplicate API call)
     const wrappedStats = tz
-      ? await getWrappedData(user, year, { bypassCache: shouldBypassCache }, tz)
-      : await getWrappedData(user, year, { bypassCache: shouldBypassCache });
+      ? await getWrappedData(user, year, { bypassCache: shouldBypassCache, org }, tz)
+      : await getWrappedData(user, year, { bypassCache: shouldBypassCache, org });
 
     const svg = generateWrappedSVG(wrappedStats, params, year, wrappedStats.calendar);
 
@@ -194,6 +196,7 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
       'Content-Security-Policy': SVG_CSP_HEADER,
     };
 
+    headers['Retry-After'] = '60';
     if (isCircuitOpen) {
       headers['X-CommitPulse-Circuit-Status'] = 'Open';
       headers['X-CommitPulse-Circuit-Reset-In'] = String(telemetry.resetInMs);

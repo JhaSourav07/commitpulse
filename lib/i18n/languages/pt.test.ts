@@ -10,10 +10,10 @@ const requiredKeys = [
 ] as const;
 
 const expectedPortugueseLabels = {
-  CURRENT_STREAK: 'SÉRIE_ATUAL',
-  ANNUAL_SYNC_TOTAL: 'TOTAL_ANUAL',
-  PEAK_STREAK: 'SÉRIE_MÁXIMA',
-  COMMITS_THIS_MONTH: 'COMMITS ESTE MÊS',
+  CURRENT_STREAK: 'Série Atual',
+  ANNUAL_SYNC_TOTAL: 'Total Anual',
+  PEAK_STREAK: 'Série Máxima',
+  COMMITS_THIS_MONTH: 'Commits Este Mês',
   VS_LAST_MONTH: 'vs mês passado',
 };
 

@@ -3,26 +3,27 @@
 import Link from 'next/link';
 import { useTranslation } from '@/context/TranslationContext';
 import {
-  GitFork,
-  GitBranch,
-  MessageCircle,
-  User,
   Home,
   Zap,
   GitCompare,
   Sliders,
   Users,
+  MessageCircle,
   BookOpen,
+  GitBranch,
+  HelpCircle,
+  Shield,
+  FileText,
 } from 'lucide-react';
-import { FaGithub, FaDiscord, FaTwitter, FaLinkedin } from 'react-icons/fa';
-
-interface FooterLink {
+import { FaGithub, FaDiscord, FaLinkedin } from 'react-icons/fa';
+import { FaXTwitter } from 'react-icons/fa6';
+export interface FooterLink {
   label: string;
   href: string;
   isExternal?: boolean;
 }
 
-interface SocialLink {
+export interface SocialLink {
   label: string;
   href: string;
   ariaLabel: string;
@@ -42,7 +43,7 @@ function LinkComponent({
   className?: string;
   ariaLabel?: string;
 }) {
-  const baseClasses = `group inline-block px-1 rounded transition-all duration-300 hover:-translate-y-[2px] hover:font-medium hover:text-teal-800 dark:hover:text-violet-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-zinc-950 ${className}`;
+  const baseClasses = `group inline-block px-1 rounded transition-all duration-300 hover:-translate-y-[2px] hover:font-medium hover:text-teal-800 dark:hover:text-violet-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-zinc-950 footer-link ${className}`;
 
   if (isExternal) {
     return (
@@ -73,9 +74,9 @@ function LinkComponent({
 
 const SOCIAL_ICON_MAP: Record<string, React.ReactNode> = {
   github: <FaGithub size={15} className="shrink-0" />,
-  creator: <User size={15} className="shrink-0" />,
+  creator: <FaGithub size={15} className="shrink-0" />,
   discord: <FaDiscord size={15} className="shrink-0" />,
-  twitter: <FaTwitter size={15} className="shrink-0" />,
+  twitter: <FaXTwitter size={15} className="shrink-0" />,
   linkedin: <FaLinkedin size={15} className="shrink-0" />,
 };
 
@@ -91,7 +92,10 @@ const NAV_ICON_MAP: Record<string, React.ReactNode> = {
 const RESOURCE_ICON_MAP: Record<string, React.ReactNode> = {
   documentation: <BookOpen size={15} className="shrink-0" />,
   github_repo: <GitBranch size={15} className="shrink-0" />,
-  guidelines: <BookOpen size={15} className="shrink-0" />, // Added
+  guidelines: <BookOpen size={15} className="shrink-0" />,
+  faq: <HelpCircle size={15} className="shrink-0" />,
+  privacy: <Shield size={15} className="shrink-0" />,
+  terms: <FileText size={15} className="shrink-0" />,
 };
 
 export function Footer() {
@@ -119,8 +123,23 @@ export function Footer() {
       isExternal: true,
     },
     {
-      label: t('footer.guidelines'), // Added
-      href: '/guidelines',
+      label: t('footer.guidelines'),
+      href: 'https://github.com/JhaSourav07/commitpulse/blob/main/CODE_OF_CONDUCT.md',
+      isExternal: true,
+    },
+    {
+      label: t('footer.faq'),
+      href: '/support',
+      isExternal: false,
+    },
+    {
+      label: t('footer.privacy'),
+      href: '/privacy',
+      isExternal: false,
+    },
+    {
+      label: t('footer.terms'),
+      href: '/terms',
       isExternal: false,
     },
   ];
@@ -183,7 +202,7 @@ export function Footer() {
                   className="text-sm text-zinc-600 dark:text-zinc-400"
                 >
                   <span className="flex items-center gap-2">
-                    {NAV_ICON_MAP[link.href]}
+                    {NAV_ICON_MAP[link.href as keyof typeof NAV_ICON_MAP]}
                     {link.label}
                   </span>
                 </LinkComponent>
@@ -197,27 +216,30 @@ export function Footer() {
               {t('footer.resources')}
             </h3>
             <nav className="flex flex-col gap-2 text-center sm:text-left">
-              {resourceLinks.map((link) => (
-                <LinkComponent
-                  key={link.href}
-                  href={link.href}
-                  isExternal={link.isExternal}
-                  className="text-sm text-zinc-600 dark:text-zinc-400"
-                >
-                  <span className="flex items-center gap-2">
-                    {
-                      RESOURCE_ICON_MAP[
-                        link.href.includes('README')
-                          ? 'documentation'
-                          : link.href.includes('guidelines')
-                            ? 'guidelines'
-                            : 'github_repo'
-                      ]
-                    }
-                    {link.label}
-                  </span>
-                </LinkComponent>
-              ))}
+              {resourceLinks.map((link) => {
+                let iconKey: keyof typeof RESOURCE_ICON_MAP = 'github_repo';
+                if (link.href.includes('README')) iconKey = 'documentation';
+                else if (link.href.includes('CODE_OF_CONDUCT') || link.href.includes('guidelines'))
+                  iconKey = 'guidelines';
+                else if (link.href === '/privacy') iconKey = 'privacy';
+                else if (link.href === '/terms') iconKey = 'terms';
+                else if (link.href.includes('support') || link.href.includes('faq'))
+                  iconKey = 'faq';
+
+                return (
+                  <LinkComponent
+                    key={link.href}
+                    href={link.href}
+                    isExternal={link.isExternal}
+                    className="text-sm text-zinc-600 dark:text-zinc-400"
+                  >
+                    <span className="flex items-center gap-2">
+                      {RESOURCE_ICON_MAP[iconKey]}
+                      {link.label}
+                    </span>
+                  </LinkComponent>
+                );
+              })}
             </nav>
           </div>
 
@@ -236,7 +258,7 @@ export function Footer() {
                   className="text-sm text-zinc-600 dark:text-zinc-400"
                 >
                   <span className="flex items-center gap-2">
-                    {SOCIAL_ICON_MAP[link.icon]}
+                    {SOCIAL_ICON_MAP[link.icon as keyof typeof SOCIAL_ICON_MAP]}
                     {link.label}
                   </span>
                 </LinkComponent>

@@ -3,6 +3,10 @@ import { getFullDashboardData } from '@/lib/github';
 import { getUserGitHubToken } from '@/lib/githubtoken';
 import { compareParamsSchema, coerceQueryParams } from '@/lib/validations';
 import crypto from 'crypto';
+import { getClientIp } from '@/utils/getClientIp';
+import { RateLimiter } from '@/lib/rate-limit';
+
+const compareLimiter = new RateLimiter(5, 60_000, 1);
 
 export const revalidate = 3600;
 
@@ -38,7 +42,7 @@ function buildCompareFetchErrorResponse(user: string, reason: unknown): NextResp
   if (lowerMessage.includes('timeout') || lowerMessage.includes('timed out')) {
     return NextResponse.json(
       { error: `Connection timeout. Unable to fetch GitHub data for "${user}".` },
-      { status: 500 }
+      { status: 504 }
     );
   }
 
@@ -51,6 +55,17 @@ function buildCompareFetchErrorResponse(user: string, reason: unknown): NextResp
 }
 
 export async function GET(request: Request) {
+  const ip = getClientIp(request);
+  const rateLimitKey =
+    ip && ip !== 'unknown' ? ip : `unknown:${request.headers.get('user-agent') ?? 'no-agent'}`;
+
+  if (!(await compareLimiter.check(rateLimitKey))) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      { status: 429 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
 
   const parseResult = compareParamsSchema.safeParse(coerceQueryParams(searchParams));
@@ -88,7 +103,7 @@ export async function GET(request: Request) {
     const etag = crypto.createHash('sha1').update(jsonPayload).digest('hex');
     const weakEtag = `W/"${etag}"`;
     const ifNoneMatch = request.headers.get('if-none-match');
-    const cacheControl = 'public, s-maxage=3600';
+    const cacheControl = 'public, s-maxage=1';
 
     if (ifNoneMatch) {
       const etags = ifNoneMatch.split(',').map((e) => e.trim());

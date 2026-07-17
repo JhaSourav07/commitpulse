@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import { RefreshCw, ArrowUpRight } from 'lucide-react';
+import { RefreshCw, ArrowUpRight, Copy, Check } from 'lucide-react';
 import type { RepoActivityInfo } from '@/types/dashboard';
 
 type InactivityFilter = 30 | 60 | 90 | 180 | 365;
@@ -33,10 +33,24 @@ interface InactiveRepoReminderProps {
 export default function InactiveRepoReminder({ repos }: InactiveRepoReminderProps) {
   const [filter, setFilter] = useState<InactivityFilter>(90);
   const [refreshing, setRefreshing] = useState(false);
+  const [copiedRepo, setCopiedRepo] = useState<string | null>(null);
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
     setTimeout(() => setRefreshing(false), 600);
+  }, []);
+
+  const handleCopy = useCallback(async (repo: RepoActivityInfo) => {
+    try {
+      await navigator.clipboard.writeText(repo.url);
+      setCopiedRepo(repo.name);
+
+      setTimeout(() => {
+        setCopiedRepo(null);
+      }, 2000);
+    } catch {
+      alert('Unable to copy repository URL.');
+    }
   }, []);
 
   const inactiveRepos = useMemo(() => {
@@ -122,15 +136,27 @@ export default function InactiveRepoReminder({ repos }: InactiveRepoReminderProp
                   {repo.inactiveDays !== null ? `${repo.inactiveDays}d` : '-'}
                 </span>
 
-                <a
-                  href={repo.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-gray-400 dark:text-zinc-500 hover:text-purple-600 dark:hover:text-purple-400 transition-colors shrink-0 p-0.5"
-                  aria-label="Open on GitHub"
-                >
-                  <ArrowUpRight size={14} />
-                </a>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(repo)}
+                    className="text-gray-400 dark:text-zinc-500 hover:text-green-600 dark:hover:text-green-400 transition-colors p-0.5"
+                    aria-label={`Copy ${repo.name} repository URL`}
+                    title={copiedRepo === repo.name ? 'Copied!' : 'Copy URL'}
+                  >
+                    {copiedRepo === repo.name ? <Check size={14} /> : <Copy size={14} />}
+                  </button>
+
+                  <a
+                    href={repo.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-gray-400 dark:text-zinc-500 hover:text-purple-600 dark:hover:text-purple-400 transition-colors p-0.5"
+                    aria-label="Open on GitHub"
+                  >
+                    <ArrowUpRight size={14} />
+                  </a>
+                </div>
               </div>
             ))}
           </div>

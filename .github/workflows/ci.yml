@@ -7,6 +7,10 @@ on:
     branches: [main, dev]
   merge_group: # Run CI on the merged commit before it lands on main
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   quality:
     name: Format · Lint · Typecheck · Test
@@ -42,6 +46,14 @@ jobs:
 
       - name: Run Unit Tests (Vitest)
         run: npm run test:coverage
+
+      - name: Upload Visual Regression Diffs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-test-diffs
+          path: tests/visual/diffs/
+          if-no-files-found: ignore
 
   build:
     name: Production Build

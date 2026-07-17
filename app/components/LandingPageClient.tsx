@@ -1,16 +1,16 @@
 'use client';
-import Image from 'next/image';
 import { trackUser } from '@/utils/tracking';
 import { useTranslation } from '@/context/TranslationContext';
 import { renderHeroTitle } from './heroTitle';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRef, useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { gsap } from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { jsPDF } from 'jspdf';
-import 'svg2pdf.js';
+import { exportSvgToPdf } from '@/lib/pdf-export';
 
 import {
   Flame,
@@ -25,7 +25,6 @@ import {
 } from 'lucide-react';
 
 import { X } from 'lucide-react';
-import useLocalStorage from '@/hooks/useLocalStorage';
 
 import { CommitPulseLogo } from '@/components/commitpulse-logo';
 import { CustomizeCTA } from './CustomizeCTA';
@@ -101,12 +100,8 @@ function CountUp({ value, duration = 1000 }: { value: number; duration?: number 
     const start = 0;
     const end = value;
     if (start === end) {
-      // Safe: early-exit guard when the value hasn't changed — avoids scheduling
-      // a setInterval just to immediately clear it. No stale-dependency risk
-      // because `value` is the only dep and this path reads it synchronously.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setCount(end);
-      return;
+      const frame = requestAnimationFrame(() => setCount(end));
+      return () => cancelAnimationFrame(frame);
     }
 
     const totalMilliseconds = duration;
@@ -312,7 +307,7 @@ export default function LandingPageClient() {
     return name;
   };
 
-  const [username, setUsername] = useLocalStorage('commitpulse:last-user', '');
+  const [username, setUsername] = useState('');
   const [instantUsername, setInstantUsername] = useState('');
   const [copied, setCopied] = useState(false);
 
@@ -400,36 +395,16 @@ export default function LandingPageClient() {
       }
 
       const svgText = await response.text();
-
-      const container = document.createElement('div');
-      container.innerHTML = svgText;
-
-      const svgElement = container.querySelector('svg');
-
-      if (!svgElement) {
-        throw new Error('SVG element not found');
-      }
-
       const pdf = new jsPDF({
         orientation: 'landscape',
         unit: 'pt',
         format: 'a4',
       });
 
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-
-      await pdf.svg(svgElement, {
-        x: 10,
-        y: 10,
-        width: pageWidth - 20,
-        height: pageHeight - 20,
-      });
-
-      pdf.save(`${previewUsername}-commitpulse.pdf`);
+      await exportSvgToPdf(svgText, `${previewUsername}-commitpulse.pdf`, pdf);
     } catch (error) {
       console.error('PDF export failed:', error);
-      alert('Failed to generate PDF');
+      alert('Failed to generate PDF. Please try again.');
     }
   };
 
@@ -569,7 +544,7 @@ export default function LandingPageClient() {
 
   const handleGenerate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (trimmedUsername.length > 0) {
+    if (trimmedUsername.length > 0 && trimmedUsername !== previewUsername) {
       setInstantUsername(trimmedUsername);
       setBadgeResult(null);
       trackUser(trimmedUsername);
@@ -781,11 +756,12 @@ export default function LandingPageClient() {
                         exit={{ opacity: 0 }}
                         className="flex items-center gap-3 bg-emerald-500/5 border border-emerald-500/10 rounded-xl px-3 py-2"
                       >
-                        <img
+                        <Image
                           src={userDetails.avatar_url}
                           alt={userDetails.login}
-                          width="25"
-                          height="25"
+                          width={25}
+                          height={25}
+                          unoptimized
                           className="w-6 h-6 rounded-full border border-emerald-500/20 object-cover"
                           onError={(e) => {
                             const img = e.currentTarget as HTMLImageElement;
@@ -842,11 +818,12 @@ export default function LandingPageClient() {
                             key={s}
                             className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200/10 bg-zinc-200/5 dark:border-white/5 dark:bg-[#111] pl-2 pr-1.5 py-1 text-xs text-zinc-700 dark:text-white/70 transition-all duration-300 hover:border-emerald-500/30 hover:bg-zinc-200/10 dark:hover:bg-white/10 dark:hover:text-white select-none group/pill"
                           >
-                            <img
+                            <Image
                               src={`https://github.com/${displayName}.png?size=40`}
                               alt={displayName}
-                              width="17"
-                              height="17"
+                              width={17}
+                              height={17}
+                              unoptimized
                               className="w-4 h-4 rounded-full border border-zinc-200/20 dark:border-white/20 object-cover"
                               onError={(e) => {
                                 const img = e.currentTarget as HTMLImageElement;

@@ -3,14 +3,14 @@ import { describe, expect, it } from 'vitest';
 import AIInsightsSkeleton from './AIInsightsSkeleton';
 
 describe('AIInsightsSkeleton theme contrast', () => {
-  it('renders the skeleton container in dark theme environment', () => {
+  it('renders the skeleton container with theme-aware styles', () => {
     document.documentElement.classList.add('dark');
 
     const { container } = render(<AIInsightsSkeleton />);
     const root = container.firstElementChild;
 
-    expect(root).toHaveClass('bg-[#0a0a0a]');
-    expect(root).toHaveClass('border-[rgba(255,255,255,0.08)]');
+    expect(root).toHaveClass('dark:bg-[#0a0a0a]');
+    expect(root).toHaveClass('dark:border-[rgba(255,255,255,0.08)]');
     expect(document.documentElement).toHaveClass('dark');
   });
 
@@ -22,6 +22,8 @@ describe('AIInsightsSkeleton theme contrast', () => {
 
     expect(root).toHaveClass('p-6');
     expect(root).toHaveClass('rounded-xl');
+    expect(root).toHaveClass('bg-zinc-50');
+    expect(root).toHaveClass('border-black/5');
     expect(document.documentElement).not.toHaveClass('dark');
   });
 
@@ -36,9 +38,7 @@ describe('AIInsightsSkeleton theme contrast', () => {
 
   it('renders all insight rows with contrast-safe surfaces', () => {
     const { container } = render(<AIInsightsSkeleton />);
-    const rows = container.querySelectorAll(
-      '.bg-\\[\\#111\\].border-\\[rgba\\(255\\,255\\,255\\,0\\.05\\)\\]'
-    );
+    const rows = container.querySelectorAll('.bg-white.dark\\:bg-\\[\\#111\\].border-black\\/5');
 
     expect(rows).toHaveLength(3);
 
