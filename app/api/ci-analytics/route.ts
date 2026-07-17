@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { fetchCIAnalytics } from '@/services/github/ci-analytics';
+import { isAbortError } from '@/lib/github';
 import { getUserGitHubToken } from '@/lib/githubtoken';
 import { validateGitHubUsername } from '@/lib/validations';
 import { RateLimiter, getRateLimitHeaders } from '@/lib/rate-limit';
@@ -37,6 +38,12 @@ export async function GET(request: Request) {
     return NextResponse.json(data);
   } catch (error: unknown) {
     console.error('Error fetching CI analytics:', error);
+    if (isAbortError(error)) {
+      return NextResponse.json(
+        { error: 'Upstream request timed out after 10 seconds.' },
+        { status: 504 }
+      );
+    }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to fetch CI analytics' },
       { status: 500 }

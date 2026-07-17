@@ -364,6 +364,11 @@ export function FeatureCard({ icon, title, desc, accent, index, accentColor }: F
           }}
         />
 
+        {/* Sliding shine effect on hover */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-3xl">
+          <div className="absolute -left-1/2 top-0 h-full w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 group-hover:translate-x-[450%] transition-all duration-1000" />
+        </div>
+
         {/* Background gradient blob */}
         <div
           className="absolute -right-20 -top-20 h-40 w-40 rounded-full blur-3xl transition-all duration-700 group-hover:scale-150"

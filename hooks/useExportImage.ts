@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 
-export type ExportFormat = 'png' | 'svg';
+export type ExportFormat = 'png' | 'svg' | 'pdf';
 
 interface UseExportImageOptions {
   targetSelector?: string;
@@ -37,8 +37,10 @@ export function useExportImage({
 
         if (format === 'png') {
           await exportAsPng(target, filename, scale);
-        } else {
+        } else if (format === 'svg') {
           await exportAsSvg(target, filename);
+        } else {
+          await exportAsPdf(target, filename);
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Export failed. Please try again.';
@@ -78,6 +80,37 @@ async function exportAsSvg(element: HTMLElement, filename: string): Promise<void
     backgroundColor: '#ffffff',
   });
   triggerDownload(dataUrl, `${filename}.svg`);
+}
+
+async function exportAsPdf(element: HTMLElement, filename: string): Promise<void> {
+  // Convert the rendered UI to an SVG string and then reuse the existing PDF exporter.
+  // This keeps the output consistent with the SVG that users already see/download.
+  const { toSvg } = await import('html-to-image');
+  const { default: JsPDF } = await import('jspdf');
+
+  const { exportSvgToPdf } = await import('@/lib/pdf-export');
+
+  await scrollAndWait();
+
+  const dataUrl = await toSvg(element, {
+    backgroundColor: '#ffffff',
+  });
+
+  // html-to-image returns a data URL. Extract the raw SVG markup.
+  const match = dataUrl.match(/^data:image\/svg\+xml;charset=utf-8,(.*)$/);
+  if (!match) {
+    throw new Error('Failed to export SVG markup for PDF');
+  }
+
+  const svgMarkup = decodeURIComponent(match[1]);
+
+  const pdf = new JsPDF({
+    orientation: 'landscape',
+    unit: 'pt',
+    format: 'a4',
+  });
+
+  await exportSvgToPdf(svgMarkup, `${filename}.pdf`, pdf);
 }
 
 function triggerDownload(href: string, filename: string): void {

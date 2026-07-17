@@ -108,11 +108,10 @@ export default function RepositoryContributionExplorer({ repos = [], username }:
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Left Column: Repository Selector & High-level Stats */}
         <div className="w-full lg:w-1/3 flex flex-col gap-4">
-          <div className="relative">
+          <div className="relative group">
             <select
-              title="Select Repository"
               aria-label="Select Repository"
-              className="w-full appearance-none rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 pr-10 text-sm font-medium text-gray-700 outline-none transition-colors focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+              className="w-full appearance-none rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 pr-10 text-sm font-medium text-gray-700 outline-none transition-colors focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 cursor-pointer"
               value={selectedRepoIndex}
               onChange={(e) => setSelectedRepoIndex(Number(e.target.value))}
             >
@@ -131,6 +130,14 @@ export default function RepositoryContributionExplorer({ repos = [], username }:
                   d="M19 9l-7 7-7-7"
                 />
               </svg>
+            </div>
+
+            {/* Custom Tooltip */}
+            <div className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 flex flex-col items-center opacity-0 scale-95 transition-all duration-200 group-hover:opacity-100 group-hover:scale-100">
+              <div className="whitespace-nowrap rounded-lg bg-gray-950 dark:bg-zinc-800 px-2.5 py-1.5 text-[11px] font-medium text-white dark:text-zinc-100 shadow-xl border border-white/10 dark:border-white/5">
+                Select Repository
+              </div>
+              <div className="w-2 h-2 bg-gray-950 dark:bg-zinc-800 border-r border-b border-white/10 dark:border-white/5 rotate-45 -mt-1" />
             </div>
           </div>
 

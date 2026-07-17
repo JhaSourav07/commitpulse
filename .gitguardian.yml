@@ -1,0 +1,7 @@
+# GitGuardian configuration
+# Test files for security features use credential-like strings on purpose
+# to verify secret detection logic. These are false positives.
+paths-ignore:
+  - 'lib/secretScanner.test.ts'
+  - 'lib/sanitize-git-credentials.test.ts'
+  - 'lib/git-clone.test.ts'

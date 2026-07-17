@@ -66,6 +66,6 @@ export async function GET(request: Request) {
     if (message.includes('not found') || message.includes('404')) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-    return NextResponse.json({ error: message || 'Failed to fetch user details' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -123,11 +123,11 @@ export const ACHIEVEMENT_TIER_LABELS: Record<AchievementTier, string> = {
 };
 
 export const ACHIEVEMENT_TIER_COLORS: Record<AchievementTier, string> = {
-  bronze: '#cd7f32',
-  silver: '#c0c0c0',
-  gold: '#ffd700',
-  platinum: '#e5e4e2',
-  diamond: '#b9f2ff',
+  bronze: 'var(--tier-bronze-rgb)',
+  silver: 'var(--tier-silver-rgb)',
+  gold: 'var(--tier-gold-rgb)',
+  platinum: 'var(--tier-platinum-rgb)',
+  diamond: 'var(--tier-diamond-rgb)',
 };
 
 export const CATEGORY_META: Record<AchievementCategory, { label: string; icon: string }> = {

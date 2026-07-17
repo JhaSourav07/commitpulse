@@ -22,6 +22,15 @@ vi.mock('lucide-react', () => ({
 
   ChevronDown: () => <div>ChevronDownIcon</div>,
   Check: () => <div>CheckIcon</div>,
+  Keyboard: () => <div>KeyboardIcon</div>,
+}));
+
+vi.mock('@/components/NavbarSearch', () => ({
+  default: () => <div data-testid="navbar-search" />,
+}));
+
+vi.mock('@/components/KeyboardShortcutsModal', () => ({
+  default: () => null,
 }));
 
 vi.mock('next/navigation', () => ({

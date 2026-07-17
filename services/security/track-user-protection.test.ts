@@ -135,6 +135,28 @@ describe('TrackUserProtection', () => {
     });
   });
 
+  describe('Cooldown expiration', () => {
+    it('allows writes again after the cooldown period expires', () => {
+      vi.useFakeTimers();
+
+      try {
+        trackUserProtection.recordWrite('octocat');
+
+        expect(trackUserProtection.isWriteAllowed('octocat')).toBe(false);
+
+        vi.advanceTimersByTime(5 * 60 * 1000 - 1);
+
+        expect(trackUserProtection.isWriteAllowed('octocat')).toBe(false);
+
+        vi.advanceTimersByTime(1);
+
+        expect(trackUserProtection.isWriteAllowed('octocat')).toBe(true);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
   describe('Singleton instance', () => {
     it('returns the same instance across multiple getInstance() calls', () => {
       const instanceA = TrackUserProtection.getInstance();
@@ -166,5 +188,48 @@ describe('TrackUserProtection', () => {
       vi.advanceTimersByTime(2000);
       expect(trackUserProtection.isWriteAllowed(username)).toBe(true);
     });
+  });
+});
+describe('Username normalization', () => {
+  beforeEach(() => {
+    trackUserProtection.reset();
+    vi.clearAllMocks();
+    vi.mocked(gitHubUserValidator.validateUser).mockResolvedValue(true);
+  });
+
+  it('treats usernames with different casing as the same user', () => {
+    trackUserProtection.recordWrite('OctoCat');
+
+    expect(trackUserProtection.isWriteAllowed('octocat')).toBe(false);
+    expect(trackUserProtection.isWriteAllowed('OCTOCAT')).toBe(false);
+    expect(trackUserProtection.isWriteAllowed('OctoCat')).toBe(false);
+  });
+
+  it('ignores leading and trailing whitespace', () => {
+    trackUserProtection.recordWrite('  octocat  ');
+
+    expect(trackUserProtection.isWriteAllowed('octocat')).toBe(false);
+    expect(trackUserProtection.isWriteAllowed('  octocat')).toBe(false);
+    expect(trackUserProtection.isWriteAllowed('octocat   ')).toBe(false);
+  });
+
+  it('normalizes usernames consistently across public APIs', async () => {
+    trackUserProtection.recordWrite('  OctoCat  ');
+
+    expect(trackUserProtection.isWriteAllowed('octocat')).toBe(false);
+
+    const result = await trackUserProtection.verifyAndDeduplicate(' OCTOCAT ');
+
+    expect(result.allowed).toBe(false);
+    expect(result.reason).toBe('COOLDOWN_ACTIVE');
+  });
+
+  it('stores equivalent usernames as a single normalized entry', () => {
+    trackUserProtection.recordWrite('OctoCat');
+    trackUserProtection.recordWrite(' octocat ');
+    trackUserProtection.recordWrite('OCTOCAT');
+
+    expect(trackUserProtection.isWriteAllowed('octocat')).toBe(false);
+    expect(trackUserProtection.isWriteAllowed('OctoCat')).toBe(false);
   });
 });

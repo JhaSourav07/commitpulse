@@ -114,6 +114,7 @@ describe('PRInsightsClient Theme Contrast and Visual Cohesion', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    localStorage.clear();
   });
 
   it('1. should emulate both dark and light presets', async () => {

@@ -1,6 +1,7 @@
 import 'server-only';
 import { getGitHubTokens } from '@/lib/github';
 import { DistributedCache } from '@/lib/cache';
+import { isBotAuthor } from '@/lib/bot-filter';
 
 interface ContributorWeekData {
   w: number; // week timestamp (Unix)
@@ -82,13 +83,13 @@ function getHeaders(userToken?: string) {
 export async function fetchBurnoutAnalysis(
   owner: string,
   repo: string,
-  options: { bypassCache?: boolean; token?: string } = {}
+  options: { bypassCache?: boolean; token?: string; excludeBots?: boolean } = {}
 ): Promise<BurnoutReport> {
-  const cacheKey = `burnout-analyzer:${owner.toLowerCase()}/${repo.toLowerCase()}`;
+  const cacheKey = `burnout-analyzer:${owner.toLowerCase()}/${repo.toLowerCase()}${options.excludeBots ? ':exclude-bots' : ''}`;
   const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour cache
 
   if (options.bypassCache) {
-    const fresh = await analyzeRepositoryUncached(owner, repo, options.token);
+    const fresh = await analyzeRepositoryUncached(owner, repo, options.token, options.excludeBots);
     await reportCache.set(cacheKey, fresh, CACHE_TTL_MS);
     return fresh;
   }
@@ -96,7 +97,7 @@ export async function fetchBurnoutAnalysis(
   return reportCache.getOrSet(
     cacheKey,
     async () => {
-      return analyzeRepositoryUncached(owner, repo, options.token);
+      return analyzeRepositoryUncached(owner, repo, options.token, options.excludeBots);
     },
     CACHE_TTL_MS
   );
@@ -138,7 +139,8 @@ async function fetchStatsWithCompilingRetry(
 async function analyzeRepositoryUncached(
   owner: string,
   repo: string,
-  userToken?: string
+  userToken?: string,
+  excludeBots?: boolean
 ): Promise<BurnoutReport> {
   const url = `${GITHUB_REST_URL}/repos/${owner}/${repo}/stats/contributors`;
   const headers = getHeaders(userToken);
@@ -156,8 +158,12 @@ async function analyzeRepositoryUncached(
     throw new Error('No contribution data found for this repository.');
   }
 
-  const totalCommits = rawData.reduce((acc, c) => acc + (c.total || 0), 0);
-  const totalContributors = rawData.length;
+  const filteredRawData = excludeBots
+    ? rawData.filter((c) => c.author && !isBotAuthor(c.author.login))
+    : rawData;
+
+  const totalCommits = filteredRawData.reduce((acc, c) => acc + (c.total || 0), 0);
+  const totalContributors = filteredRawData.length;
 
   // 1. Process contributor metrics
   const contributors: ContributorMetric[] = [];
@@ -165,7 +171,7 @@ async function analyzeRepositoryUncached(
 
   // Sort contributors by total commits descending
 
-  const sortedRaw = [...rawData].sort((a, b) => (b.total || 0) - (a.total || 0));
+  const sortedRaw = [...filteredRawData].sort((a, b) => (b.total || 0) - (a.total || 0));
 
   for (const c of sortedRaw) {
     if (!c.author || !c.weeks || c.weeks.length === 0) continue;

@@ -26,6 +26,8 @@ const baseState: GeneratorState = {
   githubUsername: 'octocat',
   showCommitPulse: false,
   commitPulseAccent: '',
+  showRepoSpotlight: false,
+  spotlightRepo: '',
   showSnakeGraph: false,
   showPacmanGraph: false,
   graphPlacement: 'bottom',

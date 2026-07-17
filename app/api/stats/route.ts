@@ -9,6 +9,7 @@ import { refreshPolicy } from '@/services/github/refresh-policy';
 import { getRateLimitHeaders } from '@/lib/rate-limit';
 import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
 import { getUserGitHubToken } from '@/lib/githubtoken';
+import logger from '@/lib/logger';
 
 function logSecurityEvent(event: string, details: Record<string, unknown>) {
   console.warn(
@@ -63,7 +64,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const { user, refresh, bypassCache: bypassCacheParam, tz } = parseResult.data;
+  const { user, refresh, bypassCache: bypassCacheParam, tz, excludeBots } = parseResult.data;
   // Treat either ?refresh=true or ?bypassCache=true as a cache-bypass request
   const isRefreshRequested = refresh || bypassCacheParam;
 
@@ -127,13 +128,14 @@ export async function GET(request: Request) {
     const userData = await fetchGitHubContributions(user, {
       bypassCache: shouldBypassCache,
       token: userToken,
+      excludeBots,
     });
 
     const calendar = userData.calendar;
     const stats = calculateStreak(calendar, timezone);
     const headers = new Headers({
       // Cache until next UTC midnight; clients can bust with ?refresh=true
-      'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+      'Cache-Control': 'public, s-maxage=1, stale-while-revalidate=59',
     });
 
     if (shouldBypassCache) {
@@ -176,6 +178,7 @@ export async function GET(request: Request) {
       );
     }
 
-    return NextResponse.json({ error: message }, { status: 500 });
+    logger.error('Unhandled error in /api/stats', { error });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

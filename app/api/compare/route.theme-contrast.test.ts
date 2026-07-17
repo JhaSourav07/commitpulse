@@ -2,9 +2,13 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { GET } from './route';
 import { getFullDashboardData } from '@/lib/github';
 
-vi.mock('@/lib/github', () => ({
-  getFullDashboardData: vi.fn(),
-}));
+vi.mock('@/lib/github', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/github')>();
+  return {
+    ...actual,
+    getFullDashboardData: vi.fn(),
+  };
+});
 vi.mock('@/lib/rate-limit', () => ({
   RateLimiter: vi.fn().mockImplementation(function () {
     return { check: vi.fn().mockResolvedValue(true) };
@@ -118,14 +122,14 @@ describe('ApiCompareRoute – Dark and Light Prefers-Color-Scheme Visual Cohesio
     expect(body403.error).not.toMatch(/style=/i);
     expect(body403.error).not.toContain('\u200b');
 
-    // 500
+    // 504
     vi.mocked(getFullDashboardData).mockRejectedValueOnce(new Error('Connection timeout'));
-    const res500 = await GET(new Request('http://localhost/api/compare?user1=alice&user2=bob'));
-    const body500 = await res500.json();
-    expect(res500.status).toBe(500);
-    expect(body500.error).not.toMatch(/\x1b\[/);
-    expect(body500.error).not.toMatch(/style=/i);
-    expect(body500.error).not.toContain('\u200b');
+    const res504 = await GET(new Request('http://localhost/api/compare?user1=alice&user2=bob'));
+    const body504 = await res504.json();
+    expect(res504.status).toBe(504);
+    expect(body504.error).not.toMatch(/\x1b\[/);
+    expect(body504.error).not.toMatch(/style=/i);
+    expect(body504.error).not.toContain('\u200b');
 
     // 502
     vi.mocked(getFullDashboardData).mockRejectedValueOnce(new Error('Unexpected upstream error'));

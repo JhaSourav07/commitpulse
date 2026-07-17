@@ -6,22 +6,15 @@ import path from 'path';
 import os from 'os';
 import * as ts from 'typescript';
 import pLimit from 'p-limit';
+import { cloneGitHubRepository } from '@/lib/git-clone';
 import { getGitHubTokens } from '@/lib/github';
+import { formatRepoRefForLogging, sanitizeErrorForLogging } from '@/lib/sanitize-git-credentials';
 import { auth } from '@/auth';
 import { getClientIp } from '@/utils/getClientIp';
 
 const execFilePromise = promisify(execFile);
 
 const REST_TIMEOUT_MS = 5000; // 5s timeout for external API requests
-
-/**
- * Strips credentials (x-access-token:...@) from error messages to prevent
- * leaking tokens into server logs.
- */
-function sanitizeError(err: unknown): string {
-  const msg = err instanceof Error ? err.message : String(err);
-  return msg.replace(/x-access-token:[^@]+@/g, 'x-access-token:[REDACTED]@');
-}
 
 // Per-IP concurrent clone tracking (max 3 concurrent clones per IP)
 const MAX_CONCURRENT_CLONES_PER_IP = 3;
@@ -331,7 +324,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let tokens: string[] = [];
   try {
     const { repoUrl } = await req.json();
 
@@ -345,48 +337,17 @@ export async function POST(req: NextRequest) {
     }
 
     const { owner, repo } = repoDetails;
+    const repoRef = formatRepoRefForLogging(owner, repo);
 
-    // Standard public base clone URL used safely inside execution parameters
-    const cleanCloneUrl = `https://github.com/${owner}/${repo}.git`;
+    const tokens = getGitHubTokens();
+    const token = tokens.length > 0 ? tokens[0] : undefined;
 
-    // Fetch local validation tokens securely
-    tokens = getGitHubTokens();
-    const token = tokens.length > 0 ? tokens[0] : null;
-
-    // Create a temporary directory
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), `commitpulse-arch-${owner}-${repo}-`));
 
-    // Shallow clone the repository securely using extraheader configurations
     try {
-      if (token) {
-        const authToken = Buffer.from(`x-access-token:${token}`).toString('base64');
-        await execFilePromise('git', [
-          '-c',
-          `http.extraheader=Authorization: Basic ${authToken}`,
-          'clone',
-          '--depth',
-          '1',
-          '--',
-          cleanCloneUrl,
-          tempDir,
-        ]);
-      } else {
-        await execFilePromise('git', ['clone', '--depth', '1', '--', cleanCloneUrl, tempDir]);
-      }
+      await cloneGitHubRepository(owner, repo, tempDir, token);
     } catch (err) {
-      // Clean up token credentials from the error logs safely before recording
-      const rawErrorMsg = err instanceof Error ? err.message : String(err);
-      let sanitizedErrorMsg = rawErrorMsg;
-
-      if (tokens && tokens.length > 0) {
-        tokens.forEach((t) => {
-          if (t) {
-            sanitizedErrorMsg = sanitizedErrorMsg.split(t).join('[REDACTED]');
-          }
-        });
-      }
-
-      console.error('Cloning failed for repository:', repoUrl, sanitizedErrorMsg);
+      console.error('Cloning failed for repository:', repoRef, sanitizeErrorForLogging(err));
       // Clean up tempDir if it was created
       if (tempDir && fs.existsSync(tempDir)) {
         fs.rmSync(tempDir, { recursive: true, force: true });
@@ -756,21 +717,10 @@ export async function POST(req: NextRequest) {
       summary,
     });
   } catch (error) {
-    console.error('Architecture visualizer route crashed:', error);
-
-    // Safety check fallback redaction in catch block for general tracking exceptions
-    const mainErrorMsg = error instanceof Error ? error.message : String(error);
-    let sanitizedMainErrorMsg = mainErrorMsg;
-    if (tokens && tokens.length > 0) {
-      tokens.forEach((t) => {
-        if (t) {
-          sanitizedMainErrorMsg = sanitizedMainErrorMsg.split(t).join('[REDACTED]');
-        }
-      });
-    }
+    console.error('Architecture visualizer route crashed:', sanitizeErrorForLogging(error));
 
     return NextResponse.json(
-      { error: `Failed to analyze repository. ${sanitizedMainErrorMsg}` },
+      { error: 'Failed to analyze repository. Please try again later.' },
       { status: 500 }
     );
   } finally {

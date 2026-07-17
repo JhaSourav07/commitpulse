@@ -1,10 +1,22 @@
 import { NextResponse } from 'next/server';
-import { getCircuitTelemetry } from '@/lib/github';
+import { checkGitHubHealth, getCircuitTelemetry } from '@/lib/github';
 import { quotaMonitor } from '@/services/github/quota-monitor';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  try {
+    await checkGitHubHealth();
+  } catch (error) {
+    return NextResponse.json(
+      {
+        status: 'degraded',
+        githubApi: 'error',
+        message: error instanceof Error ? error.message : 'Unknown GitHub API error',
+      },
+      { status: 503 }
+    );
+  }
   const aggregate = quotaMonitor.getAggregateQuota();
   const circuit = getCircuitTelemetry();
 
@@ -16,6 +28,7 @@ export async function GET() {
 
   return NextResponse.json({
     status,
+    githubApi: 'ok',
     quota: {
       totalTokens: aggregate.totalTokens,
       activeTokens: aggregate.activeTokens,

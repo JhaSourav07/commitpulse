@@ -33,6 +33,7 @@ const repoBurnoutParamsSchema = z.object({
     }),
   refresh: z.string().optional().transform(toRefreshFlag),
   bypassCache: z.string().optional().transform(toRefreshFlag),
+  excludeBots: z.string().optional().transform(toRefreshFlag),
 });
 
 export async function GET(request: Request) {
@@ -48,7 +49,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const { owner, repo, refresh, bypassCache: bypassCacheParam } = parseResult.data;
+  const { owner, repo, refresh, bypassCache: bypassCacheParam, excludeBots } = parseResult.data;
 
   // Treat either ?refresh=true or ?bypassCache=true as a cache-bypass request
   const isRefreshRequested = refresh || bypassCacheParam;
@@ -91,13 +92,14 @@ export async function GET(request: Request) {
   try {
     const userToken = await getUserGitHubToken();
     const data = await fetchBurnoutAnalysis(owner, repo, {
-      bypassCache: refresh,
+      bypassCache: shouldBypassCache,
       token: userToken,
+      excludeBots,
     });
 
     const cacheControl = shouldBypassCache
       ? 'no-cache, no-store, must-revalidate'
-      : 's-maxage=3600, stale-while-revalidate=86400';
+      : 's-maxage=1, stale-while-revalidate=59';
 
     return NextResponse.json(data, {
       status: 200,
@@ -112,6 +114,9 @@ export async function GET(request: Request) {
     const message = error instanceof Error ? error.message : 'Internal Server Error';
     const status = message.includes('not found') ? 404 : 500;
 
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json(
+      { error: status === 404 ? 'Repository not found' : 'Internal server error' },
+      { status }
+    );
   }
 }
