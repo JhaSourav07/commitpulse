@@ -49,7 +49,7 @@ export default function SupportPage() {
   return (
     <div className="min-h-screen bg-white text-gray-900 dark:bg-zinc-950 dark:text-white">
       {/* Navigation */}
-      <nav className="border-b border-gray-200 bg-white/80 backdrop-blur-lg fixed w-full z-50 dark:border-white/10 dark:bg-zinc-950/80">
+      <nav className="border-b border-gray-200 bg-white/80 backdrop-blur-lg w-full z-50 dark:border-white/10 dark:bg-zinc-950/80">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href="/" className="flex items-center gap-2 font-bold text-xl">
@@ -136,7 +136,7 @@ export default function SupportPage() {
                   href="https://discord.gg/f84SDraEBH"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-3 px-8 py-4 bg-indigo-600 hover:bg-indigo-500 rounded-2xl font-medium text-white transition-all"
+                  className="inline-flex items-center gap-3 px-8 py-4 mr-10 bg-indigo-600 hover:bg-indigo-500 rounded-2xl font-medium text-white transition-all"
                 >
                   <FaDiscord size={26} />
                   Join our Discord Server
