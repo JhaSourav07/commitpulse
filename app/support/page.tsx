@@ -49,7 +49,8 @@ export default function SupportPage() {
   return (
     <div className="min-h-screen bg-white text-gray-900 dark:bg-zinc-950 dark:text-white">
       {/* Navigation */}
-      <nav className="border-b border-gray-200 bg-white/80 backdrop-blur-lg fixed w-full z-50 dark:border-white/10 dark:bg-zinc-950/80">
+      <nav className="fixed top-0 left-0 w-full z-50 bg-zinc-950 dark:bg-zinc-950">
+        <div className="h-16 bg-zinc-950"></div>
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href="/" className="flex items-center gap-2 font-bold text-xl">
@@ -67,7 +68,7 @@ export default function SupportPage() {
         </div>
       </nav>
 
-      <div className="pt-24 pb-20 max-w-5xl mx-auto px-6">
+      <div className="pt-40 max-w-5xl mx-auto px-6">
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-teal-500/10 text-teal-600 dark:text-teal-400 rounded-full text-sm mb-4">
             <MessageCircle size={18} />
@@ -132,22 +133,24 @@ export default function SupportPage() {
                 <p className="text-gray-500 dark:text-zinc-400 mb-6">
                   Get real-time help from the community and maintainers.
                 </p>
-                <a
-                  href="https://discord.gg/f84SDraEBH"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-3 px-8 py-4 bg-indigo-600 hover:bg-indigo-500 rounded-2xl font-medium text-white transition-all"
-                >
-                  <FaDiscord size={26} />
-                  Join our Discord Server
-                </a>
-                <a
-                  href="https://github.com/JhaSourav07/commitpulse/blob/main/CODE_OF_CONDUCT.md"
-                  target="_blank"
-                  className="mt-4 inline-block text-sm text-gray-500 hover:text-gray-700 underline dark:text-zinc-400 dark:hover:text-zinc-300"
-                >
-                  Read Community Guidelines →
-                </a>
+                <div className="flex gap-4">
+                  <a
+                    href="https://discord.gg/f84SDraEBH"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-3 px-8 py-4 bg-indigo-600 hover:bg-indigo-500 rounded-2xl font-medium text-white transition-all"
+                  >
+                    <FaDiscord size={26} />
+                    Join our Discord Server
+                  </a>
+                  <a
+                    href="https://github.com/JhaSourav07/commitpulse/blob/main/CODE_OF_CONDUCT.md"
+                    target="_blank"
+                    className="mt-4 inline-block text-sm text-gray-500 hover:text-gray-700 underline dark:text-zinc-400 dark:hover:text-zinc-300"
+                  >
+                    Read Community Guidelines →
+                  </a>
+                </div>
               </div>
             </section>
 
