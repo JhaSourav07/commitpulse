@@ -10,6 +10,7 @@ import type {
   GraphLink,
 } from '@/types';
 import { calculateStreak, aggregateCalendars, convertLocalToUtc } from '@/lib/calculate';
+import { isBotAuthor } from './bot-filter';
 import { DistributedCache } from '@/lib/cache';
 import { LANGUAGE_COLORS } from '@/lib/svg/languageColors';
 import { CONTRIBUTION_MILESTONES, STREAK_MILESTONES } from './svg/constants';
@@ -567,6 +568,7 @@ type FetchOptions = {
   rangeLabel?: string;
   signal?: AbortSignal;
   org?: string;
+  excludeBots?: boolean;
   // Authenticated user's OAuth token. When set, GitHub calls use THIS token
   // (the user's personal rate-limit quota) instead of the global PAT pool.
   token?: string;
@@ -1503,7 +1505,10 @@ export async function getOrgDashboardData(
     throw new Error('This endpoint is strictly for organizations.');
   if (membersOrError instanceof Error) throw membersOrError;
 
-  const members = membersOrError;
+  let members = membersOrError;
+  if (options.excludeBots) {
+    members = members.filter((member) => !isBotAuthor(member));
+  }
 
   // Limit active members to protect shared token rate limit and improve response times
   const activeMembers = members.slice(0, ORG_MEMBER_LIMIT);

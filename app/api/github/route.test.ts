@@ -249,10 +249,13 @@ describe('Standard route behavior', () => {
   it('parses valid org parameter and passes it to getFullDashboardData', async () => {
     const response = await GET(makeRequest({ username: 'octocat', org: 'github' }));
     expect(response.status).toBe(200);
-    expect(getFullDashboardData).toHaveBeenCalledWith('octocat', {
-      bypassCache: false,
-      org: 'github',
-      signal: expect.any(AbortSignal),
-    });
+    expect(getFullDashboardData).toHaveBeenCalledWith(
+      'octocat',
+      expect.objectContaining({
+        bypassCache: false,
+        org: 'github',
+        signal: expect.any(AbortSignal),
+      })
+    );
   });
 });

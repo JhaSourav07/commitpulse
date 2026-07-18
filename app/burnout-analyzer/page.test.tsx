@@ -56,6 +56,8 @@ describe('BurnoutAnalyzerPage repository input handling', () => {
     fireEvent.click(screen.getByRole('button', { name: /analyze/i }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/repo-burnout?owner=facebook&repo=react');
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      '/api/repo-burnout?owner=facebook&repo=react&excludeBots=false'
+    );
   });
 });

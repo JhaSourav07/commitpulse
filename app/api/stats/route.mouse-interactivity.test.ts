@@ -110,7 +110,10 @@ describe('ApiStatsRoute Tests', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('X-Refresh-Status')).toBe('Cooldown-Served-Cached');
     // Verify fetch is called without cache bypass (bypassCache: false)
-    expect(fetchGitHubContributions).toHaveBeenCalledWith('octocat', { bypassCache: false });
+    expect(fetchGitHubContributions).toHaveBeenCalledWith(
+      'octocat',
+      expect.objectContaining({ bypassCache: false })
+    );
   });
 
   it('successfully retrieves user stats and returns Fresh status if refresh is allowed', async () => {
