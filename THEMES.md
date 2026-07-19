@@ -44,6 +44,7 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | catppuccin_mocha | `#1e1e2e`  | `#cdd6f4` | `#cba6f7` |
 | one_dark         | `#282c34`  | `#abb2bf` | `#61afef` |
 | ayu_mirage       | `#212733`  | `#D9D7CE` | `#FFCC66` |
+
 ---
 
 ## Preview Gallery
