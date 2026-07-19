@@ -14,7 +14,6 @@ import { Check, Code, Copy, Download, ExternalLink, Loader2, Sparkles, X } from 
 import type { DashboardExportData } from '@/types/dashboard';
 import { useShareActions } from '@/hooks/useShareActions';
 import { useTranslation } from '@/context/TranslationContext';
-import NextImage from 'next/image';
 
 type OptionState = 'idle' | 'loading' | 'success' | 'error';
 

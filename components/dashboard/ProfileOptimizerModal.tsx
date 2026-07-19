@@ -1,6 +1,5 @@
 'use client';
 
-import type { DashboardData } from '@/types/dashboard';
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X, Download, Copy, CheckCircle, TrendingUp, AlertCircle } from 'lucide-react';

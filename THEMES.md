@@ -43,7 +43,7 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | midnight_ocean   | `#020c1b`  | `#ccd6f6` | `#0af5ff` |
 | catppuccin_mocha | `#1e1e2e`  | `#cdd6f4` | `#cba6f7` |
 | one_dark         | `#282c34`  | `#abb2bf` | `#61afef` |
-
+| ayu_mirage       | `#212733`  | `#D9D7CE` | `#FFCC66` |
 ---
 
 ## Preview Gallery
@@ -419,6 +419,16 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | `accent`  | 61afef |
 
 ---
+
+### Ayu Mirage
+
+![ayu_mirage](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=ayu_mirage)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | 212733 |
+| `text`    | D9D7CE |
+| `accent`  | FFCC66 |
 
 ## Custom Theme
 

@@ -36,6 +36,7 @@ import { generateRadarSVG } from '@/lib/svg/radar';
 import { generateDoughnutSVG } from '@/lib/svg/doughnut';
 import { generateCommitClockSVG } from '@/lib/svg/commitClock';
 import { generateWeekdaySVG } from '@/lib/svg/weekday';
+import { injectStaleWatermark } from '@/lib/svg/staleWatermark';
 import { optimizeSVG } from '@/lib/svg/optimizer';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
 import type {
@@ -51,7 +52,7 @@ import { getClientIp } from '@/utils/getClientIp';
 import { quotaMonitor } from '@/services/github/quota-monitor';
 import { refreshPolicy } from '@/services/github/refresh-policy';
 import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
-import { logger } from '@/lib/logger';
+import { logger, setRequestId, clearRequestId } from '@/lib/logger';
 
 import { validationCache as _vc, normalizeCacheKey, cachedValidation } from './validation-cache';
 // Re-alias so existing usages in this file continue to work.
@@ -62,9 +63,13 @@ const SVG_CSP_HEADER =
 
 function buildInlineErrorSVG(text: string): string {
   const MAX_LINE = 48;
-  const truncated = text.length > MAX_LINE * 2 ? text.slice(0, MAX_LINE * 2 - 1) + '…' : text;
-  const line1 = escapeXML(truncated.slice(0, MAX_LINE));
-  const line2 = truncated.length > MAX_LINE ? escapeXML(truncated.slice(MAX_LINE)) : null;
+  const chars = Array.from(text);
+  const truncated =
+    chars.length > MAX_LINE * 2 ? chars.slice(0, MAX_LINE * 2 - 1).join('') + '…' : text;
+  const truncatedChars = Array.from(truncated);
+  const line1 = escapeXML(truncatedChars.slice(0, MAX_LINE).join(''));
+  const line2 =
+    truncatedChars.length > MAX_LINE ? escapeXML(truncatedChars.slice(MAX_LINE).join('')) : null;
   const textY = line2 ? '62' : '75';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="150" viewBox="0 0 400 150">
   <rect width="400" height="150" fill="#2d0000" rx="8"/>
@@ -88,12 +93,21 @@ function getMonthlyReferenceDate(year: string | undefined, timezone: string): Da
 }
 
 export async function GET(request: Request) {
+  const start = Date.now();
+  const requestId = request.headers.get('x-request-id') ?? crypto.randomUUID();
+  setRequestId(requestId);
+
   const { searchParams } = new URL(request.url);
 
   const cacheKey = normalizeCacheKey(searchParams);
   const parseResult = cachedValidation(cacheKey, () =>
     streakParamsSchema.safeParse(coerceQueryParams(searchParams))
   );
+  logger.info('Incoming streak request', {
+    source: 'streak',
+    user: parseResult.success ? parseResult.data.user : undefined,
+    view: parseResult.success ? parseResult.data.view : undefined,
+  });
   try {
     if (!parseResult.success) {
       const fieldErrors = parseResult.error.flatten();
@@ -109,6 +123,7 @@ export async function GET(request: Request) {
           'Content-Type': 'image/svg+xml',
           'Cache-Control': 'no-store',
           'Content-Security-Policy': SVG_CSP_HEADER,
+          'X-Request-ID': requestId,
         },
       });
     }
@@ -169,6 +184,7 @@ export async function GET(request: Request) {
       phi,
       border,
       minify,
+      hide_weekend,
     } = parseResult.data;
     const normalizedView = view as
       | 'default'
@@ -244,6 +260,11 @@ export async function GET(request: Request) {
           throw validationErr;
         }
         throw error;
+      } finally {
+        logger.info('Streak request completed', {
+          source: 'streak',
+        });
+        clearRequestId();
       }
     }
 
@@ -406,12 +427,14 @@ export async function GET(request: Request) {
       theta,
       phi,
       compact,
+      hide_weekend,
     };
 
     let calendar;
     let individualCalendars: { user: string; calendar: ContributionCalendar }[] | undefined;
     let versusCalendar;
     let repoContributions: RepoContribution[] = [];
+    let servedFromStaleCache = false;
 
     // Fetch Organization Mega-City Data OR Single User Data
     const controller = new AbortController();
@@ -461,6 +484,7 @@ export async function GET(request: Request) {
               });
               if (userData.isOfflineFallback) {
                 hasOfflineFallback = true;
+                servedFromStaleCache = true;
               }
               return userData;
             } catch (err) {
@@ -498,6 +522,7 @@ export async function GET(request: Request) {
         repoContributions = normalizedView === 'languages' ? userData.repoContributions || [] : [];
         if (userData.isOfflineFallback) {
           params.isOfflineFallback = true;
+          servedFromStaleCache = true;
         }
 
         if (versus) {
@@ -510,13 +535,21 @@ export async function GET(request: Request) {
           versusCalendar = versusData.calendar;
           if (versusData.isOfflineFallback) {
             params.isOfflineFallback = true;
+            servedFromStaleCache = true;
           }
         }
       }
     } finally {
+      logger.info('Streak request completed', {
+        source: 'streak',
+        user,
+        view: normalizedView,
+        format,
+        status: 200,
+        durationMs: Date.now() - start,
+      });
       clearTimeout(timeoutId);
     }
-
     if (normalizedView !== 'monthly') {
       let effectiveDays = days;
 
@@ -579,6 +612,7 @@ export async function GET(request: Request) {
             headers: {
               'Cache-Control': cacheControl,
               ETag: weakEtag,
+              'X-Request-ID': requestId,
             },
           });
         }
@@ -590,6 +624,7 @@ export async function GET(request: Request) {
           'Cache-Control': cacheControl,
           ETag: weakEtag,
           'X-Cache-Status': cacheStatusHeader,
+          'X-Request-ID': requestId,
         },
       });
     }
@@ -622,7 +657,10 @@ export async function GET(request: Request) {
       svg = generateConstellationSVG(stats, params, calendar);
     } else if (normalizedView === 'radar') {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
-      svg = generateRadarSVG(stats, params, calendar);
+      const hourCounts = await fetchCommitHourDistribution(user, undefined, timezone).catch(
+        () => undefined
+      );
+      svg = generateRadarSVG(stats, params, calendar, hourCounts);
     } else if (normalizedView === 'doughnut' || normalizedView === 'pie') {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generateDoughnutSVG(stats, params, calendar);
@@ -631,7 +669,9 @@ export async function GET(request: Request) {
       svg = generateActivityGraphSVG(stats, params, calendar);
     } else if (normalizedView === 'commit_clock') {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
-      const hourCounts = await fetchCommitHourDistribution(user).catch(() => new Array(24).fill(0));
+      const hourCounts = await fetchCommitHourDistribution(user, undefined, timezone).catch(() =>
+        new Array(24).fill(0)
+      );
       svg = generateCommitClockSVG(hourCounts, stats, params);
     } else if (normalizedView === 'weekday') {
       // ← INSERT YOUR NEW BLOCK HERE
@@ -651,6 +691,10 @@ export async function GET(request: Request) {
       svg = generateSVG(stats, params, calendar, individualCalendars);
     }
 
+    if (servedFromStaleCache) {
+      svg = injectStaleWatermark(svg);
+    }
+
     if (minify) {
       svg = optimizeSVG(svg);
     }
@@ -662,7 +706,7 @@ export async function GET(request: Request) {
       ? 'no-cache, no-store, must-revalidate'
       : isHistoricalYear
         ? 'public, max-age=31536000, s-maxage=31536000, immutable'
-        : `public, max-age=60, s-maxage=${secondsToMidnight}, stale-while-revalidate=60`;
+        : `public, max-age=60, s-maxage=${secondsToMidnight}, stale-while-revalidate=59`;
 
     const etag = crypto.createHash('sha256').update(svg).digest('hex');
     const weakEtag = `W/"${etag}"`;
@@ -676,6 +720,7 @@ export async function GET(request: Request) {
           headers: {
             'Cache-Control': cacheControl,
             ETag: weakEtag,
+            'X-Request-ID': requestId,
           },
         });
       }
@@ -697,7 +742,8 @@ export async function GET(request: Request) {
           ETag: weakEtag,
           'X-Cache-Status': shouldBypassCache
             ? `BYPASS, fetched=${new Date().toISOString()}`
-            : 'HIT',
+            : `HIT, cached=${new Date().toISOString()}`,
+          'X-Request-ID': requestId,
         },
       });
     }
@@ -710,10 +756,11 @@ export async function GET(request: Request) {
         'X-CommitPulse-Grace-Applied': String(grace),
         ETag: weakEtag,
         'X-Cache-Status': shouldBypassCache ? `BYPASS, fetched=${new Date().toISOString()}` : 'HIT',
+        'X-Request-ID': requestId,
       },
     });
   } catch (error: unknown) {
-    return buildErrorResponse(error, parseResult);
+    return buildErrorResponse(error, parseResult, requestId);
   }
 }
 
@@ -748,7 +795,11 @@ function sanitizeErrorMessage(message: string): string {
   return 'Something went wrong. Please try again later.';
 }
 
-function buildErrorResponse(error: unknown, parseResult: ParseResult): NextResponse {
+function buildErrorResponse(
+  error: unknown,
+  parseResult: ParseResult,
+  requestId?: string
+): NextResponse {
   const rawMessage = error instanceof Error ? error.message : String(error);
   const message = sanitizeErrorMessage(rawMessage);
 
@@ -831,6 +882,9 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
       headers['X-CommitPulse-Circuit-Status'] = 'Open';
       headers['X-CommitPulse-Circuit-Reset-In'] = String(telemetry.resetInMs);
     }
+    if (requestId) {
+      headers['X-Request-ID'] = requestId;
+    }
 
     return new NextResponse(svg, {
       status: 429,
@@ -846,40 +900,51 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     const badUsername = match?.[1] ?? match?.[2] ?? fallbackTarget;
 
     const svg = generateNotFoundSVG(badUsername, errBg, errAccent, errText, errRadius, errSpeed);
+    const errorHeaders: Record<string, string> = {
+      'Content-Type': 'image/svg+xml; charset=utf-8',
+      'Cache-Control': 'no-cache',
+      'Content-Security-Policy': SVG_CSP_HEADER,
+    };
+    if (requestId) {
+      errorHeaders['X-Request-ID'] = requestId;
+    }
     return new NextResponse(svg, {
       status: 404,
-      headers: {
-        'Content-Type': 'image/svg+xml; charset=utf-8',
-        'Cache-Control': 'no-cache',
-        'Content-Security-Policy': SVG_CSP_HEADER,
-      },
+      headers: errorHeaders,
     });
   }
 
   // 3. Return a 400 Bad Request for Validation Errors
   if (isValidationError) {
     const validationSvg = buildInlineErrorSVG(message);
-
+    const errorHeaders: Record<string, string> = {
+      'Content-Type': 'image/svg+xml; charset=utf-8',
+      'Cache-Control': 'no-store',
+      'Content-Security-Policy': SVG_CSP_HEADER,
+    };
+    if (requestId) {
+      errorHeaders['X-Request-ID'] = requestId;
+    }
     return new NextResponse(validationSvg, {
       status: 400,
-      headers: {
-        'Content-Type': 'image/svg+xml; charset=utf-8',
-        'Cache-Control': 'no-store',
-        'Content-Security-Policy': SVG_CSP_HEADER,
-      },
+      headers: errorHeaders,
     });
   }
 
   // 4. Return a 504 Gateway Timeout for aborted/timed out requests
   if (isAbortError(error)) {
     const timeoutSvg = buildInlineErrorSVG('Request timed out. Please try again later.');
+    const errorHeaders: Record<string, string> = {
+      'Content-Type': 'image/svg+xml; charset=utf-8',
+      'Cache-Control': 'no-store',
+      'Content-Security-Policy': SVG_CSP_HEADER,
+    };
+    if (requestId) {
+      errorHeaders['X-Request-ID'] = requestId;
+    }
     return new NextResponse(timeoutSvg, {
       status: 504,
-      headers: {
-        'Content-Type': 'image/svg+xml; charset=utf-8',
-        'Cache-Control': 'no-store',
-        'Content-Security-Policy': SVG_CSP_HEADER,
-      },
+      headers: errorHeaders,
     });
   }
 
@@ -890,13 +955,16 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
   });
 
   const errorSvg = buildInlineErrorSVG('Something went wrong. Please try again later.');
-
+  const errorHeaders: Record<string, string> = {
+    'Content-Type': 'image/svg+xml; charset=utf-8',
+    'Cache-Control': 'no-store',
+    'Content-Security-Policy': SVG_CSP_HEADER,
+  };
+  if (requestId) {
+    errorHeaders['X-Request-ID'] = requestId;
+  }
   return new NextResponse(errorSvg, {
     status: 500,
-    headers: {
-      'Content-Type': 'image/svg+xml; charset=utf-8',
-      'Cache-Control': 'no-store',
-      'Content-Security-Policy': SVG_CSP_HEADER,
-    },
+    headers: errorHeaders,
   });
 }

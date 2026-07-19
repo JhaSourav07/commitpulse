@@ -263,3 +263,194 @@ Explore some of the built-in CommitPulse themes and quickly copy the style you l
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&view=weekday&theme=dracula)
 ```
+
+---
+
+## 🚀 Advanced Usage Examples
+
+### 🎨 Custom Gradient Backgrounds
+
+Create stunning visual effects with custom gradient backgrounds using the `gradient`, `gradient_stops`, and `gradient_dir` parameters.
+
+```md
+<!-- Vertical gradient with sunset colors -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&gradient=true&gradient_stops=ff6b35,ff007f,7b2cbf&gradient_dir=vertical)
+
+<!-- Horizontal gradient with ocean tones -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&gradient=true&gradient_stops=0077b6,00b4d8,90e0ef&gradient_dir=horizontal)
+
+<!-- Diagonal gradient with neon cyberpunk colors -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&gradient=true&gradient_stops=ff00ff,00ffff,ff0080&gradient_dir=diagonal)
+
+<!-- Custom gradient with specific theme -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=dark&gradient=true&gradient_stops=1a1a2e,16213e,0f3460&gradient_dir=vertical)
+```
+
+**Parameters:**
+
+- `gradient=true` - Enable volumetric gradients on the monolith floor
+- `gradient_stops` - Comma-separated hex colors (without `#`) for the gradient
+- `gradient_dir` - Direction: `vertical`, `horizontal`, or `diagonal`
+
+---
+
+### 👥 Multi-User Comparison
+
+Compare contribution patterns between multiple users or team members using comma-separated usernames.
+
+```md
+<!-- Compare two users side-by-side -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07,octocat)
+
+<!-- Team comparison with custom theme -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07,octocat&theme=neon)
+
+<!-- Small team comparison (up to 7 users) -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07,octocat,torvalds,gaearon&size=large)
+
+<!-- Multi-user with skyline view -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07,octocat&view=skyline)
+
+<!-- Versus mode for direct comparison -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&versus=octocat)
+
+<!-- Versus comparison with custom styling -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&versus=octocat&theme=dracula&size=large)
+```
+
+**Parameters:**
+
+- `user=user1,user2` - Comma-separated usernames for multi-user views
+- `versus=username` - Direct side-by-side comparison mode
+- `view=skyline` - City skyline visualization for multiple users
+
+---
+
+### 🏢 Organization Dashboards
+
+Generate comprehensive organization-wide contribution dashboards using the `org` parameter.
+
+```md
+<!-- Organization mega-city dashboard -->
+
+![](https://commitpulse.vercel.app/api/streak?org=vercel)
+
+<!-- Organization with custom theme -->
+
+![](https://commitpulse.vercel.app/api/streak?org=vercel&theme=github)
+
+<!-- Organization dashboard with labels -->
+
+![](https://commitpulse.vercel.app/api/streak?org=vercel&labels=true&labelColor=ffffff)
+
+<!-- Large organization view -->
+
+![](https://commitpulse.vercel.app/api/streak?org=vercel&size=large&hide_title=false)
+
+<!-- Organization with custom dimensions -->
+
+![](https://commitpulse.vercel.app/api/streak?org=vercel&width=800&height=600)
+
+<!-- Organization monthly stats -->
+
+![](https://commitpulse.vercel.app/api/streak?org=vercel&view=monthly)
+```
+
+**Parameters:**
+
+- `org=organization-name` - Generate mega-city dashboard for an organization
+- `labels=true` - Show isometric month and weekday labels
+- `labelColor` - Custom color for labels (hex without `#`)
+
+---
+
+### 📅 Custom Date Ranges
+
+Analyze contributions for specific time periods using `from`, `to`, `start_date`, `end_date`, or `year` parameters.
+
+```md
+<!-- Specific year analysis -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&year=2023)
+
+<!-- Custom date range (ISO 8601 format) -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&from=2023-01-01&to=2023-12-31)
+
+<!-- First quarter of 2024 -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&from=2024-01-01&to=2024-03-31)
+
+<!-- Recent 90 days using days parameter -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&days=90)
+
+<!-- Last 30 days with custom styling -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&days=30&theme=neon)
+
+<!-- Historical comparison: same period last year -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&from=2023-06-01&to=2023-08-31)
+
+<!-- Custom date range with monthly view -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&from=2024-01-01&to=2024-06-30&view=monthly)
+
+<!-- Date range with custom subtitle -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&start_date=2024-01-01&end_date=2024-06-30&custom_subtitle=Q1%20%26%20Q2%202024)
+```
+
+**Parameters:**
+
+- `year=YYYY` - Full calendar year
+- `from=YYYY-MM-DD` - Start date (ISO 8601 format)
+- `to=YYYY-MM-DD` - End date (ISO 8601 format)
+- `start_date=YYYY-MM-DD` - Alternative start date parameter
+- `end_date=YYYY-MM-DD` - Alternative end date parameter
+- `days=N` - Last N days of contributions (1-365)
+
+**Important Notes:**
+
+- Date ranges must be in ISO 8601 format (`YYYY-MM-DD`)
+- `from` date must be less than or equal to `to` date
+- `days` parameter takes precedence over date ranges when both are specified
+- Historical data is limited to GitHub's availability (founded in 2008)
+
+---
+
+### 💡 Pro Tips for Advanced Usage
+
+1. **Combine Parameters**: Mix and match parameters for unique effects
+
+   ```md
+   ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon&gradient=true&gradient_stops=ff00ff,00ffff&from=2024-01-01&to=2024-06-30)
+   ```
+
+2. **Performance Optimization**: Use `refresh=true` sparingly as it bypasses cache
+
+   ```md
+   ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&refresh=true)
+   ```
+
+3. **Accessibility**: Use high-contrast themes for better readability
+
+   ```md
+   ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=highcontrast)
+   ```
+
+4. **Embedding**: Adjust opacity for seamless integration with different backgrounds
+   ```md
+   ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&opacity=0.8)
+   ```

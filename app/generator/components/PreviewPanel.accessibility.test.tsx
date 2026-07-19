@@ -1,3 +1,4 @@
+import type { GeneratorState } from '../types';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -8,6 +9,22 @@ import React from 'react';
 vi.mock('@/utils/clipboard', () => ({
   fallbackCopyToClipboard: vi.fn().mockReturnValue(true),
 }));
+
+const mockState: GeneratorState = {
+  name: '',
+  description: '',
+  selectedTechs: [],
+  selectedSocials: [],
+  socialLinks: {},
+  githubUsername: 'test',
+  showCommitPulse: false,
+  commitPulseAccent: '',
+  showRepoSpotlight: false,
+  spotlightRepo: '',
+  showSnakeGraph: false,
+  showPacmanGraph: false,
+  graphPlacement: 'bottom',
+};
 
 describe('PreviewPanel Component Accessibility Tests', () => {
   const mockMarkdown = `# Main Title\n## Sub Section\n### Detail Item\n\nThis is a test markdown.`;
@@ -23,7 +40,7 @@ describe('PreviewPanel Component Accessibility Tests', () => {
 
   // Test 1: ARIA Tab Roles & Selection
   it('1. verifies correct ARIA roles and dynamic aria-selected states for tabs and tab panels', () => {
-    render(<PreviewPanel markdown={mockMarkdown} />);
+    render(<PreviewPanel markdown={mockMarkdown} state={mockState} />);
 
     // 1. Tablist role
     const tablist = screen.getByRole('tablist', { name: /view mode selection/i });
@@ -57,12 +74,12 @@ describe('PreviewPanel Component Accessibility Tests', () => {
 
   // Test 2: Keyboard Accessibility
   it('2. verifies interactive elements are focusable and support keyboard interaction flow', () => {
-    render(<PreviewPanel markdown={mockMarkdown} />);
+    render(<PreviewPanel markdown={mockMarkdown} state={mockState} />);
 
     const previewTab = screen.getByRole('tab', { name: /preview/i });
     const markdownTab = screen.getByRole('tab', { name: /markdown/i });
-    const downloadBtn = screen.getByRole('button', { name: /download/i });
     const copyBtn = screen.getByRole('button', { name: /copy/i });
+    const downloadBtn = screen.getByRole('button', { name: 'Download README.md' });
 
     // Focus preview tab
     previewTab.focus();
@@ -83,11 +100,11 @@ describe('PreviewPanel Component Accessibility Tests', () => {
 
   // Test 3: Focus Outline Styling
   it('3. verifies that interactive controls possess correct focus-visible outline helper classes', () => {
-    render(<PreviewPanel markdown={mockMarkdown} />);
+    render(<PreviewPanel markdown={mockMarkdown} state={mockState} />);
 
     const previewTab = screen.getByRole('tab', { name: /preview/i });
     const markdownTab = screen.getByRole('tab', { name: /markdown/i });
-    const downloadBtn = screen.getByRole('button', { name: /download/i });
+    const downloadBtn = screen.getByRole('button', { name: 'Download README.md' });
     const copyBtn = screen.getByRole('button', { name: /copy/i });
 
     const expectedClasses = [
@@ -107,7 +124,7 @@ describe('PreviewPanel Component Accessibility Tests', () => {
 
   // Test 4: Logical Heading Hierarchy
   it('4. verifies heading elements within generated preview HTML have a correct logical hierarchy and roles', () => {
-    const { container } = render(<PreviewPanel markdown={mockMarkdown} />);
+    const { container } = render(<PreviewPanel markdown={mockMarkdown} state={mockState} />);
 
     // In preview mode, headings are rendered from markdown
     const h1 = container.querySelector('h1');
@@ -145,10 +162,10 @@ describe('PreviewPanel Component Accessibility Tests', () => {
     const createUrlSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock');
     const revokeUrlSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
 
-    render(<PreviewPanel markdown={mockMarkdown} />);
+    render(<PreviewPanel markdown={mockMarkdown} state={mockState} />);
 
     const copyBtn = screen.getByRole('button', { name: /copy/i });
-    const downloadBtn = screen.getByRole('button', { name: /download/i });
+    const downloadBtn = screen.getByRole('button', { name: 'Download README.md' });
 
     // Initial Copy state
     expect(copyBtn).toHaveAttribute('aria-label', 'Copy markdown text to clipboard');

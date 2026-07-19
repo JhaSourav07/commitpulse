@@ -104,7 +104,7 @@ export async function GET(request: Request) {
       return new NextResponse(null, {
         status: 304,
         headers: {
-          'Cache-Control': 'public, max-age=60, s-maxage=3600, stale-while-revalidate=60',
+          'Cache-Control': 'public, max-age=60, s-maxage=1, stale-while-revalidate=59',
           ETag: weakEtag,
         },
       });
@@ -113,7 +113,7 @@ export async function GET(request: Request) {
     return new NextResponse(svg, {
       headers: {
         'Content-Type': 'image/svg+xml; charset=utf-8',
-        'Cache-Control': 'public, max-age=60, s-maxage=3600, stale-while-revalidate=60',
+        'Cache-Control': 'public, max-age=60, s-maxage=1, stale-while-revalidate=59',
         'Content-Security-Policy': SVG_CSP_HEADER,
         ETag: weakEtag,
       },

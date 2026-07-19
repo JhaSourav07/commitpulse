@@ -2488,7 +2488,7 @@ export function generateVersusSVG(
 
   <g transform="translate(${singleW}, ${H / 2})">
     <circle cx="0" cy="0" r="${s(24)}" fill="${bg}" stroke="${accent}" stroke-width="2" />
-    <text x="0" y="${s(6)}" text-anchor="middle" font-family="${statsFont}" fill="${accent}" font-size="${s(16)}" font-weight="bold">VS</text>
+    <text x="0" y="${s(6)}" text-anchor="middle" font-family="${statsFont.replace(/"/g, "'")}" fill="${accent}" font-size="${s(16)}" font-weight="bold">VS</text>
   </g>
 </svg>`;
 }
@@ -2595,7 +2595,7 @@ function generateAutoThemeVersusSVG(
 
   <g transform="translate(${singleW}, ${H / 2})">
     <circle cx="0" cy="0" r="${s(24)}" class="cp-bg-fill" stroke="var(--cp-accent)" stroke-width="2" />
-    <text x="0" y="${s(6)}" text-anchor="middle" font-family="${statsFont}" class="cp-accent-fill" font-size="${s(16)}" font-weight="bold">VS</text>
+    <text x="0" y="${s(6)}" text-anchor="middle" font-family="${statsFont.replace(/"/g, "'")}" class="cp-accent-fill" font-size="${s(16)}" font-weight="bold">VS</text>
   </g>
 </svg>`;
 }

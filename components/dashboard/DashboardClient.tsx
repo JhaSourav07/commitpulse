@@ -46,6 +46,7 @@ import GoalTracker from './GoalTracker';
 import ActivityHeatmapPro from './ActivityHeatmapPro';
 import DeveloperJourneyTimeline from './DeveloperJourneyTimeline';
 import RepositoryContributionExplorer from './RepositoryContributionExplorer';
+import BotFilterToggle from './BotFilterToggle';
 
 // Define the dashboard data structure
 export interface DashboardData {
@@ -725,6 +726,7 @@ export default function DashboardClient({
                     activity: initialData.activity,
                   }}
                 />
+                <BotFilterToggle />
                 <Achievements achievements={initialData.achievements} />
                 <ResumeProfileSection githubUsername={username} />
                 <DeploymentTracker data={initialData.deployments} />

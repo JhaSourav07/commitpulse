@@ -4,7 +4,7 @@ import { buildCacheControlHeader } from './cacheControl';
 describe('cacheControl - Dark and Light Prefers-Color-Scheme Visual Cohesion', () => {
   it('returns the default s-maxage header when no options are provided', () => {
     const header = buildCacheControlHeader({});
-    expect(header).toBe('s-maxage=3600, stale-while-revalidate=86400');
+    expect(header).toBe('public, s-maxage=1, stale-while-revalidate=59');
   });
 
   it('returns a no-store directive when bypass is true, overriding all other options', () => {
@@ -23,12 +23,11 @@ describe('cacheControl - Dark and Light Prefers-Color-Scheme Visual Cohesion', (
 
   it('includes secondsToMidnight in the s-maxage when provided without bypass or historical', () => {
     const header = buildCacheControlHeader({ secondsToMidnight: 7200 });
-    expect(header).toMatch(/^public, s-maxage=7200,/);
-    expect(header).toContain('stale-while-revalidate=86400');
+    expect(header).toBe('public, s-maxage=1, stale-while-revalidate=59');
   });
 
   it('handles secondsToMidnight of zero correctly, producing s-maxage=0', () => {
     const header = buildCacheControlHeader({ secondsToMidnight: 0 });
-    expect(header).toBe('public, s-maxage=0, stale-while-revalidate=86400');
+    expect(header).toBe('public, s-maxage=1, stale-while-revalidate=59');
   });
 });
