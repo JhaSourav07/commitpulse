@@ -18,8 +18,9 @@ import ja from '@/locales/ja.json';
 import ko from '@/locales/ko.json';
 import de from '@/locales/de.json';
 import pt from '@/locales/pt.json';
+import ta from '@/locales/ta.json';
 
-export type Language = 'en' | 'es' | 'hi' | 'fr' | 'zh' | 'ja' | 'ko' | 'de' | 'pt';
+export type Language = 'en' | 'es' | 'hi' | 'fr' | 'zh' | 'ja' | 'ko' | 'de' | 'pt' | 'ta';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const translations: Record<Language, any> = {
@@ -32,6 +33,7 @@ const translations: Record<Language, any> = {
   ko,
   de,
   pt,
+  ta,
 };
 
 export const LANGUAGE_LABELS: Record<Language, string> = {
@@ -44,6 +46,7 @@ export const LANGUAGE_LABELS: Record<Language, string> = {
   ko: '\ud55c\uad6d\uc5b4',
   de: 'Deutsch',
   pt: 'Português',
+  ta: '\u0ba4\u0bae\u0bbf\u0bb4\u0bcd',
 };
 
 interface TranslationContextType {

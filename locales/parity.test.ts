@@ -11,6 +11,7 @@ import ja from './ja.json';
 import ko from './ko.json';
 import de from './de.json';
 import pt from './pt.json';
+import ta from './ta.json';
 
 // Every locale the switcher offers must stay in lockstep with the English
 // source of truth. Because t() silently falls back to English for a missing
@@ -27,6 +28,7 @@ const LOCALES: Record<Language, Record<string, unknown>> = {
   ko,
   de,
   pt,
+  ta,
 };
 
 function flatten(obj: Record<string, unknown>, prefix = ''): Record<string, string> {
