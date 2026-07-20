@@ -3,6 +3,8 @@
 // Previously had only 3 tests — this file adds hex validity, theme count,
 // structure integrity, and AUTO_THEME pair safety checks.
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { themes, AUTO_THEME_LIGHT, AUTO_THEME_DARK, getNormalizedThemeKey } from './themes';
 
@@ -257,5 +259,43 @@ describe('getNormalizedThemeKey', () => {
   it('returns default fallback gracefully when theme parameter is undefined or null', () => {
     expect(getNormalizedThemeKey(undefined)).toBe('default');
     expect(getNormalizedThemeKey(null)).toBe('default');
+  });
+});
+
+// ── Integration Documentation Match ───────────────────────────────────────────
+
+describe('[Bug fix] THEMES.md documentation matches themes.ts', () => {
+  const themesMdPath = join(__dirname, '../../THEMES.md');
+  const themesMdContent = readFileSync(themesMdPath, 'utf-8');
+
+  it('has real theme entries for cyber-pulse and retro-terminal (previously documented but missing)', () => {
+    expect(themes['cyber-pulse']).toBeDefined();
+    expect(themes['cyber-pulse'].bg).toBe('000000');
+    expect(themes['cyber-pulse'].text).toBe('ffffff');
+    expect(themes['cyber-pulse'].accent).toBe('00ffee');
+
+    expect(themes['retro-terminal']).toBeDefined();
+    expect(themes['retro-terminal'].bg).toBe('000000');
+    expect(themes['retro-terminal'].text).toBe('00ff41');
+    expect(themes['retro-terminal'].accent).toBe('00ff41');
+  });
+
+  it('every theme= value mentioned in THEMES.md corresponds to a real theme key', () => {
+    const mentionedThemes = [
+      ...new Set(
+        Array.from(themesMdContent.matchAll(/theme=([a-zA-Z0-9_-]+)/g))
+          .map((m) => m[1])
+          .filter((t) => t !== 'auto')
+      ),
+    ];
+
+    for (const themeName of mentionedThemes) {
+      expect(themes).toHaveProperty(themeName);
+    }
+  });
+
+  it('THEMES.md documents both enterprise and india themes', () => {
+    expect(themesMdContent).toContain('theme=enterprise');
+    expect(themesMdContent).toContain('theme=india');
   });
 });

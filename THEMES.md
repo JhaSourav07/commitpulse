@@ -405,6 +405,28 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | `text`    | D9D7CE |
 | `accent`  | FFCC66 |
 
+### Enterprise
+
+![enterprise](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=enterprise)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | 1a1a2e |
+| `text`    | e2e8f0 |
+| `accent`  | 6366f1 |
+
+---
+
+### India
+
+![india](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=india)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | 0a0a0a |
+| `text`    | ffffff |
+| `accent`  | FF9933 |
+
 ## Custom Theme
 
 Not finding what you want? Build your own using raw color parameters - all values are hex codes **without** the `#` prefix:
