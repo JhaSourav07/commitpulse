@@ -1710,3 +1710,20 @@ describe('streakParamsSchema — days parameter validation', () => {
     if (result.success) expect(result.data.days).toBeUndefined();
   });
 });
+
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+// Assuming vitest is used as in your other test files;
+// ensure `describe`, `it`, and `expect` are imported if not already.
+
+describe('[Docs] customization.md documents the background gradient params', () => {
+  const docsContent = readFileSync(join(__dirname, '../docs/customization.md'), 'utf-8');
+
+  it('documents bgType, bgStart, bgEnd, and bgAngle', () => {
+    for (const param of ['bgType', 'bgStart', 'bgEnd', 'bgAngle']) {
+      expect(docsContent, `docs/customization.md should mention \`${param}\``).toContain(
+        `\`${param}\``
+      );
+    }
+  });
+});

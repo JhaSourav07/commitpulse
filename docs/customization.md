@@ -56,6 +56,10 @@ URL Parameter > Theme Default > System Fallback
 | `gradient_stops`    | `string`  | No         | —                              | Comma-separated list of hex colors (e.g. `ff6b35,ff007f`) for custom floor gradient. Requires `gradient=true` and at least two valid colors. Hex prefix `#` is optional.                                                                                                                           |
 | `gradient_dir`      | `string`  | No         | `vertical`                     | Direction of the volumetric floor gradient: `vertical` (default), `horizontal`, or `diagonal`.                                                                                                                                                                                                     |
 | `minify`            | `boolean` | No         | `true`                         | Enable lightweight SVG minification to reduce payload size by 15–30%. Accepts `true`/`1` (enable) or `false`/`0` (disable).                                                                                                                                                                        |
+| `bgType`            | `string`  | No         | `solid`                        | Background fill type: `solid` (default), `linear`, or `radial` gradient                                                                                                                                                                                                                            |
+| `bgStart`           | `string`  | No         | —                              | Start color for the background gradient. Hex string **without** `#`. Requires `bgType=linear` or `bgType=radial`.                                                                                                                                                                                  |
+| `bgEnd`             | `string`  | No         | —                              | End color for the background gradient. Hex string **without** `#`. Requires `bgType=linear` or `bgType=radial`.                                                                                                                                                                                    |
+| `bgAngle`           | `number`  | No         | `90`                           | Angle in degrees (0–360) for a `linear` background gradient. Has no effect on `radial`.                                                                                                                                                                                                            |
 
 > All parameters below are optional except `user`. Append them to the base URL as query string key-value pairs (e.g. `?user=YOUR_USERNAME&theme=neon&size=large`). Boolean parameters accept `true` or `false`. Hex color values are provided **without** the `#` prefix.
 
@@ -238,6 +242,10 @@ Explore some of the built-in CommitPulse themes and quickly copy the style you l
 <!-- Gradient + shading for extra depth -->
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&gradient=true&shading=true)
+
+<!--Background gradient (distinct from the floor gradient above) -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&bgType=linear&bgStart=0d1117&bgEnd=1a1a2e&bgAngle=45)
 
 <!-- Semi-transparent ghost city look -->
 
