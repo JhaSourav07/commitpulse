@@ -11,6 +11,7 @@ import { generateReadme, getEmptyReadme } from './utils/readmeGenerator';
 import { sanitizeSocialUrl } from './utils/urlSanitizer';
 import type { GeneratorState } from './types';
 import type { ImportedData } from './utils/githubMapper';
+import { SupportedLanguage } from '@/lib/i18n/languages';
 
 const INITIAL_STATE: GeneratorState = {
   name: '',
@@ -33,6 +34,7 @@ const INITIAL_STATE: GeneratorState = {
 
 export function GeneratorClient() {
   const [state, setState] = useState<GeneratorState>(INITIAL_STATE);
+  const [language, setLanguage] = useState<SupportedLanguage>('en');
 
   const markdown = useMemo(() => {
     const hasContent =
@@ -46,8 +48,8 @@ export function GeneratorClient() {
       (state.showPacmanGraph && state.githubUsername.trim()) ||
       (state.showArticles && state.articlesUsername?.trim());
 
-    return hasContent ? generateReadme(state) : getEmptyReadme();
-  }, [state]);
+    return hasContent ? generateReadme(state, language) : getEmptyReadme();
+  }, [state, language]);
 
   const handleApplyImport = (data: ImportedData) => {
     setState((prevState) => {
@@ -91,6 +93,23 @@ export function GeneratorClient() {
 
   return (
     <div className="flex flex-col lg:flex-row gap-5 xl:gap-6 items-start w-full">
+      {/* Language Selector - Top of the page */}
+      <div className="w-full flex justify-end items-center gap-3 mb-2">
+        <label htmlFor="language" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          🌐 Language:
+        </label>
+        <select
+          id="language"
+          value={language}
+          onChange={(e) => setLanguage(e.target.value as SupportedLanguage)}
+          className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 transition-colors"
+        >
+          <option value="en">🇺🇸 English</option>
+          <option value="es">🇪🇸 Español</option>
+          <option value="ja">🇯🇵 日本語</option>
+        </select>
+      </div>
+
       <div className="w-full lg:w-[44%] xl:w-[42%] flex-shrink-0">
         <EditorPanel
           state={state}

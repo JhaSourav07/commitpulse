@@ -1,6 +1,7 @@
 import { getTechById } from '../data/technologies';
 import { getSocialById } from '../data/socials';
 import type { GeneratorState } from '../types';
+import { getTranslation, SupportedLanguage } from '@/lib/i18n/languages';
 
 const BADGE_BASE = 'https://commitpulse.vercel.app/api/streak';
 const DASHBOARD_BASE = 'https://commitpulse.vercel.app/dashboard';
@@ -18,17 +19,18 @@ function buildBadgeUrl(username: string, accentHex: string): string {
   return `${BADGE_BASE}?${params.toString()}`;
 }
 
-function buildGraphsMarkdown(state: GeneratorState): string | null {
+function buildGraphsMarkdown(state: GeneratorState, lang: SupportedLanguage = 'en'): string | null {
   if (!state.githubUsername || !state.githubUsername.trim()) return null;
   if (!state.showSnakeGraph && !state.showPacmanGraph) return null;
 
+  const t = getTranslation(lang);
   const username = state.githubUsername.trim();
   const graphSections: string[] = [];
 
   if (state.showSnakeGraph) {
     graphSections.push(
       [
-        '## 🐍 Snake Contribution Graph',
+        `## ${t.graphs.snake}`,
         '',
         '<div align="center">',
         '  <picture>',
@@ -44,7 +46,7 @@ function buildGraphsMarkdown(state: GeneratorState): string | null {
   if (state.showPacmanGraph) {
     graphSections.push(
       [
-        '## 👾 Pacman Contribution Graph',
+        `## ${t.graphs.pacman}`,
         '',
         '<div align="center">',
         '  <picture>',
@@ -60,16 +62,17 @@ function buildGraphsMarkdown(state: GeneratorState): string | null {
   return graphSections.join('\n\n');
 }
 
-export function generateReadme(state: GeneratorState): string {
+export function generateReadme(state: GeneratorState, lang: SupportedLanguage = 'en'): string {
+  const t = getTranslation(lang);
   const sections: string[] = [];
-  const graphsMarkdown = buildGraphsMarkdown(state);
+  const graphsMarkdown = buildGraphsMarkdown(state, lang);
 
   // 1. Header Section
   const name = state.name?.trim();
   const description = state.description?.trim();
 
   if (name) {
-    const headerLines: string[] = ['<div align="center">', '', `# 👋 Hi, I'm ${name}`];
+    const headerLines: string[] = ['<div align="center">', '', `# ${t.headers.hi} ${name}`];
 
     if (description) {
       headerLines.push('');
@@ -90,7 +93,7 @@ export function generateReadme(state: GeneratorState): string {
 
   // 2. Tech Stack Section
   if (state.selectedTechs.length > 0) {
-    const techLines: string[] = ['## 🛠️ Tech Stack', '', '<div align="center">'];
+    const techLines: string[] = [`## ${t.headers.techStack}`, '', '<div align="center">'];
 
     const techIcons = state.selectedTechs
       .map((id) => {
@@ -129,7 +132,7 @@ export function generateReadme(state: GeneratorState): string {
   const activeSocials = state.selectedSocials.filter((id) => state.socialLinks[id]?.trim());
 
   if (activeSocials.length > 0) {
-    const socialLines: string[] = ['## 🌐 Connect With Me', '', '<div align="center">'];
+    const socialLines: string[] = [`## ${t.headers.socials}`, '', '<div align="center">'];
 
     const badges = activeSocials
       .map((id) => {
@@ -177,7 +180,7 @@ export function generateReadme(state: GeneratorState): string {
     const altText = `CommitPulse Contribution Graph for ${username}`;
 
     const commitPulseLines = [
-      '## 📊 GitHub Streak',
+      `## ${t.headers.githubStats}`,
       '',
       '<div align="center">',
       '',
@@ -204,7 +207,7 @@ export function generateReadme(state: GeneratorState): string {
     const altText = `Repository Spotlight: ${repo}`;
 
     const spotlightLines = [
-      '## 🌟 Repository Spotlight',
+      `## ${t.headers.projects}`,
       '',
       '<div align="center">',
       '',
@@ -239,7 +242,7 @@ export function generateReadme(state: GeneratorState): string {
     const altText = `Latest Articles from ${platform === 'devto' ? 'Dev.to' : 'Hashnode'}`;
 
     const articlesLines = [
-      '## 📝 Latest Articles',
+      `## ${t.headers.articles}`,
       '',
       '<div align="center">',
       '',
