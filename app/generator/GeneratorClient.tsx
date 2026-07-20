@@ -110,7 +110,7 @@ export function GeneratorClient() {
       </div>
 
       <div className="w-full lg:flex-1 flex flex-col gap-5 xl:gap-6">
-        <PreviewPanel markdown={markdown} />
+        <PreviewPanel markdown={markdown} state={state} />
         <CompletionScorePanel state={state} />
         <ReadmeInsightsPanel state={state} />
         <ReadmeHealthBreakdown state={state} />

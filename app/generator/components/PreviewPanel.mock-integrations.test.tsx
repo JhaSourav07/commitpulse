@@ -1,3 +1,4 @@
+import type { GeneratorState } from '../types';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { PreviewPanel } from './PreviewPanel';
@@ -5,6 +6,22 @@ import { PreviewPanel } from './PreviewPanel';
 vi.mock('@/utils/clipboard', () => ({
   fallbackCopyToClipboard: vi.fn(() => true),
 }));
+
+const mockState: GeneratorState = {
+  name: '',
+  description: '',
+  selectedTechs: [],
+  selectedSocials: [],
+  socialLinks: {},
+  githubUsername: 'test',
+  showCommitPulse: false,
+  commitPulseAccent: '',
+  showRepoSpotlight: false,
+  spotlightRepo: '',
+  showSnakeGraph: false,
+  showPacmanGraph: false,
+  graphPlacement: 'bottom',
+};
 
 describe('PreviewPanel Mock Integrations', () => {
   const markdown = '# CommitPulse\nMock integration test';
@@ -30,7 +47,7 @@ describe('PreviewPanel Mock Integrations', () => {
   });
 
   it('1. copies markdown using mocked clipboard service', async () => {
-    render(<PreviewPanel markdown={markdown} />);
+    render(<PreviewPanel markdown={markdown} state={mockState} />);
 
     fireEvent.click(
       screen.getByRole('button', {
@@ -58,7 +75,7 @@ describe('PreviewPanel Mock Integrations', () => {
       return originalCreateElement(tagName);
     });
 
-    render(<PreviewPanel markdown={markdown} />);
+    render(<PreviewPanel markdown={markdown} state={mockState} />);
 
     fireEvent.click(
       screen.getByRole('button', {
@@ -71,14 +88,14 @@ describe('PreviewPanel Mock Integrations', () => {
   });
 
   it('3. renders preview content while integrations are mocked', () => {
-    render(<PreviewPanel markdown="# Hello World" />);
+    render(<PreviewPanel markdown="# Hello World" state={mockState} />);
 
     expect(screen.getByRole('tabpanel')).toBeInTheDocument();
     expect(screen.getByText('README.md')).toBeInTheDocument();
   });
 
   it('4. switches between preview and markdown tabs', () => {
-    render(<PreviewPanel markdown={markdown} />);
+    render(<PreviewPanel markdown={markdown} state={mockState} />);
 
     fireEvent.click(screen.getByRole('tab', { name: /markdown/i }));
 
@@ -88,7 +105,7 @@ describe('PreviewPanel Mock Integrations', () => {
   });
 
   it('5. keeps mocked services isolated across repeated interactions', async () => {
-    render(<PreviewPanel markdown={markdown} />);
+    render(<PreviewPanel markdown={markdown} state={mockState} />);
 
     const copyButton = screen.getByRole('button', {
       name: /copy markdown text to clipboard/i,

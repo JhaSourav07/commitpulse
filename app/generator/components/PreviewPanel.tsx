@@ -2,10 +2,13 @@
 
 import { fallbackCopyToClipboard } from '@/utils/clipboard';
 import { useState, useCallback } from 'react';
-import { Copy, Check, Eye, Code2, Download } from 'lucide-react';
+import { Copy, Check, Eye, Code2, Download, Workflow } from 'lucide-react';
+import type { GeneratorState } from '../types';
+import { generateReadmeWorkflow } from '../utils/workflowGenerator';
 
 interface PreviewPanelProps {
   markdown: string;
+  state: GeneratorState;
   hasContent?: boolean;
 }
 
@@ -32,7 +35,7 @@ function renderPreview(md: string): string {
   return html;
 }
 
-export function PreviewPanel({ markdown }: PreviewPanelProps) {
+export function PreviewPanel({ markdown, state }: PreviewPanelProps) {
   const [tab, setTab] = useState<'preview' | 'raw'>('preview');
   const [copied, setCopied] = useState(false);
 
@@ -72,6 +75,24 @@ export function PreviewPanel({ markdown }: PreviewPanelProps) {
     a.click();
     URL.revokeObjectURL(url);
   }, [markdown]);
+
+  const handleDownloadAction = useCallback(() => {
+    const yaml = generateReadmeWorkflow(state);
+    if (!yaml) return;
+
+    const blob = new Blob([yaml], { type: 'text/yaml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'update-readme.yml';
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [state]);
+
+  const isActionNeeded = state.showSnakeGraph || state.showPacmanGraph;
+  const actionTooltip = isActionNeeded
+    ? 'Download GitHub Actions workflow for Snake/Pacman graphs'
+    : 'GitHub Actions are only required when Snake or Pacman graphs are enabled';
 
   const previewHtml = renderPreview(markdown);
 
@@ -118,6 +139,21 @@ export function PreviewPanel({ markdown }: PreviewPanelProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleDownloadAction}
+            disabled={!isActionNeeded}
+            title={actionTooltip}
+            aria-label="Download GitHub Action Workflow"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#111111] ${
+              isActionNeeded
+                ? 'border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-white/60 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white'
+                : 'border-transparent bg-transparent text-gray-400 dark:text-white/30 cursor-not-allowed opacity-60'
+            }`}
+          >
+            <Workflow size={12} />
+            <span className="hidden sm:inline">Action</span>
+          </button>
           <button
             type="button"
             onClick={handleDownload}

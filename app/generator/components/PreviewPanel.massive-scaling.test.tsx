@@ -1,3 +1,4 @@
+import type { GeneratorState } from '../types';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { PreviewPanel } from './PreviewPanel';
@@ -6,6 +7,22 @@ import { act } from '@testing-library/react';
 vi.mock('@/utils/clipboard', () => ({
   fallbackCopyToClipboard: vi.fn().mockReturnValue(true),
 }));
+
+const mockState: GeneratorState = {
+  name: '',
+  description: '',
+  selectedTechs: [],
+  selectedSocials: [],
+  socialLinks: {},
+  githubUsername: 'test',
+  showCommitPulse: false,
+  commitPulseAccent: '',
+  showRepoSpotlight: false,
+  spotlightRepo: '',
+  showSnakeGraph: false,
+  showPacmanGraph: false,
+  graphPlacement: 'bottom',
+};
 
 describe('PreviewPanel massive scaling', () => {
   const createLargeMarkdown = () =>
@@ -18,7 +35,7 @@ describe('PreviewPanel massive scaling', () => {
   it('renders extremely large markdown payloads without crashing', () => {
     const markdown = createLargeMarkdown();
 
-    render(<PreviewPanel markdown={markdown} />);
+    render(<PreviewPanel markdown={markdown} state={mockState} />);
 
     expect(screen.getByText('README.md')).toBeInTheDocument();
     expect(screen.getByText(new RegExp(`${markdown.length} chars`))).toBeInTheDocument();
@@ -27,7 +44,7 @@ describe('PreviewPanel massive scaling', () => {
   it('renders large preview content while preserving preview panel structure', () => {
     const markdown = createLargeMarkdown();
 
-    const { container } = render(<PreviewPanel markdown={markdown} />);
+    const { container } = render(<PreviewPanel markdown={markdown} state={mockState} />);
 
     const previewPanel = container.querySelector('#panel-preview');
     const readmePreview = container.querySelector('.readme-preview');
@@ -42,7 +59,7 @@ describe('PreviewPanel massive scaling', () => {
   it('renders raw markdown view correctly for extremely large documents', () => {
     const markdown = createLargeMarkdown();
 
-    render(<PreviewPanel markdown={markdown} />);
+    render(<PreviewPanel markdown={markdown} state={mockState} />);
 
     fireEvent.click(
       screen.getByRole('tab', {
@@ -67,7 +84,7 @@ describe('PreviewPanel massive scaling', () => {
     const start = performance.now();
 
     for (let i = 0; i < 10; i++) {
-      const { unmount } = render(<PreviewPanel markdown={markdown} />);
+      const { unmount } = render(<PreviewPanel markdown={markdown} state={mockState} />);
 
       unmount();
     }
@@ -95,7 +112,7 @@ describe('PreviewPanel massive scaling', () => {
       configurable: true,
     });
 
-    render(<PreviewPanel markdown={markdown} />);
+    render(<PreviewPanel markdown={markdown} state={mockState} />);
 
     await act(async () => {
       fireEvent.click(

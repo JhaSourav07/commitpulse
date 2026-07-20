@@ -2,7 +2,7 @@
 
 import { fallbackCopyToClipboard } from '@/utils/clipboard';
 import { useCallback, useEffect, useRef, useState, Suspense, type ReactElement } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { validateGitHubUsername } from '@/lib/validations';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -23,11 +23,13 @@ import type {
   Language,
   Timezone,
 } from './types';
+import { THEME_KEYS } from './types';
 
 import { useDebounce } from '@/hooks/useDebounce';
 import useFetchCache from '@/hooks/useFetchCache';
-import { getExportSnippet, buildQueryParams, streakErrorMessage } from './utils';
+import { getExportSnippet, buildQueryParams, streakErrorMessage, exportConfig } from './utils';
 import { useTranslation } from '@/context/TranslationContext';
+import type { CustomizeOptions } from './types';
 
 function readNumericSearchParam(
   searchParams: URLSearchParams,
@@ -92,7 +94,6 @@ function CustomizePageInner(): ReactElement {
   const hasUsername = trimmedUsername.length > 0;
   const isRandomTheme = theme === 'random';
 
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   // On mount: initialize state from URL search params
@@ -142,20 +143,6 @@ function CustomizePageInner(): ReactElement {
     };
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
-        const input = document.querySelector<HTMLInputElement>('#username-input');
-        if (!input || document.activeElement === input) return;
-        event.preventDefault();
-        input.focus();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
   // Clear custom hex overrides when switching to virtual themes because
   // fixed colors conflict with their palette-selection behavior.
   const handleThemeChange = useCallback((newTheme: string): void => {
@@ -170,6 +157,61 @@ function CustomizePageInner(): ReactElement {
       setTextHex('');
     }
   }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
+
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        const input = document.querySelector<HTMLInputElement>('#username-input');
+        if (!input || document.activeElement === input) return;
+        event.preventDefault();
+        input.focus();
+        return;
+      }
+
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'c') {
+        if (window.getSelection()?.toString().length) return;
+        event.preventDefault();
+        const copyBtn = document.querySelector<HTMLButtonElement>('#copy-markdown-btn');
+        if (copyBtn) copyBtn.click();
+        return;
+      }
+
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+        event.preventDefault();
+        const downloadBtn = document.querySelector<HTMLButtonElement>('#download-svg-btn');
+        if (downloadBtn && !downloadBtn.disabled) downloadBtn.click();
+        return;
+      }
+
+      if (event.key === 'Escape') {
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+        return;
+      }
+
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        event.preventDefault();
+        const currentIndex = THEME_KEYS.indexOf(theme as (typeof THEME_KEYS)[number]);
+        if (currentIndex === -1) return;
+
+        let nextIndex = event.key === 'ArrowLeft' ? currentIndex - 1 : currentIndex + 1;
+        if (nextIndex < 0) nextIndex = THEME_KEYS.length - 1;
+        if (nextIndex >= THEME_KEYS.length) nextIndex = 0;
+
+        handleThemeChange(THEME_KEYS[nextIndex]);
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [theme, handleThemeChange]);
 
   const queryString = buildQueryParams({
     username,
@@ -687,6 +729,62 @@ function CustomizePageInner(): ReactElement {
               username={trimmedUsername}
               onFormatChange={setExportFormat}
               onCopy={copyExportSnippet}
+              onExportConfig={() => {
+                exportConfig({
+                  username,
+                  theme,
+                  bgHex,
+                  bgType,
+                  bgStart,
+                  bgEnd,
+                  bgAngle,
+                  accentHex,
+                  textHex,
+                  scale,
+                  speed,
+                  font,
+                  year,
+                  radius,
+                  size,
+                  hideTitle,
+                  hideBackground,
+                  hideStats,
+                  viewMode,
+                  deltaFormat,
+                  badgeWidth,
+                  badgeHeight,
+                  grace,
+                  language,
+                  timezone,
+                });
+              }}
+              onImportConfig={(opts: CustomizeOptions) => {
+                setUsername(opts.username);
+                handleThemeChange(opts.theme);
+                setBgHex(opts.bgHex);
+                setBgType(opts.bgType);
+                setBgStart(opts.bgStart);
+                setBgEnd(opts.bgEnd);
+                setBgAngle(opts.bgAngle);
+                setAccentHex(opts.accentHex);
+                setTextHex(opts.textHex);
+                setScale(opts.scale);
+                setSpeed(opts.speed);
+                setFont(opts.font);
+                setYear(opts.year);
+                setRadius(opts.radius);
+                setSize(opts.size);
+                setHideTitle(opts.hideTitle);
+                setHideBackground(opts.hideBackground);
+                setHideStats(opts.hideStats);
+                setViewMode(opts.viewMode);
+                setDeltaFormat(opts.deltaFormat);
+                setBadgeWidth(opts.badgeWidth);
+                setBadgeHeight(opts.badgeHeight);
+                setGrace(opts.grace);
+                setLanguage(opts.language);
+                setTimezone(opts.timezone);
+              }}
             />
 
             {/* URL breakdown */}

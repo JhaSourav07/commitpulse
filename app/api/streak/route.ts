@@ -36,6 +36,7 @@ import { generateRadarSVG } from '@/lib/svg/radar';
 import { generateDoughnutSVG } from '@/lib/svg/doughnut';
 import { generateCommitClockSVG } from '@/lib/svg/commitClock';
 import { generateWeekdaySVG } from '@/lib/svg/weekday';
+import { injectStaleWatermark } from '@/lib/svg/staleWatermark';
 import { optimizeSVG } from '@/lib/svg/optimizer';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
 import type {
@@ -433,6 +434,7 @@ export async function GET(request: Request) {
     let individualCalendars: { user: string; calendar: ContributionCalendar }[] | undefined;
     let versusCalendar;
     let repoContributions: RepoContribution[] = [];
+    let servedFromStaleCache = false;
 
     // Fetch Organization Mega-City Data OR Single User Data
     const controller = new AbortController();
@@ -482,6 +484,7 @@ export async function GET(request: Request) {
               });
               if (userData.isOfflineFallback) {
                 hasOfflineFallback = true;
+                servedFromStaleCache = true;
               }
               return userData;
             } catch (err) {
@@ -519,6 +522,7 @@ export async function GET(request: Request) {
         repoContributions = normalizedView === 'languages' ? userData.repoContributions || [] : [];
         if (userData.isOfflineFallback) {
           params.isOfflineFallback = true;
+          servedFromStaleCache = true;
         }
 
         if (versus) {
@@ -531,6 +535,7 @@ export async function GET(request: Request) {
           versusCalendar = versusData.calendar;
           if (versusData.isOfflineFallback) {
             params.isOfflineFallback = true;
+            servedFromStaleCache = true;
           }
         }
       }
@@ -652,7 +657,10 @@ export async function GET(request: Request) {
       svg = generateConstellationSVG(stats, params, calendar);
     } else if (normalizedView === 'radar') {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
-      svg = generateRadarSVG(stats, params, calendar);
+      const hourCounts = await fetchCommitHourDistribution(user, undefined, timezone).catch(
+        () => undefined
+      );
+      svg = generateRadarSVG(stats, params, calendar, hourCounts);
     } else if (normalizedView === 'doughnut' || normalizedView === 'pie') {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generateDoughnutSVG(stats, params, calendar);
@@ -681,6 +689,10 @@ export async function GET(request: Request) {
     } else {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generateSVG(stats, params, calendar, individualCalendars);
+    }
+
+    if (servedFromStaleCache) {
+      svg = injectStaleWatermark(svg);
     }
 
     if (minify) {
