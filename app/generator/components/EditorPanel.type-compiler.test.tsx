@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, it } from 'vitest';
 import type { EditorPanelProps } from './EditorPanel';
-import type { GeneratorState } from '../types';
+import type { GeneratorState, ReadmeLayoutTemplate } from '../types';
 import type { ImportedData } from '../utils/githubMapper';
 
 describe('EditorPanel Type Compiler Validation', () => {
@@ -8,6 +8,7 @@ describe('EditorPanel Type Compiler Validation', () => {
     expectTypeOf<GeneratorState>().toEqualTypeOf<{
       name: string;
       description: string;
+      layoutTemplate?: ReadmeLayoutTemplate;
       selectedTechs: string[];
       selectedSocials: string[];
       socialLinks: Record<string, string>;
