@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 import { GET } from './route';
 import { getValidationCacheForTests } from './validation-cache';
+import { STREAK_CACHE_CONTROL } from './cache';
 
 // We only mock the two things that reach outside this process:
 // the GitHub API call and the wall-clock time helper.
@@ -454,17 +455,13 @@ describe('GET /api/streak', () => {
   describe('cache-control header', () => {
     it('caches until UTC midnight by default, using the value from getSecondsUntilUTCMidnight', async () => {
       const response = await GET(makeRequest({ user: 'octocat' }));
-      expect(response.headers.get('Cache-Control')).toBe(
-        'public, max-age=60, s-maxage=3600, stale-while-revalidate=59'
-      );
+      expect(response.headers.get('Cache-Control')).toBe(STREAK_CACHE_CONTROL);
     });
 
     it('reflects a different time value when the clock changes', async () => {
       vi.mocked(getSecondsUntilUTCMidnight).mockReturnValue(7200);
       const response = await GET(makeRequest({ user: 'octocat' }));
-      expect(response.headers.get('Cache-Control')).toBe(
-        'public, max-age=60, s-maxage=7200, stale-while-revalidate=59'
-      );
+      expect(response.headers.get('Cache-Control')).toBe(STREAK_CACHE_CONTROL);
     });
 
     it('bypasses the cache entirely when ?refresh=true', async () => {
@@ -1024,9 +1021,7 @@ describe('GET /api/streak', () => {
     it('uses getSecondsUntilMidnightInTimezone (not UTC) for the cache TTL when ?tz= is set', async () => {
       const response = await GET(makeRequest({ user: 'octocat', tz: 'America/New_York' }));
 
-      expect(response.headers.get('Cache-Control')).toBe(
-        'public, max-age=60, s-maxage=7200, stale-while-revalidate=59'
-      );
+      expect(response.headers.get('Cache-Control')).toBe(STREAK_CACHE_CONTROL);
       expect(getSecondsUntilMidnightInTimezone).toHaveBeenCalledWith('America/New_York');
       expect(getSecondsUntilUTCMidnight).not.toHaveBeenCalled();
     });

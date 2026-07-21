@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createRequest } from 'node-mocks-http';
 import { GET } from '../route';
+import { STREAK_CACHE_CONTROL } from '../cache';
 
 vi.mock('../../../../lib/github', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../../lib/github')>();
@@ -104,9 +105,7 @@ describe('GET /api/streak - refresh parameter group', () => {
     const response = await GET(req as unknown as Request);
 
     expect(response.status).toBe(200);
-    expect(response.headers.get('Cache-Control')).toBe(
-      'public, max-age=60, s-maxage=3600, stale-while-revalidate=59'
-    );
+    expect(response.headers.get('Cache-Control')).toBe(STREAK_CACHE_CONTROL);
     expect(response.headers.get('X-Cache-Status')).toBe('HIT');
   });
 

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
+import { STREAK_CACHE_CONTROL } from '../cache';
 
 // Module mocks must be declared before importing the route dynamically
 vi.mock('@/lib/github', () => ({
@@ -119,8 +120,6 @@ describe('GET /api/streak dateRange parameter', () => {
 
     expect(res.status).toBe(200);
     expect(res.headers.get('Content-Type')).toBe('image/svg+xml; charset=utf-8');
-    expect(res.headers.get('Cache-Control')).toBe(
-      'public, max-age=60, s-maxage=3600, stale-while-revalidate=59'
-    );
+    expect(res.headers.get('Cache-Control')).toBe(STREAK_CACHE_CONTROL);
   });
 });

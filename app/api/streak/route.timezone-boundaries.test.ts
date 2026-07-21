@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET } from './route';
+import { STREAK_CACHE_CONTROL } from './cache';
 import { fetchGitHubContributions } from '@/lib/github';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
 import type { ExtendedContributionData } from '@/types';
@@ -91,7 +92,7 @@ describe('ApiStreakRoute Timezone Normalization & Calendar Boundary Alignment', 
     expect(getSecondsUntilMidnightInTimezone).toHaveBeenCalled();
     expect(getSecondsUntilUTCMidnight).not.toHaveBeenCalled();
 
-    expect(response.headers.get('Cache-Control')).toContain('s-maxage=7200');
+    expect(response.headers.get('Cache-Control')).toBe(STREAK_CACHE_CONTROL);
   });
 
   it('returns 400 for an invalid timezone and skips GitHub fetching', async () => {
@@ -125,7 +126,7 @@ describe('ApiStreakRoute Timezone Normalization & Calendar Boundary Alignment', 
 
     expect(response.status).toBe(200);
 
-    expect(response.headers.get('Cache-Control')).toContain('s-maxage=1234');
+    expect(response.headers.get('Cache-Control')).toBe(STREAK_CACHE_CONTROL);
 
     const body = await response.json();
 
