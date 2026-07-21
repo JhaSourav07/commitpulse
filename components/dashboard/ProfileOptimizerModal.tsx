@@ -1,5 +1,6 @@
 'use client';
 
+import { copyToClipboard } from '@/utils/clipboard';
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X, Download, Copy, CheckCircle, TrendingUp, AlertCircle } from 'lucide-react';
@@ -83,7 +84,7 @@ export default function ProfileOptimizerModal({
       )
       .join('\n\n');
     try {
-      await navigator.clipboard.writeText(text);
+      await copyToClipboard(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (e) {

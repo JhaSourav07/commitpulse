@@ -44,6 +44,7 @@ import type {
   RepoContribution,
   ExtendedContributionData,
   ContributionCalendar,
+  StreakStats,
 } from '@/types';
 import { getNormalizedThemeKey, themes } from '@/lib/svg/themes';
 import { streakParamsSchema, coerceQueryParams } from '@/lib/validations';
@@ -550,6 +551,31 @@ export async function GET(request: Request) {
       });
       clearTimeout(timeoutId);
     }
+    // Pre-calculate full, unsliced statistics first
+    let fullStats: StreakStats;
+    let fullVersusStats: StreakStats | undefined;
+    let fullWeekdayStats: StreakStats | undefined;
+
+    if (versus && versusCalendar) {
+      // Normalize both calendars to the target timezone for accurate comparison
+      const normalizedCalendar = normalizeCalendarToTimezone(calendar, timezone);
+      const normalizedVersusCalendar = normalizeCalendarToTimezone(versusCalendar, timezone);
+
+      fullStats = calculateStreak(normalizedCalendar, timezone, undefined, grace);
+      fullVersusStats = calculateStreak(normalizedVersusCalendar, timezone, undefined, grace);
+    } else {
+      fullStats = calculateStreak(calendar, timezone, undefined, grace);
+      if (normalizedView === 'weekday') {
+        const normalizedCalendar = normalizeCalendarToTimezone(calendar, timezone);
+        fullWeekdayStats = calculateStreak(normalizedCalendar, timezone, undefined, grace);
+      }
+    }
+
+    const fullMonthlyStats = calculateMonthlyStats(
+      calendar,
+      timezone,
+      getMonthlyReferenceDate(year, timezone)
+    );
     if (normalizedView !== 'monthly') {
       let effectiveDays = days;
 
@@ -567,18 +593,20 @@ export async function GET(request: Request) {
           totalContributions: filteredDays.reduce((sum, d) => sum + d.contributionCount, 0),
           weeks: chunkDaysIntoWeeks(filteredDays),
         };
+
+        if (versusCalendar) {
+          const versusDays = versusCalendar.weeks.flatMap((w) => w.contributionDays);
+          const filteredVersusDays = versusDays.slice(-effectiveDays);
+          versusCalendar = {
+            totalContributions: filteredVersusDays.reduce((sum, d) => sum + d.contributionCount, 0),
+            weeks: chunkDaysIntoWeeks(filteredVersusDays),
+          };
+        }
       }
     }
 
     // ─── JSON output mode ──────────────────────────────────────────────────
     if (format === 'json') {
-      const stats = calculateStreak(calendar, timezone, undefined, grace);
-      const monthlyStats = calculateMonthlyStats(
-        calendar,
-        timezone,
-        getMonthlyReferenceDate(year, timezone)
-      );
-
       const secondsToMidnight = tzParam
         ? getSecondsUntilMidnightInTimezone(timezone)
         : getSecondsUntilUTCMidnight();
@@ -592,8 +620,8 @@ export async function GET(request: Request) {
 
       const jsonPayload = JSON.stringify({
         user: targetEntity,
-        stats,
-        monthlyStats,
+        stats: fullStats,
+        monthlyStats: fullMonthlyStats,
         calendar: {
           totalContributions: calendar.totalContributions,
           weeks: calendar.weeks,
@@ -632,63 +660,50 @@ export async function GET(request: Request) {
     // ─── SVG output mode (default) ──────────────────────────────────────────
     let svg = '';
     if (normalizedView === 'monthly') {
-      const stats = calculateMonthlyStats(
-        calendar,
-        timezone,
-        getMonthlyReferenceDate(year, timezone)
-      );
-      svg = generateMonthlySVG(stats, params);
+      svg = generateMonthlySVG(fullMonthlyStats, params);
     } else if (normalizedView === 'languages') {
-      const stats = calculateStreak(calendar, timezone, undefined, grace);
-      svg = generateLanguagesSVG(stats, params, repoContributions);
+      svg = generateLanguagesSVG(fullStats, params, repoContributions);
     } else if (normalizedView === 'heatmap') {
-      const stats = calculateStreak(calendar, timezone, undefined, grace);
-      svg = generateHeatmapSVG(stats, params, calendar);
+      svg = generateHeatmapSVG(fullStats, params, calendar);
     } else if (normalizedView === 'pulse') {
       // We still use calculateStreak here to efficiently parse totalContributions for the stat display,
       // even though the sparkline generator will extract its own daily 30-day timeline below.
-      const stats = calculateStreak(calendar, timezone, undefined, grace);
-      svg = generatePulseSVG(stats, params, calendar);
+      svg = generatePulseSVG(fullStats, params, calendar);
     } else if (normalizedView === 'skyline') {
-      const stats = calculateStreak(calendar, timezone, undefined, grace);
-      svg = generateSkylineSVG(stats, params, calendar);
+      svg = generateSkylineSVG(fullStats, params, calendar);
     } else if (normalizedView === 'constellation') {
-      const stats = calculateStreak(calendar, timezone, undefined, grace);
-      svg = generateConstellationSVG(stats, params, calendar);
+      svg = generateConstellationSVG(fullStats, params, calendar);
     } else if (normalizedView === 'radar') {
-      const stats = calculateStreak(calendar, timezone, undefined, grace);
       const hourCounts = await fetchCommitHourDistribution(user, undefined, timezone).catch(
         () => undefined
       );
-      svg = generateRadarSVG(stats, params, calendar, hourCounts);
+      svg = generateRadarSVG(fullStats, params, calendar, hourCounts);
     } else if (normalizedView === 'doughnut' || normalizedView === 'pie') {
-      const stats = calculateStreak(calendar, timezone, undefined, grace);
-      svg = generateDoughnutSVG(stats, params, calendar);
+      svg = generateDoughnutSVG(fullStats, params, calendar);
     } else if (normalizedView === 'activity_graph') {
-      const stats = calculateStreak(calendar, timezone, undefined, grace);
-      svg = generateActivityGraphSVG(stats, params, calendar);
+      svg = generateActivityGraphSVG(fullStats, params, calendar);
     } else if (normalizedView === 'commit_clock') {
-      const stats = calculateStreak(calendar, timezone, undefined, grace);
       const hourCounts = await fetchCommitHourDistribution(user, undefined, timezone).catch(() =>
         new Array(24).fill(0)
       );
-      svg = generateCommitClockSVG(hourCounts, stats, params);
+      svg = generateCommitClockSVG(hourCounts, fullStats, params);
     } else if (normalizedView === 'weekday') {
-      // ← INSERT YOUR NEW BLOCK HERE
       const normalizedCalendar = normalizeCalendarToTimezone(calendar, timezone);
-      const stats = calculateStreak(normalizedCalendar, timezone, undefined, grace);
-      svg = generateWeekdaySVG(stats, params, normalizedCalendar);
+      svg = generateWeekdaySVG(fullWeekdayStats || fullStats, params, normalizedCalendar);
     } else if (versus && versusCalendar) {
       // Normalize both calendars to the target timezone for accurate comparison
       const normalizedCalendar = normalizeCalendarToTimezone(calendar, timezone);
       const normalizedVersusCalendar = normalizeCalendarToTimezone(versusCalendar, timezone);
 
-      const stats1 = calculateStreak(normalizedCalendar, timezone, undefined, grace);
-      const stats2 = calculateStreak(normalizedVersusCalendar, timezone, undefined, grace);
-      svg = generateVersusSVG(stats1, stats2, params, normalizedCalendar, normalizedVersusCalendar);
+      svg = generateVersusSVG(
+        fullStats,
+        fullVersusStats!,
+        params,
+        normalizedCalendar,
+        normalizedVersusCalendar
+      );
     } else {
-      const stats = calculateStreak(calendar, timezone, undefined, grace);
-      svg = generateSVG(stats, params, calendar, individualCalendars);
+      svg = generateSVG(fullStats, params, calendar, individualCalendars);
     }
 
     if (servedFromStaleCache) {

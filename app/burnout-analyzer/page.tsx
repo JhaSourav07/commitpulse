@@ -136,6 +136,7 @@ export default function BurnoutAnalyzerPage() {
             <form onSubmit={(e) => handleSearch(e)} className="w-full mt-8 relative max-w-md">
               <div className="relative">
                 <input
+                  aria-label="Search repository"
                   type="text"
                   placeholder="e.g. facebook/react or vercel/next.js"
                   value={query}

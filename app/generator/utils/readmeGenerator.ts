@@ -136,7 +136,12 @@ export function generateReadme(state: GeneratorState): string {
         const social = getSocialById(id);
         if (!social) return null;
         const url = state.socialLinks[id];
-        const resolvedUrl = social.id === 'email' ? `mailto:${url.replace(/^mailto:/, '')}` : url;
+        const resolvedUrl =
+          social.id === 'email'
+            ? `mailto:${url.replace(/^mailto:/i, '')}`
+            : url.startsWith('http')
+              ? url
+              : `${social.baseUrl}${url}`;
 
         if (social.type === 'simpleicon' && social.siSlug) {
           return [

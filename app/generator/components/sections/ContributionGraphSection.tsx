@@ -1,5 +1,6 @@
 'use client';
 
+import { copyToClipboard } from '@/utils/clipboard';
 import { useState, useEffect } from 'react';
 import {
   Loader2,
@@ -99,7 +100,7 @@ export function ContributionGraphSection({
 
   const handleCopyWorkflow = async (text: string) => {
     try {
-      await navigator.clipboard.writeText(text);
+      await copyToClipboard(text);
       setCopiedWorkflow(true);
       setTimeout(() => setCopiedWorkflow(false), 2000);
     } catch {
@@ -109,7 +110,7 @@ export function ContributionGraphSection({
 
   const handleCopyReadme = async (text: string) => {
     try {
-      await navigator.clipboard.writeText(text);
+      await copyToClipboard(text);
       setCopiedReadme(true);
       setTimeout(() => setCopiedReadme(false), 2000);
     } catch {
@@ -210,6 +211,7 @@ export function ContributionGraphSection({
                   <Search size={14} />
                 </span>
                 <input
+                  aria-label="GitHub username"
                   type="text"
                   value={safeUsername}
                   onChange={(e) => onGithubUsernameChange(e.target.value.trim())}

@@ -177,7 +177,9 @@
       "joined": "Rejoint en",
       "pro_badge": "PRO",
       "pro": "PRO",
-      "share": "Share Your Pulse"
+      "share": "Share Your Pulse",
+      "username_copied": "Nom d'utilisateur copié !",
+      "copy_username_aria": "Copier le nom d'utilisateur dans le presse-papiers"
     },
     "achievements": {
       "title": "Succès",

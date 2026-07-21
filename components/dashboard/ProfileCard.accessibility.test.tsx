@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import ProfileCard from './ProfileCard';
 
@@ -25,6 +25,10 @@ vi.mock('@/context/TranslationContext', () => ({
   useTranslation: () => ({
     t: (key: string) => key,
   }),
+}));
+
+vi.mock('@/utils/clipboard', () => ({
+  fallbackCopyToClipboard: vi.fn(() => true),
 }));
 
 const mockProps = {
@@ -71,7 +75,11 @@ describe('ProfileCard Accessibility Standards & Screen Reader Aria Compliance', 
 
     await user.tab();
 
-    expect(screen.getByRole('button')).toHaveFocus();
+    // The first focusable button is the copy username button
+    const copyBtn = screen.getByRole('button', {
+      name: /dashboard\.profile\.copy_username_aria/i,
+    });
+    expect(copyBtn).toHaveFocus();
   });
 
   it('renders visible accessible text and badge labels', () => {
@@ -89,5 +97,82 @@ describe('ProfileCard Accessibility Standards & Screen Reader Aria Compliance', 
         name: /dashboard.profile.share/i,
       })
     ).toBeInTheDocument();
+  });
+
+  describe('copy username button accessibility', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      Object.defineProperty(navigator, 'clipboard', {
+        value: {
+          writeText: vi.fn().mockResolvedValue(undefined),
+        },
+        writable: true,
+        configurable: true,
+      });
+      Object.defineProperty(window, 'isSecureContext', { value: true, writable: true });
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('has aria-label reflecting uncopied state initially', () => {
+      render(<ProfileCard {...mockProps} />);
+
+      const copyBtn = screen.getByRole('button', {
+        name: /dashboard\.profile\.copy_username_aria/i,
+      });
+      expect(copyBtn).toHaveAttribute('aria-label', 'dashboard.profile.copy_username_aria');
+    });
+
+    it('updates aria-label to copied state after clicking', async () => {
+      render(<ProfileCard {...mockProps} />);
+
+      const copyBtn = screen.getByRole('button', {
+        name: /dashboard\.profile\.copy_username_aria/i,
+      });
+
+      await act(async () => {
+        copyBtn.click();
+      });
+
+      expect(copyBtn).toHaveAttribute('aria-label', 'dashboard.profile.username_copied');
+    });
+
+    it('renders aria-live="polite" confirmation region after copy', async () => {
+      render(<ProfileCard {...mockProps} />);
+
+      const copyBtn = screen.getByRole('button', {
+        name: /dashboard\.profile\.copy_username_aria/i,
+      });
+
+      await act(async () => {
+        copyBtn.click();
+      });
+
+      const liveRegion = screen.getByText('dashboard.profile.username_copied');
+      expect(liveRegion).toHaveAttribute('aria-live', 'polite');
+    });
+
+    it('removes aria-live confirmation after timeout', async () => {
+      render(<ProfileCard {...mockProps} />);
+
+      const copyBtn = screen.getByRole('button', {
+        name: /dashboard\.profile\.copy_username_aria/i,
+      });
+
+      await act(async () => {
+        copyBtn.click();
+      });
+
+      expect(screen.getByText('dashboard.profile.username_copied')).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(2000);
+      });
+
+      // After timeout, the confirmation text should be gone and aria-label should revert
+      expect(copyBtn).toHaveAttribute('aria-label', 'dashboard.profile.copy_username_aria');
+    });
   });
 });

@@ -1,6 +1,6 @@
 'use client';
 
-import { fallbackCopyToClipboard } from '@/utils/clipboard';
+import { copyToClipboard } from '@/utils/clipboard';
 import { useCallback, useEffect, useRef, useState, Suspense, type ReactElement } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { validateGitHubUsername } from '@/lib/validations';
@@ -368,23 +368,7 @@ function CustomizePageInner(): ReactElement {
     if (!hasUsername) return;
 
     try {
-      if (navigator.clipboard && window.isSecureContext) {
-        try {
-          await navigator.clipboard.writeText(exportSnippet);
-        } catch {
-          const copiedSuccessfully = fallbackCopyToClipboard(exportSnippet);
-
-          if (!copiedSuccessfully) {
-            throw new Error('Fallback clipboard copy failed.');
-          }
-        }
-      } else {
-        const copiedSuccessfully = fallbackCopyToClipboard(exportSnippet);
-
-        if (!copiedSuccessfully) {
-          throw new Error('Fallback clipboard copy failed.');
-        }
-      }
+      await copyToClipboard(exportSnippet);
 
       setCopied(true);
 
@@ -427,17 +411,7 @@ function CustomizePageInner(): ReactElement {
 
   const copyShareLink = async (): Promise<void> => {
     try {
-      if (navigator.clipboard && window.isSecureContext) {
-        try {
-          await navigator.clipboard.writeText(window.location.href);
-        } catch {
-          const copiedSuccessfully = fallbackCopyToClipboard(window.location.href);
-          if (!copiedSuccessfully) throw new Error('Fallback clipboard copy failed.');
-        }
-      } else {
-        const copiedSuccessfully = fallbackCopyToClipboard(window.location.href);
-        if (!copiedSuccessfully) throw new Error('Fallback clipboard copy failed.');
-      }
+      await copyToClipboard(window.location.href);
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
     } catch {

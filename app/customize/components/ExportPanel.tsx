@@ -1,3 +1,4 @@
+import { copyToClipboard } from '@/utils/clipboard';
 import { useState, useRef } from 'react';
 import { toast } from 'sonner';
 import type { ReactElement } from 'react';
@@ -338,7 +339,7 @@ export function ExportPanel({
             type="button"
             onClick={async () => {
               try {
-                await navigator.clipboard.writeText(window.location.href);
+                await copyToClipboard(window.location.href);
                 toast.success('Configuration URL copied to clipboard!');
               } catch (err) {
                 console.error('Failed to copy URL', err);
@@ -541,7 +542,7 @@ export function ExportPanel({
               <button
                 type="button"
                 onClick={async () => {
-                  await navigator.clipboard.writeText('.github/workflows/commitpulse.yml');
+                  await copyToClipboard('.github/workflows/commitpulse.yml');
 
                   if ('vibrate' in navigator) {
                     navigator.vibrate(30);
@@ -593,7 +594,7 @@ export function ExportPanel({
               <button
                 type="button"
                 onClick={async () => {
-                  await navigator.clipboard.writeText('![CommitPulse](commitpulse.svg)');
+                  await copyToClipboard('![CommitPulse](commitpulse.svg)');
 
                   if ('vibrate' in navigator) {
                     navigator.vibrate(30);

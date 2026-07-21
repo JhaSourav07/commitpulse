@@ -177,7 +177,9 @@
       "joined": "शामिल हुए",
       "pro_badge": "प्रो",
       "pro": "PRO",
-      "share": "Share Your Pulse"
+      "share": "Share Your Pulse",
+      "username_copied": "उपयोगकर्ता नाम कॉपी हो गया!",
+      "copy_username_aria": "उपयोगकर्ता नाम क्लिपबोर्ड पर कॉपी करें"
     },
     "achievements": {
       "title": "उपलब्धियां",

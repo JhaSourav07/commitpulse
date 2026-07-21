@@ -177,7 +177,9 @@
       "joined": "Unido en",
       "pro_badge": "PRO",
       "pro": "PRO",
-      "share": "Compartir tu Pulse"
+      "share": "Compartir tu Pulse",
+      "username_copied": "¡Nombre de usuario copiado!",
+      "copy_username_aria": "Copiar nombre de usuario al portapapeles"
     },
     "achievements": {
       "title": "Logros",

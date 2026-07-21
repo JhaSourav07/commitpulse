@@ -177,7 +177,9 @@
       "joined": "登録日",
       "pro_badge": "PRO",
       "pro": "PRO",
-      "share": "Share Your Pulse"
+      "share": "Share Your Pulse",
+      "username_copied": "ユーザー名をコピーしました！",
+      "copy_username_aria": "ユーザー名をクリップボードにコピー"
     },
     "achievements": {
       "title": "実績",

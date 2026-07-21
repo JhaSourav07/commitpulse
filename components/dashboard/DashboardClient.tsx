@@ -1,5 +1,6 @@
 'use client';
 
+import { copyToClipboard } from '@/utils/clipboard';
 import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -475,7 +476,7 @@ export default function DashboardClient({
           url: compareUrl,
         });
       } else {
-        await navigator.clipboard.writeText(compareUrl);
+        await copyToClipboard(compareUrl);
         toast.success('Comparison link copied!');
       }
     } catch (error) {
@@ -489,7 +490,7 @@ export default function DashboardClient({
 
   const handleShareDashboard = async () => {
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      await copyToClipboard(window.location.href);
       toast.success('Link copied to clipboard!');
     } catch {
       toast.error('Failed to copy dashboard link');
