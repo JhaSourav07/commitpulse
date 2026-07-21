@@ -1415,7 +1415,7 @@ async function fetchReposUncached(
   options: FetchOptions
 ): Promise<GitHubRepo[]> {
   const firstPageRes = await fetchWithRetry(
-    `${GITHUB_REST_URL}/users/${encodedUsername}/repos?per_page=100&page=1&sort=pushed`,
+    `${GITHUB_REST_URL}/users/${encodedUsername}/repos?per_page=100&sort=pushed`,
     {
       headers: getHeaders(options.token),
       cache: 'no-store',
@@ -1433,44 +1433,6 @@ async function fetchReposUncached(
 
   const firstPageRepos = (await firstPageRes.json()) as GitHubRepo[];
   const allRepos: GitHubRepo[] = firstPageRepos.map(sanitizeRepo);
-
-  const MAX_PAGES = Number(process.env.GITHUB_MAX_PAGES ?? '3');
-
-  if (firstPageRepos.length === 100) {
-    const remainingPages = Array.from({ length: MAX_PAGES - 1 }, (_, i) => i + 2);
-
-    const responses = await Promise.all(
-      remainingPages.map((page) =>
-        fetchWithRetry(
-          `${GITHUB_REST_URL}/users/${encodedUsername}/repos?per_page=100&page=${page}&sort=pushed`,
-          {
-            headers: getHeaders(options.token),
-            cache: 'no-store',
-            signal: options.signal,
-          },
-          0,
-          undefined,
-          options.token
-        )
-      )
-    );
-
-    const pagesRepos = await Promise.all(
-      responses.map(async (response) => {
-        if (!response.ok) {
-          throwIfRateLimited(response);
-          throw new Error(`GitHub REST API error: ${response.status}`);
-        }
-
-        const repos = (await response.json()) as GitHubRepo[];
-        return repos.map(sanitizeRepo);
-      })
-    );
-
-    for (const repos of pagesRepos) {
-      allRepos.push(...repos);
-    }
-  }
 
   if (!options.bypassCache) await reposCache.set(key, allRepos, GITHUB_CACHE_TTL_MS);
   return allRepos;
