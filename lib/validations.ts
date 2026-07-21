@@ -383,6 +383,20 @@ const baseStreakParamsSchema = z.object({
     .string()
     .transform((val) => sanitizeRadius(val, 8))
     .default(8),
+
+  // Optional per-card border radius override, clamped to [0, 20].
+  // Takes priority over `radius` when present. Returns undefined when
+  // the parameter is absent, empty, or non-numeric (no fallback applied
+  // here — the route resolves the final value against `radius`).
+  border_radius: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (val === undefined || val === '') return undefined;
+      const parsed = parseFloat(val);
+      if (isNaN(parsed)) return undefined;
+      return Math.max(0, Math.min(parsed, 20));
+    }),
   font: z
     .string()
     .optional()

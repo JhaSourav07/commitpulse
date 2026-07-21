@@ -257,6 +257,13 @@ export interface BadgeParams {
   /** Border corner radius in pixels. Defaults to 8. */
   radius?: number;
 
+  /**
+   * Outer card border corner radius in pixels, clamped to 0–20.
+   * When supplied, takes priority over `radius` for the card background rect.
+   * Remains optional — omitting it preserves the existing `radius` behaviour.
+   */
+  border_radius?: number;
+
   /** Custom stroke color for the main SVG container. Hex string WITHOUT the leading '#'. */
   border?: string;
 

@@ -143,6 +143,7 @@ export async function GET(request: Request) {
       size,
       speed,
       radius,
+      border_radius,
       font,
       year,
       from: customFrom,
@@ -370,6 +371,9 @@ export async function GET(request: Request) {
         ? `${rawSpeedNum}s`
         : '8s'
     ) as `${number}s`;
+    // border_radius (0–20) takes priority over radius when present.
+    const resolvedRadius = border_radius !== undefined ? border_radius : radius;
+
     const params: BadgeParams = {
       user: targetEntity,
       theme: themeName,
@@ -381,7 +385,7 @@ export async function GET(request: Request) {
       text: isAutoTheme ? selectedTheme.text : text || selectedTheme.text,
       accent: isAutoTheme ? selectedTheme.accent : accent || selectedTheme.accent,
       border,
-      radius,
+      radius: resolvedRadius,
       speed: validatedSpeed,
       scale,
       font,

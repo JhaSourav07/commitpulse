@@ -209,4 +209,72 @@ describe('streakParamsSchema', () => {
     const result = streakParamsSchema.safeParse({ user: 'octocat', versus: 'bad user!' });
     expect(result.success).toBe(false);
   });
+
+  // ── border_radius parameter ───────────────────────────────────────────────
+
+  describe('border_radius param', () => {
+    it('is undefined when the parameter is omitted', () => {
+      const result = streakParamsSchema.safeParse({ user: 'octocat' });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.border_radius).toBeUndefined();
+      }
+    });
+
+    it('is undefined when the parameter is an empty string', () => {
+      const result = streakParamsSchema.safeParse({ user: 'octocat', border_radius: '' });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.border_radius).toBeUndefined();
+      }
+    });
+
+    it('is undefined when the parameter is non-numeric', () => {
+      const result = streakParamsSchema.safeParse({ user: 'octocat', border_radius: 'abc' });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.border_radius).toBeUndefined();
+      }
+    });
+
+    it('parses the minimum boundary value 0', () => {
+      const result = streakParamsSchema.safeParse({ user: 'octocat', border_radius: '0' });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.border_radius).toBe(0);
+      }
+    });
+
+    it('parses a mid-range value of 10', () => {
+      const result = streakParamsSchema.safeParse({ user: 'octocat', border_radius: '10' });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.border_radius).toBe(10);
+      }
+    });
+
+    it('parses the maximum boundary value 20', () => {
+      const result = streakParamsSchema.safeParse({ user: 'octocat', border_radius: '20' });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.border_radius).toBe(20);
+      }
+    });
+
+    it('clamps values greater than 20 down to 20', () => {
+      const result = streakParamsSchema.safeParse({ user: 'octocat', border_radius: '25' });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.border_radius).toBe(20);
+      }
+    });
+
+    it('clamps negative values up to 0', () => {
+      const result = streakParamsSchema.safeParse({ user: 'octocat', border_radius: '-5' });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.border_radius).toBe(0);
+      }
+    });
+  });
 });
