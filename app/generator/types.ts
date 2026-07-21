@@ -44,6 +44,8 @@ export interface Social {
   siSlug?: string;
 }
 
+export type ReadmeLayoutTemplate = 'minimalist' | 'data-heavy' | 'storyteller';
+
 export interface GeneratorState {
   name: string;
   description: string;
@@ -58,6 +60,7 @@ export interface GeneratorState {
   showSnakeGraph: boolean;
   showPacmanGraph: boolean;
   graphPlacement: 'top' | 'middle' | 'bottom';
+  layoutTemplate?: ReadmeLayoutTemplate;
   showArticles?: boolean;
   articlesPlatform?: 'devto' | 'hashnode';
   articlesUsername?: string;

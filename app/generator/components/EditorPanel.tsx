@@ -10,8 +10,9 @@ import { RepoSpotlightSection } from './sections/RepoSpotlightSection';
 import { ContributionGraphSection } from './sections/ContributionGraphSection';
 import { ArticlesSection } from './sections/ArticlesSection';
 import { GitHubImportModal } from './GitHubImportModal';
+import { SectionCard, FieldLabel } from './SectionCard';
 import { FaGithub } from 'react-icons/fa';
-import type { GeneratorState } from '../types';
+import type { GeneratorState, ReadmeLayoutTemplate } from '../types';
 import type { ImportedData } from '../utils/githubMapper';
 
 export interface EditorPanelProps {
@@ -37,6 +38,7 @@ export interface EditorPanelProps {
   onShowArticlesChange?: (v: boolean) => void;
   onArticlesPlatformChange?: (v: 'devto' | 'hashnode') => void;
   onArticlesUsernameChange?: (v: string) => void;
+  onLayoutTemplateChange?: (v: ReadmeLayoutTemplate) => void;
   onApplyImport: (data: ImportedData) => void;
 }
 
@@ -58,6 +60,7 @@ export function EditorPanel({
   onShowArticlesChange = () => {},
   onArticlesPlatformChange = () => {},
   onArticlesUsernameChange = () => {},
+  onLayoutTemplateChange = () => {},
   onApplyImport,
 }: EditorPanelProps) {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -89,6 +92,23 @@ export function EditorPanel({
 
       <NameSection value={state.name} onChange={onNameChange} />
       <DescriptionSection value={state.description} onChange={onDescriptionChange} />
+      <SectionCard
+        title="Layout Template"
+        description="Choose how your generated README sections are arranged"
+        defaultOpen
+      >
+        <FieldLabel htmlFor="layout-template">Template</FieldLabel>
+        <select
+          id="layout-template"
+          value={state.layoutTemplate ?? 'minimalist'}
+          onChange={(e) => onLayoutTemplateChange(e.target.value as ReadmeLayoutTemplate)}
+          className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40 transition-colors"
+        >
+          <option value="minimalist">Minimalist</option>
+          <option value="data-heavy">Data Heavy</option>
+          <option value="storyteller">Storyteller</option>
+        </select>
+      </SectionCard>
       <TechnologiesSection selected={state.selectedTechs} onChange={onTechsChange} />
       <SocialsSection
         selected={state.selectedSocials}

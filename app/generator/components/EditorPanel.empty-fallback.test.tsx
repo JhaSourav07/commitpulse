@@ -50,6 +50,7 @@ const makeHandlers = () => ({
   onGithubUsernameChange: vi.fn(),
   onShowCommitPulseChange: vi.fn(),
   onCommitPulseAccentChange: vi.fn(),
+  onLayoutTemplateChange: vi.fn(),
   onApplyImport: vi.fn(),
 });
 
@@ -98,6 +99,16 @@ describe('EditorPanel — controlled input callbacks', () => {
     await userEvent.type(input, 'A');
 
     expect(h.onNameChange).toHaveBeenLastCalledWith('A');
+  });
+
+  it('calls onLayoutTemplateChange when the template selector changes', async () => {
+    const h = makeHandlers();
+    render(<EditorPanel state={makeState()} {...h} />);
+
+    const select = screen.getByRole('combobox', { name: 'Template' });
+    await userEvent.selectOptions(select, 'data-heavy');
+
+    expect(h.onLayoutTemplateChange).toHaveBeenLastCalledWith('data-heavy');
   });
 
   it('reflects controlled value in the name input', () => {

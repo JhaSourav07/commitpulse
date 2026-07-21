@@ -59,4 +59,32 @@ describe('readmeGenerator', () => {
     expect(md).toContain('## 🐍 Snake Contribution Graph');
     expect(md).toContain('## 👾 Pacman Contribution Graph');
   });
+
+  it('orders sections according to the Data Heavy template', () => {
+    const state: GeneratorState = {
+      ...mockState,
+      selectedTechs: ['react'],
+      selectedSocials: ['github'],
+      socialLinks: { github: 'https://github.com/johndoe' },
+      showCommitPulse: true,
+      showRepoSpotlight: true,
+      spotlightRepo: 'sample-repo',
+      showArticles: true,
+      articlesUsername: 'johndoe',
+      layoutTemplate: 'data-heavy',
+    };
+
+    const md = generateReadme(state);
+    const commitPulseIndex = md.indexOf('## 📊 GitHub Streak');
+    const repoSpotlightIndex = md.indexOf('## 🌟 Repository Spotlight');
+    const articlesIndex = md.indexOf('## 📝 Latest Articles');
+    const techIndex = md.indexOf('## 🛠️ Tech Stack');
+    const socialsIndex = md.indexOf('## 🌐 Connect With Me');
+
+    expect(commitPulseIndex).toBeGreaterThan(-1);
+    expect(commitPulseIndex).toBeLessThan(repoSpotlightIndex);
+    expect(repoSpotlightIndex).toBeLessThan(articlesIndex);
+    expect(articlesIndex).toBeLessThan(techIndex);
+    expect(techIndex).toBeLessThan(socialsIndex);
+  });
 });

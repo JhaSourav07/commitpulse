@@ -20,11 +20,12 @@ const INITIAL_STATE: GeneratorState = {
   githubUsername: '',
   showCommitPulse: false,
   commitPulseAccent: '',
+  showRepoSpotlight: false,
+  spotlightRepo: '',
   showSnakeGraph: false,
   showPacmanGraph: false,
   graphPlacement: 'bottom',
-  showRepoSpotlight: false,
-  spotlightRepo: '',
+  layoutTemplate: 'minimalist',
   showArticles: false,
   articlesPlatform: 'devto',
   articlesUsername: '',
@@ -105,6 +106,7 @@ export function GeneratorClient() {
           onShowArticlesChange={(v) => setState((s) => ({ ...s, showArticles: v }))}
           onArticlesPlatformChange={(v) => setState((s) => ({ ...s, articlesPlatform: v }))}
           onArticlesUsernameChange={(v) => setState((s) => ({ ...s, articlesUsername: v }))}
+          onLayoutTemplateChange={(v) => setState((s) => ({ ...s, layoutTemplate: v }))}
           onApplyImport={handleApplyImport}
         />
       </div>
