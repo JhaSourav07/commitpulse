@@ -286,6 +286,16 @@ export const SOCIALS: Social[] = [
     baseUrl: 'https://codesandbox.io/u/',
     placeholder: 'e.g. https://codesandbox.io/u/yourusername',
   },
+  {
+    id: 'wakatime',
+    name: 'WakaTime',
+    category: 'Developer',
+    iconUrl: SI('wakatime'),
+    type: 'simpleicon',
+    siSlug: 'wakatime',
+    baseUrl: 'https://wakatime.com/@',
+    placeholder: 'e.g. https://wakatime.com/@yourusername',
+  },
 
   {
     id: 'leetcode',
@@ -551,6 +561,36 @@ export const SOCIALS: Social[] = [
     siSlug: 'opencollective',
     baseUrl: 'https://opencollective.com/',
     placeholder: 'e.g. https://opencollective.com/yourname',
+  },
+  {
+    id: 'kick',
+    name: 'Kick',
+    category: 'Streaming',
+    iconUrl: SI('kick'),
+    type: 'simpleicon',
+    siSlug: 'kick',
+    baseUrl: 'https://kick.com/',
+    placeholder: 'e.g. https://kick.com/yourchannel',
+  },
+  {
+    id: 'odysee',
+    name: 'Odysee',
+    category: 'Streaming',
+    iconUrl: SI('odysee'),
+    type: 'simpleicon',
+    siSlug: 'odysee',
+    baseUrl: 'https://odysee.com/@',
+    placeholder: 'e.g. https://odysee.com/@yourchannel',
+  },
+  {
+    id: 'huggingface',
+    name: 'Hugging Face',
+    category: 'Developer',
+    iconUrl: SI('huggingface'),
+    type: 'simpleicon',
+    siSlug: 'huggingface',
+    baseUrl: 'https://huggingface.co/',
+    placeholder: 'e.g. https://huggingface.co/yourname',
   },
 ];
 

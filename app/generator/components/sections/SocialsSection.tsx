@@ -111,6 +111,7 @@ export function SocialsSection({
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-white/30 pointer-events-none"
               />
               <input
+                aria-label="Search platforms..."
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -305,7 +306,11 @@ export function SocialsSection({
                         {hasLink && (
                           <a
                             href={
-                              social.id === 'email' ? `mailto:${val.replace(/^mailto:/, '')}` : val
+                              social.id === 'email'
+                                ? `mailto:${val.replace(/^mailto:/i, '')}`
+                                : val.startsWith('http')
+                                  ? val
+                                  : `${social.baseUrl}${val}`
                             }
                             target="_blank"
                             rel="noopener noreferrer"

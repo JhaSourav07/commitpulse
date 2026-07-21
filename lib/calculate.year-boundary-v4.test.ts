@@ -130,9 +130,8 @@ describe('calculateStreak — year boundary transition timeline (Variation 4)', 
       { date: '2024-12-31', count: 1 }, // Calendar ends here (exactly 7 days, 1 full week)
     ]);
 
-    // Today is Jan 2, 2025 (stale calendar)
-    // localTodayStr = '2025-01-02' > lastDateStr = '2024-12-31'. It will fallback to last index ('2024-12-31').
-    const result = calculateStreak(calendar, 'UTC', new Date('2025-01-02T12:00:00Z'), 1);
+    // Today is Jan 1, 2025 — gap from Dec 31 to Jan 1 is exactly 1 day, within grace period of 1
+    const result = calculateStreak(calendar, 'UTC', new Date('2025-01-01T12:00:00Z'), 1);
     expect(result.currentStreak).toBe(2); // Dec 30, Dec 31 are active
     expect(result.todayDate).toBe('2024-12-31');
   });

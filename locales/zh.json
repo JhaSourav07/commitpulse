@@ -177,7 +177,9 @@
       "joined": "加入时间",
       "pro_badge": "PRO",
       "pro": "PRO",
-      "share": "Share Your Pulse"
+      "share": "Share Your Pulse",
+      "username_copied": "用户名已复制！",
+      "copy_username_aria": "将用户名复制到剪贴板"
     },
     "achievements": {
       "title": "个人成就",

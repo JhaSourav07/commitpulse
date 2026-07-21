@@ -11,9 +11,8 @@ export function useFetchCache<T>() {
     if (!cacheRef.current.has(key) && cacheRef.current.size >= 10) {
       const oldestKey = cacheRef.current.keys().next().value;
 
-      if (oldestKey !== undefined) {
-        cacheRef.current.delete(oldestKey);
-      }
+      if (oldestKey === undefined) return; // can't evict, bail out
+      cacheRef.current.delete(oldestKey);
     }
 
     cacheRef.current.set(key, value);

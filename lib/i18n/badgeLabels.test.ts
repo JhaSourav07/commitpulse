@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { getLabels, labels } from './badgeLabels';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const languagesDir = path.join(__dirname, 'languages');
 
 describe('getLabels', () => {
   describe('supported locales', () => {
@@ -81,5 +87,13 @@ describe('getLabels', () => {
       const locale = getLabels(lang);
       expect(locale.VS_LAST_MONTH).toEqual(expect.stringMatching(/\S/));
     });
+  });
+
+  it('every supported language has a dedicated test file in lib/i18n/languages/', () => {
+    const existingTestFiles = fs.readdirSync(languagesDir);
+
+    for (const lang of Object.keys(labels)) {
+      expect(existingTestFiles).toContain(`${lang}.test.ts`);
+    }
   });
 });

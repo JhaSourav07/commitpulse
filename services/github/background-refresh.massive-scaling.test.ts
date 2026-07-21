@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BackgroundRefresh } from './background-refresh';
 import { getFullDashboardData } from '../../lib/github';
+import react from 'react';
 
 vi.mock('../../lib/github', () => ({
   getFullDashboardData: vi.fn(),
@@ -588,7 +589,7 @@ describe(
       expect(getFullDashboardData).toHaveBeenCalledTimes(VOLUME);
     });
 
-    it('maintains correctness across 10 sequential massive cycles of 10k triggers each', () => {
+    it('maintains correctness across 10 sequential massive cycles of 10k triggers each', async () => {
       const CYCLES = 10;
       const USERS_PER_CYCLE = 10000;
       vi.mocked(getFullDashboardData).mockReturnValue(new Promise(() => {}) as never);
@@ -613,7 +614,7 @@ describe(
           expect(service.isJobActive(`cycle_${cycle}_user_${i}`)).toBe(false);
         }
       }
-    }, 20000);
+    }, 15000);
 
     it('handles 5k triggers where getFullDashboardData resolves synchronously via microtask queue', async () => {
       const VOLUME = 5000;

@@ -177,7 +177,9 @@
       "joined": "Beigetreten",
       "pro_badge": "PRO",
       "pro": "PRO",
-      "share": "Teile deinen Pulse"
+      "share": "Teile deinen Pulse",
+      "username_copied": "Benutzername kopiert!",
+      "copy_username_aria": "Benutzername in die Zwischenablage kopieren"
     },
     "achievements": {
       "title": "Erfolge",

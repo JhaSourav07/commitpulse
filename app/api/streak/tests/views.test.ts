@@ -6,6 +6,8 @@ import { streakParamsSchema } from '@/lib/validations';
 vi.mock('@/lib/github', () => ({
   fetchGitHubContributions: vi.fn(),
   getOrgDashboardData: vi.fn(),
+  fetchCommitHourDistribution: vi.fn(() => Promise.resolve(new Array(24).fill(0))),
+  isAbortError: vi.fn(() => false),
 }));
 
 vi.mock('@/utils/time', () => ({

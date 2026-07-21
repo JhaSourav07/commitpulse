@@ -133,7 +133,7 @@ async function getCountFromRedis(url: string, token: string, key: string): Promi
  * @see https://upstash.com/docs/rate-limiting/quickstart for KV setup instructions.
  */
 export class RateLimiter {
-  private cache: DistributedCache<{ count: number; resetAt: number }>;
+  private cache: DistributedCache<number>;
   private limit: number;
   private windowMs: number;
   private allowlist = new Set<string>();
@@ -148,7 +148,7 @@ export class RateLimiter {
   constructor(limit = 5, windowMs = 60000, maxSize = 10000) {
     this.limit = limit;
     this.windowMs = windowMs;
-    this.cache = new DistributedCache<{ count: number; resetAt: number }>(maxSize, windowMs);
+    this.cache = new DistributedCache<number>(maxSize, windowMs);
   }
 
   /**
@@ -299,7 +299,7 @@ export class RateLimiter {
       console.error('RateLimiter remaining() KV error, falling back to memory');
     }
 
-    const cached = ((await this.cache.get(`ratelimit:${ip}`)) as unknown as number) ?? 0;
+    const cached = (await this.cache.get(`ratelimit:${ip}`)) ?? 0;
 
     return Math.max(0, this.limit - cached);
   }

@@ -1,5 +1,6 @@
 'use client';
 
+import { copyToClipboard } from '@/utils/clipboard';
 import { useState } from 'react';
 import { Download, FileText, Copy, FileDown, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -67,7 +68,7 @@ export default function DownloadReportMenu({ report }: { report: BurnoutReport }
 
   const handleCopySummary = async () => {
     const md = generateMarkdown();
-    await navigator.clipboard.writeText(md);
+    await copyToClipboard(md);
     setCopied(true);
     setTimeout(() => {
       setCopied(false);

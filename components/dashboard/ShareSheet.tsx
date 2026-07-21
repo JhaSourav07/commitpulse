@@ -1,6 +1,6 @@
 'use client';
 
-import { fallbackCopyToClipboard } from '@/utils/clipboard';
+import { copyToClipboard } from '@/utils/clipboard';
 import {
   useEffect,
   useRef,
@@ -14,7 +14,6 @@ import { Check, Code, Copy, Download, ExternalLink, Loader2, Sparkles, X } from 
 import type { DashboardExportData } from '@/types/dashboard';
 import { useShareActions } from '@/hooks/useShareActions';
 import { useTranslation } from '@/context/TranslationContext';
-import NextImage from 'next/image';
 
 type OptionState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -243,23 +242,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
     e.stopPropagation();
 
     try {
-      if (navigator.clipboard && window.isSecureContext) {
-        try {
-          await navigator.clipboard.writeText(profileUrl);
-        } catch {
-          const copiedSuccessfully = fallbackCopyToClipboard(profileUrl);
-
-          if (!copiedSuccessfully) {
-            throw new Error('Clipboard copy failed');
-          }
-        }
-      } else {
-        const copiedSuccessfully = fallbackCopyToClipboard(profileUrl);
-
-        if (!copiedSuccessfully) {
-          throw new Error('Clipboard copy failed');
-        }
-      }
+      await copyToClipboard(profileUrl);
 
       setLinkCopied(true);
       showToast(`✓ ${t('dashboard.share.link_copied')}`);

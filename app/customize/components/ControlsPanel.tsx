@@ -262,6 +262,7 @@ export function ControlsPanel({
                       <div className="flex flex-col gap-1.5">
                         <SectionLabel>Angle: {bgAngle}°</SectionLabel>
                         <input
+                          aria-label="Background angle"
                           type="range"
                           min="0"
                           max="360"
@@ -382,6 +383,7 @@ export function ControlsPanel({
           <div className="relative flex items-center">
             <div className="absolute inset-x-0 h-1 rounded-full bg-gray-300 dark:bg-white/6" />
             <input
+              aria-label="Border radius"
               type="range"
               min="0"
               max="50"

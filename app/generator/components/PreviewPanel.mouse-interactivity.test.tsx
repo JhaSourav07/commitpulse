@@ -1,3 +1,4 @@
+import type { GeneratorState } from '../types';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -7,7 +8,28 @@ import React from 'react';
 // Mock the clipboard utility to avoid triggering actual document operations
 vi.mock('@/utils/clipboard', () => ({
   fallbackCopyToClipboard: vi.fn().mockReturnValue(true),
+  copyToClipboard: vi.fn().mockImplementation(async (text) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      await navigator.clipboard.writeText(text);
+    }
+  }),
 }));
+
+const mockState: GeneratorState = {
+  name: '',
+  description: '',
+  selectedTechs: [],
+  selectedSocials: [],
+  socialLinks: {},
+  githubUsername: 'test',
+  showCommitPulse: false,
+  commitPulseAccent: '',
+  showRepoSpotlight: false,
+  spotlightRepo: '',
+  showSnakeGraph: false,
+  showPacmanGraph: false,
+  graphPlacement: 'bottom',
+};
 
 describe('PreviewPanel Component Interactivity Tests', () => {
   const mockMarkdown = '# Hello World\n\nThis is a test markdown string.';
@@ -23,7 +45,7 @@ describe('PreviewPanel Component Interactivity Tests', () => {
 
   // Case 1: Interactive Pointer Detection (Cursor Hovers Equivalent)
   it('Case 1: applies transition and hover styles structurally on all interactive controls', () => {
-    render(<PreviewPanel markdown={mockMarkdown} />);
+    render(<PreviewPanel markdown={mockMarkdown} state={mockState} />);
 
     const previewTab = screen.getByRole('tab', { name: /preview/i });
     const rawTab = screen.getByRole('tab', { name: /markdown/i });
@@ -46,7 +68,7 @@ describe('PreviewPanel Component Interactivity Tests', () => {
 
   // Case 2: Hover State Visibility (Tooltips Equivalent)
   it('Case 2: implements native tooltips and styles active tab states correctly', () => {
-    render(<PreviewPanel markdown={mockMarkdown} />);
+    render(<PreviewPanel markdown={mockMarkdown} state={mockState} />);
 
     const downloadBtn = screen.getByTitle('Download README.md');
     expect(downloadBtn).toHaveAttribute('title', 'Download README.md');
@@ -60,7 +82,7 @@ describe('PreviewPanel Component Interactivity Tests', () => {
     const parentClickSpy = vi.fn();
     render(
       <div onClick={parentClickSpy} data-testid="outer-wrapper">
-        <PreviewPanel markdown={mockMarkdown} />
+        <PreviewPanel markdown={mockMarkdown} state={mockState} />
       </div>
     );
 
@@ -100,7 +122,7 @@ describe('PreviewPanel Component Interactivity Tests', () => {
       configurable: true,
     });
 
-    render(<PreviewPanel markdown={mockMarkdown} />);
+    render(<PreviewPanel markdown={mockMarkdown} state={mockState} />);
 
     const copyBtn = screen.getByRole('button', { name: /copy/i });
     expect(copyBtn).toHaveTextContent('Copy');
@@ -131,7 +153,7 @@ describe('PreviewPanel Component Interactivity Tests', () => {
     const parentTouchSpy = vi.fn();
     render(
       <div onTouchStart={parentTouchSpy} data-testid="outer-wrapper">
-        <PreviewPanel markdown={mockMarkdown} />
+        <PreviewPanel markdown={mockMarkdown} state={mockState} />
       </div>
     );
 

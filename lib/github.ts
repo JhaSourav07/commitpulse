@@ -102,6 +102,38 @@ let currentTokenIndex = 0;
 const rateLimitedTokens = new Map<string, number>();
 const tokenStats = new Map<string, { remaining: number; resetTime: number }>();
 
+// Issue #7380: Promise-based mutex serializing every read-modify-write of
+// currentTokenIndex.  Because getGitHubToken and the 401/429 handlers run
+// across `await` boundaries, two concurrent async requests can otherwise
+// interleave between reading currentTokenIndex and writing it back — corrupting
+// the value (e.g. letting it exceed tokens.length or skipping a healthy token).
+// The lock guarantees only one caller mutates the index at a time.  getGitHubToken
+// itself is synchronous and therefore already atomic, but the handlers below run
+// asynchronously and must take the lock before touching the shared index.
+let tokenIndexLock: Promise<void> = Promise.resolve();
+
+function withTokenIndexLock<T>(fn: () => T | Promise<T>): Promise<T> {
+  const acquire = tokenIndexLock;
+  let release!: () => void;
+  const released = new Promise<void>((r) => {
+    release = r;
+  });
+  tokenIndexLock = released.then(() => undefined);
+
+  return acquire.then(() => {
+    try {
+      return Promise.resolve(fn()).finally(release);
+    } catch (err) {
+      release();
+      throw err;
+    }
+  });
+}
+
+export function getTokenIndexLockForTests() {
+  return tokenIndexLock;
+}
+
 // Issue #7213: Per-token pending refresh promise to deduplicate concurrent rotations.
 // When multiple concurrent requests detect an expired token, only one triggers
 // the rotation; subsequent requests await the same in-flight promise.
@@ -330,10 +362,14 @@ export async function fetchWithRetry(
       }
       rateLimitedTokens.set(currentToken, resetTime);
       tokenStats.set(currentToken, { remaining: 0, resetTime });
-      const tokens = getGitHubTokens();
-      if (tokens.length > 1) {
-        currentTokenIndex = (currentTokenIndex + 1) % tokens.length;
-      }
+      // Issue #7380: advance the rotation index under the mutex so concurrent
+      // rate-limit handlers cannot both read then write the same value.
+      await withTokenIndexLock(() => {
+        const tokens = getGitHubTokens();
+        if (tokens.length > 1) {
+          currentTokenIndex = (currentTokenIndex + 1) % tokens.length;
+        }
+      });
     }
 
     if (attempt >= MAX_RETRIES) return res;
@@ -672,6 +708,8 @@ export function clearGitHubApiCacheForTests(): void {
   tokenStats.clear();
   pendingRefreshPromises.clear();
   currentTokenIndex = 0;
+  // Issue #7380: reset the mutex so tests start from a clean (unlocked) state.
+  tokenIndexLock = Promise.resolve();
   globalCircuitBreakerOpenUntil = 0;
 }
 
@@ -794,10 +832,14 @@ export async function handleTokenExpiration(token: string): Promise<void> {
 
   const refreshPromise = (async () => {
     rateLimitedTokens.set(token, Date.now() + 24 * 60 * 60 * 1000);
-    const tokens = getGitHubTokens();
-    if (tokens.length > 1) {
-      currentTokenIndex = (currentTokenIndex + 1) % tokens.length;
-    }
+    // Issue #7380: advance the rotation index under the mutex so concurrent
+    // expiration handlers cannot both read then write the same value.
+    await withTokenIndexLock(() => {
+      const tokens = getGitHubTokens();
+      if (tokens.length > 1) {
+        currentTokenIndex = (currentTokenIndex + 1) % tokens.length;
+      }
+    });
   })();
 
   pendingRefreshPromises.set(token, refreshPromise);
@@ -1964,6 +2006,7 @@ export interface PopularRepo {
   forkCount: number;
   url: string;
   createdAt: string;
+  updatedAt?: string;
   primaryLanguage: { name: string; color: string } | null;
 }
 
@@ -1980,6 +2023,7 @@ export async function fetchPinnedRepos(username: string, token?: string): Promis
               forkCount
               url
               createdAt
+              updatedAt
               primaryLanguage {
                 name
                 color
@@ -2023,6 +2067,7 @@ async function fetchPopularRepos(username: string, token?: string): Promise<Popu
             forkCount
             url
             createdAt
+            updatedAt
             primaryLanguage {
               name
               color
@@ -2065,6 +2110,7 @@ async function fetchStarredRepos(username: string, token?: string): Promise<Popu
             forkCount
             url
             createdAt
+            updatedAt
             primaryLanguage {
               name
               color
