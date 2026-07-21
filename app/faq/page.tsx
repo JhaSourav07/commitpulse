@@ -148,6 +148,7 @@ export default function FAQPage() {
                 <Search size={20} />
               </div>
               <input
+                aria-label="Search questions..."
                 type="text"
                 placeholder="Search questions..."
                 value={searchQuery}

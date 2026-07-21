@@ -177,7 +177,9 @@
       "joined": "가입일",
       "pro_badge": "PRO",
       "pro": "PRO",
-      "share": "Share Your Pulse"
+      "share": "Share Your Pulse",
+      "username_copied": "사용자 이름이 복사되었습니다!",
+      "copy_username_aria": "사용자 이름을 클립보드에 복사"
     },
     "achievements": {
       "title": "달성 업적",

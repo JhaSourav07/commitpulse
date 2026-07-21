@@ -1,12 +1,23 @@
 'use client';
 
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Calendar, GitBranch, Users, UserPlus, Star, Share2 } from 'lucide-react';
+import {
+  MapPin,
+  Calendar,
+  GitBranch,
+  Users,
+  UserPlus,
+  Star,
+  Share2,
+  Copy,
+  Check,
+} from 'lucide-react';
 import type { DashboardExportData, UserProfile } from '@/types/dashboard';
 import ShareSheet from './ShareSheet';
 import { useTranslation } from '@/context/TranslationContext';
+import { fallbackCopyToClipboard } from '@/utils/clipboard';
 /**
  * Properties for the ProfileCard component.
  */
@@ -32,7 +43,28 @@ interface ProfileCardProps {
 
 export default function ProfileCard({ user, exportData, badges }: ProfileCardProps) {
   const [shareOpen, setShareOpen] = useState(false);
+  const [usernameCopied, setUsernameCopied] = useState(false);
   const { t } = useTranslation();
+
+  const handleCopyUsername = useCallback(async () => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        try {
+          await navigator.clipboard.writeText(user.username);
+        } catch {
+          const ok = fallbackCopyToClipboard(user.username);
+          if (!ok) throw new Error('Clipboard copy failed');
+        }
+      } else {
+        const ok = fallbackCopyToClipboard(user.username);
+        if (!ok) throw new Error('Clipboard copy failed');
+      }
+      setUsernameCopied(true);
+      setTimeout(() => setUsernameCopied(false), 2000);
+    } catch {
+      // Silently fail — no toast wired for this component
+    }
+  }, [user.username]);
 
   return (
     <>
@@ -68,7 +100,30 @@ export default function ProfileCard({ user, exportData, badges }: ProfileCardPro
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-0.5">
             {user.name}
           </h2>
-          <p className="text-sm text-[#A1A1AA] mb-4">@{user.username}</p>
+          <div className="flex items-center justify-center gap-1.5 mb-4">
+            <p className="text-sm text-[#A1A1AA]">@{user.username}</p>
+            <button
+              type="button"
+              onClick={handleCopyUsername}
+              aria-label={
+                usernameCopied
+                  ? t('dashboard.profile.username_copied')
+                  : t('dashboard.profile.copy_username_aria')
+              }
+              className="inline-flex items-center justify-center p-0.5 rounded text-[#A1A1AA] hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
+            >
+              {usernameCopied ? (
+                <Check size={14} aria-hidden="true" />
+              ) : (
+                <Copy size={14} aria-hidden="true" />
+              )}
+            </button>
+            {usernameCopied && (
+              <span aria-live="polite" className="text-xs text-emerald-600 dark:text-emerald-400">
+                {t('dashboard.profile.username_copied')}
+              </span>
+            )}
+          </div>
           {badges && badges.length > 0 && (
             <div className="flex flex-wrap gap-1.5 justify-center mb-4">
               {badges.map((badge) => (

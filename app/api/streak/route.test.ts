@@ -152,6 +152,18 @@ describe('GET /api/streak', () => {
       expect(weeks.every((w) => w.contributionDays.length <= 7)).toBe(true);
     });
 
+    it('does not truncate calculated streak stats when the days parameter is set', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', days: '3', format: 'json' }));
+      expect(response.status).toBe(200);
+      const body = await response.json();
+
+      // Slicing to the last 3 days (all 0 contributions in mockCalendar)
+      expect(body.calendar.totalContributions).toBe(0);
+
+      // But streak statistics must still reflect the full 14 days calendar contributions (total 10)
+      expect(body.stats.totalContributions).toBe(10);
+    });
+
     it('returns 400 Bad Request when ?layout= is set to an unsupported format', async () => {
       const response = await GET(makeRequest({ user: 'octocat', layout: 'unsupported_layout' }));
       expect(response.status).toBe(400);

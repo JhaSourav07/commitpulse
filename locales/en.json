@@ -177,7 +177,9 @@
       "joined": "Joined",
       "pro_badge": "PRO",
       "pro": "PRO",
-      "share": "Share Your Pulse"
+      "share": "Share Your Pulse",
+      "username_copied": "Username copied!",
+      "copy_username_aria": "Copy username to clipboard"
     },
     "achievements": {
       "title": "Achievements",
