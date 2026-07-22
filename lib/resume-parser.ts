@@ -136,8 +136,9 @@ async function extractTextFromBuffer(buffer: Buffer, mimeType: string): Promise<
   let rawText = '';
 
   if (mimeType === 'application/pdf') {
-    try {
-      if (buffer.toString('utf-8', 0, 4) === '%PDF') {
+    const header = buffer.toString('utf-8', 0, 4);
+    if (header === '%PDF') {
+      try {
         const { PDFParse } = await import('pdf-parse');
 
         const parser = new PDFParse({ data: buffer });
@@ -145,29 +146,30 @@ async function extractTextFromBuffer(buffer: Buffer, mimeType: string): Promise<
         await parser.destroy();
 
         rawText = result.text;
-      } else {
-        rawText = buffer.toString('utf-8');
+      } catch (error) {
+        console.warn('Failed to parse PDF using pdf-parse:', error);
+        rawText = '';
       }
-    } catch (error) {
-      console.warn('Failed to parse PDF using pdf-parse:', error);
-      rawText = '';
+    } else {
+      rawText = buffer.toString('utf-8');
     }
   } else if (
     mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
   ) {
-    try {
-      if (buffer.toString('utf-8', 0, 2) === 'PK') {
+    const header = buffer.toString('utf-8', 0, 2);
+    if (header === 'PK') {
+      try {
         const mammothModule = await import('mammoth');
         const mammothParser = ((mammothModule as unknown as { default?: unknown }).default ||
           mammothModule) as typeof mammothModule;
         const result = await mammothParser.extractRawText({ buffer });
         rawText = result.value;
-      } else {
-        rawText = buffer.toString('utf-8');
+      } catch (error) {
+        console.warn('Failed to parse DOCX using mammoth:', error);
+        rawText = '';
       }
-    } catch (error) {
-      console.warn('Failed to parse DOCX using mammoth:', error);
-      rawText = '';
+    } else {
+      rawText = buffer.toString('utf-8');
     }
   } else {
     rawText = buffer.toString('utf-8');
