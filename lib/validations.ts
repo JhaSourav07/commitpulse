@@ -283,14 +283,6 @@ const baseStreakParamsSchema = z.object({
       const matchedKey = Object.keys(themes).find((key) => key.toLowerCase() === normalized);
       return matchedKey || val;
     })
-    .refine(
-      (val) => {
-        return val === 'auto' || val === 'random' || Object.hasOwn(themes, val);
-      },
-      {
-        message: `Invalid theme. Supported themes: ${['auto', 'random', ...Object.keys(themes)].join(', ')}`,
-      }
-    )
     .default('dark'),
   bg: z
     .string()

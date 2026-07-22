@@ -133,4 +133,21 @@ describe('GET /api/streak theme contrast', () => {
 
     expect(body).toContain('--cp-bg');
   });
+
+  it('falls back to default theme for unknown themes and sets X-Theme-Warning header', async () => {
+    const response = await GET(
+      makeRequest({
+        user: 'octocat',
+        theme: 'unknown_theme_123',
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('X-Theme-Warning')).toBe(
+      "Unknown theme 'unknown_theme_123', falling back to 'default'"
+    );
+
+    const body = await response.text();
+    expect(body).toContain('<svg');
+  });
 });

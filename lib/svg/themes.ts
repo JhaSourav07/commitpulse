@@ -67,7 +67,11 @@ export const themes: Record<string, BadgeTheme> = {
   // India theme — saffron accent (#FF9933), India green negative (#138808)
   india: makeTheme('0a0a0a', 'ffffff', 'FF9933', '138808'),
   ayu_mirage: makeTheme('212733', 'D9D7CE', 'FFCC66', 'FF3333'),
+  mono: makeTheme('000000', 'ffffff', 'aaaaaa', '444444'),
+  galaxy: makeTheme('0b001a', 'e0d4f5', 'a200ff', 'ff00aa'),
 };
+
+export const THEME_PRESETS = ['default', 'ocean', 'sunset', 'mono', 'galaxy'] as const;
 
 // Auto-theme pairs: the SVG switches between these two palettes
 // using @media (prefers-color-scheme) so the badge adapts to the

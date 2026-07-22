@@ -87,12 +87,14 @@ describe('Streak API - theme parameter integration tests', () => {
     expect(body).toContain('<svg');
   });
 
-  it('should return 400 Bad Request when theme parameter is invalid', async () => {
+  it('should fall back and return 200 OK when theme parameter is unknown', async () => {
     const response = await GET(makeRequest({ user: 'octocat', theme: 'not-a-valid-theme' }));
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('X-Theme-Warning')).toBe(
+      "Unknown theme 'not-a-valid-theme', falling back to 'default'"
+    );
     const body = await response.text();
     expect(body).toContain('<svg');
-    expect(body).toContain('Invalid theme');
   });
 
   it('should produce different SVGs when theme is dark vs light', async () => {

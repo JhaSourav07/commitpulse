@@ -202,7 +202,19 @@ export async function GET(request: Request) {
       | 'commit_clock'
       | 'weekday';
     const themeKey = getNormalizedThemeKey(theme);
-    const themeName = themeKey === 'default' && theme ? theme : themeKey;
+
+    let themeWarning: string | null = null;
+    if (
+      theme &&
+      theme.toLowerCase() !== 'auto' &&
+      theme.toLowerCase() !== 'random' &&
+      themeKey === 'default' &&
+      theme.toLowerCase() !== 'default'
+    ) {
+      themeWarning = `Unknown theme '${theme}', falling back to 'default'`;
+    }
+
+    const themeName = themeKey === 'default' && theme && !themeWarning ? theme : themeKey;
 
     const ip = getClientIp(request);
 
@@ -635,26 +647,28 @@ export async function GET(request: Request) {
       if (ifNoneMatch) {
         const etags = ifNoneMatch.split(',').map((e) => e.trim());
         if (etags.includes(weakEtag) || etags.includes(`"${etag}"`)) {
+          const headers: Record<string, string> = {
+            'Cache-Control': cacheControl,
+            ETag: weakEtag,
+            'X-Request-ID': requestId,
+          };
+          if (themeWarning) headers['X-Theme-Warning'] = themeWarning;
           return new NextResponse(null, {
             status: 304,
-            headers: {
-              'Cache-Control': cacheControl,
-              ETag: weakEtag,
-              'X-Request-ID': requestId,
-            },
+            headers,
           });
         }
       }
 
-      return new NextResponse(jsonPayload, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': cacheControl,
-          ETag: weakEtag,
-          'X-Cache-Status': cacheStatusHeader,
-          'X-Request-ID': requestId,
-        },
-      });
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Cache-Control': cacheControl,
+        ETag: weakEtag,
+        'X-Cache-Status': cacheStatusHeader,
+        'X-Request-ID': requestId,
+      };
+      if (themeWarning) headers['X-Theme-Warning'] = themeWarning;
+      return new NextResponse(jsonPayload, { headers });
     }
 
     // ─── SVG output mode (default) ──────────────────────────────────────────
@@ -730,13 +744,15 @@ export async function GET(request: Request) {
     if (ifNoneMatch) {
       const etags = ifNoneMatch.split(',').map((e) => e.trim());
       if (etags.includes(weakEtag) || etags.includes(`"${etag}"`)) {
+        const headers: Record<string, string> = {
+          'Cache-Control': cacheControl,
+          ETag: weakEtag,
+          'X-Request-ID': requestId,
+        };
+        if (themeWarning) headers['X-Theme-Warning'] = themeWarning;
         return new NextResponse(null, {
           status: 304,
-          headers: {
-            'Cache-Control': cacheControl,
-            ETag: weakEtag,
-            'X-Request-ID': requestId,
-          },
+          headers,
         });
       }
     }
@@ -749,31 +765,33 @@ export async function GET(request: Request) {
       });
       const pngBuffer = resvg.render().asPng();
 
-      return new NextResponse(new Uint8Array(pngBuffer), {
-        headers: {
-          'Content-Type': 'image/png',
-          'Cache-Control': cacheControl,
-          'X-CommitPulse-Grace-Applied': String(grace),
-          ETag: weakEtag,
-          'X-Cache-Status': shouldBypassCache
-            ? `BYPASS, fetched=${new Date().toISOString()}`
-            : `HIT, cached=${new Date().toISOString()}`,
-          'X-Request-ID': requestId,
-        },
-      });
-    }
-
-    return new NextResponse(svg, {
-      headers: {
-        'Content-Type': 'image/svg+xml; charset=utf-8',
+      const headers: Record<string, string> = {
+        'Content-Type': 'image/png',
         'Cache-Control': cacheControl,
-        'Content-Security-Policy': SVG_CSP_HEADER,
         'X-CommitPulse-Grace-Applied': String(grace),
         ETag: weakEtag,
-        'X-Cache-Status': shouldBypassCache ? `BYPASS, fetched=${new Date().toISOString()}` : 'HIT',
+        'X-Cache-Status': shouldBypassCache
+          ? `BYPASS, fetched=${new Date().toISOString()}`
+          : `HIT, cached=${new Date().toISOString()}`,
         'X-Request-ID': requestId,
-      },
-    });
+      };
+      if (themeWarning) headers['X-Theme-Warning'] = themeWarning;
+
+      return new NextResponse(new Uint8Array(pngBuffer), { headers });
+    }
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'image/svg+xml; charset=utf-8',
+      'Cache-Control': cacheControl,
+      'Content-Security-Policy': SVG_CSP_HEADER,
+      'X-CommitPulse-Grace-Applied': String(grace),
+      ETag: weakEtag,
+      'X-Cache-Status': shouldBypassCache ? `BYPASS, fetched=${new Date().toISOString()}` : 'HIT',
+      'X-Request-ID': requestId,
+    };
+    if (themeWarning) headers['X-Theme-Warning'] = themeWarning;
+
+    return new NextResponse(svg, { headers });
   } catch (error: unknown) {
     return buildErrorResponse(error, parseResult, requestId);
   }

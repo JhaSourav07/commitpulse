@@ -45,7 +45,7 @@ describe('theme count', () => {
     // If this fails, either a theme was added to themes.ts without updating
     // THEMES.md, or a theme was removed without updating the docs.
     // Update this count when intentionally adding/removing themes.
-    expect(themeNames).toHaveLength(33);
+    expect(themeNames).toHaveLength(35);
   });
 
   it('contains all expected theme keys', () => {
@@ -81,6 +81,8 @@ describe('theme count', () => {
       'monokai',
       'midnight_ocean',
       'india',
+      'mono',
+      'galaxy',
     ];
     for (const key of expectedKeys) {
       expect(themeNames).toContain(key);

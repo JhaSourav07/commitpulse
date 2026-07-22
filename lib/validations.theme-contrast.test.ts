@@ -43,6 +43,17 @@ describe('Validations color and theme consistency', () => {
     }
   });
 
+  it('streakParamsSchema allows unknown themes without failing validation', async () => {
+    const result = await streakParamsSchema.safeParseAsync({
+      user: 'octocat',
+      theme: 'unknown_theme_123',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.theme).toBe('unknown_theme_123');
+    }
+  });
+
   it('streakParamsSchema bg and text hex color validations accept valid with or without #', async () => {
     const withHash = await streakParamsSchema.safeParseAsync({
       user: 'octocat',

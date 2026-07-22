@@ -38,6 +38,7 @@ import { DiscordButton } from '@/components/DiscordButton';
 
 import { WallOfLove } from '@/components/WallOfLove';
 import { validateGitHubUsername } from '@/lib/validations';
+import { THEME_PRESETS } from '@/lib/svg/themes';
 
 const Icons = {
   Github: () => (
@@ -316,6 +317,7 @@ export default function LandingPageClient() {
     username: string;
     status: 'loaded' | 'error';
   } | null>(null);
+  const [selectedTheme, setSelectedTheme] = useState<string>('default');
   const guideRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -372,12 +374,13 @@ export default function LandingPageClient() {
     latestPreviewUsernameRef.current = previewUsername;
   }, [previewUsername]);
 
-  const badgeUrl = `/api/streak?user=${encodeURIComponent(previewUsername)}`;
+  const themeParam = selectedTheme !== 'default' ? `&theme=${selectedTheme}` : '';
+  const badgeUrl = `/api/streak?user=${encodeURIComponent(previewUsername)}${themeParam}`;
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://commitpulse.vercel.app').replace(
     /\/$/,
     ''
   );
-  const markdown = `![CommitPulse](${siteUrl}/api/streak?user=${encodeURIComponent(trimmedUsername)})`;
+  const markdown = `![CommitPulse](${siteUrl}/api/streak?user=${encodeURIComponent(trimmedUsername)}${themeParam})`;
   const DownloadSVG = () => {
     const link = document.createElement('a');
     link.href = badgeUrl;
@@ -788,6 +791,31 @@ export default function LandingPageClient() {
                   </AnimatePresence>
                 </div>
               )}
+
+              {/* Theme Gallery */}
+              <div className="flex flex-col gap-3 mt-4 border-t border-zinc-200/5 dark:border-white/5 pt-4">
+                <div className="flex flex-wrap items-center gap-2.5 text-xs">
+                  <span className="text-zinc-500 font-semibold uppercase tracking-wider text-[9px]">
+                    {t('landing.theme_presets', { defaultValue: 'Theme Presets:' })}
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {THEME_PRESETS.map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setSelectedTheme(preset)}
+                        className={`rounded-full border px-3 py-1 text-[11px] font-semibold transition-all duration-300 cursor-pointer capitalize ${
+                          selectedTheme === preset
+                            ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-600 dark:text-emerald-400'
+                            : 'border-zinc-200/10 bg-zinc-200/5 hover:bg-zinc-200/10 hover:border-zinc-300/30 text-zinc-600 dark:text-zinc-300 dark:hover:bg-white/10 dark:hover:border-white/20'
+                        }`}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
 
               {/* Footer Section: Demo & Recents */}
               <div className="flex flex-col gap-3 mt-4 border-t border-zinc-200/5 dark:border-white/5 pt-4">
