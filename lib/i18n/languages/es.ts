@@ -1,12 +1,12 @@
 export const es = {
   headers: {
-    hi: '¡Hola! Soy',
-    techStack: 'Tecnologías',
-    socials: 'Conéctate Conmigo',
-    githubStats: 'Estadísticas de GitHub',
-    projects: 'Proyectos',
-    contact: 'Contacto',
-    articles: 'Últimos Artículos',
+    hi: '👋 ¡Hola! Soy',
+    techStack: '🛠️ Tecnologías',
+    socials: '🤝 Conéctate Conmigo',
+    githubStats: '📊 Estadísticas de GitHub',
+    projects: '🌟 Proyectos',
+    contact: '📬 Contacto',
+    articles: '📝 Últimos Artículos',
   },
   labels: {
     name: 'Nombre',
@@ -15,7 +15,7 @@ export const es = {
     email: 'Correo',
   },
   graphs: {
-    snake: 'Gráfico de Contribuciones Serpiente',
-    pacman: 'Gráfico de Contribuciones Pacman',
+    snake: '🐍 Gráfico de Contribuciones Serpiente',
+    pacman: '👾 Gráfico de Contribuciones Pacman',
   },
 };

@@ -92,8 +92,8 @@ export function GeneratorClient() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-5 xl:gap-6 items-start w-full">
-      {/* Language Selector - Top of the page */}
+    <>
+      {/* Language Selector - moved outside main container */}
       <div className="w-full flex justify-end items-center gap-3 mb-2">
         <label htmlFor="language" className="text-sm font-medium text-gray-700 dark:text-gray-300">
           🌐 Language:
@@ -110,46 +110,44 @@ export function GeneratorClient() {
         </select>
       </div>
 
-      <div className="w-full lg:w-[44%] xl:w-[42%] flex-shrink-0">
-        <EditorPanel
-          state={state}
-          onNameChange={(v) => setState((s) => ({ ...s, name: v }))}
-          onDescriptionChange={(v) => setState((s) => ({ ...s, description: v }))}
-          onTechsChange={(ids) =>
-            setState((s) => ({ ...s, selectedTechs: Array.from(new Set(ids)) }))
-          }
-          onSocialsChange={(ids) =>
-            setState((s) => ({ ...s, selectedSocials: Array.from(new Set(ids)) }))
-          }
-          onSocialLinkChange={(id, url) =>
-            setState((s) => ({
-              ...s,
-              socialLinks: { ...s.socialLinks, [id]: sanitizeSocialUrl(id, url) },
-            }))
-          }
-          onGithubUsernameChange={(v) => setState((s) => ({ ...s, githubUsername: v }))}
-          onShowCommitPulseChange={(v) => setState((s) => ({ ...s, showCommitPulse: v }))}
-          onCommitPulseAccentChange={(v) => setState((s) => ({ ...s, commitPulseAccent: v }))}
-          onShowSnakeGraphChange={(v) => setState((s) => ({ ...s, showSnakeGraph: v }))}
-          onShowPacmanGraphChange={(v) => setState((s) => ({ ...s, showPacmanGraph: v }))}
-          onGraphPlacementChange={(v) => setState((s) => ({ ...s, graphPlacement: v }))}
-          onShowRepoSpotlightChange={(v) => setState((s) => ({ ...s, showRepoSpotlight: v }))}
-          onSpotlightRepoChange={(v) => setState((s) => ({ ...s, spotlightRepo: v }))}
-          onShowArticlesChange={(v) => setState((s) => ({ ...s, showArticles: v }))}
-          onArticlesPlatformChange={(v) => setState((s) => ({ ...s, articlesPlatform: v }))}
-          onArticlesUsernameChange={(v) => setState((s) => ({ ...s, articlesUsername: v }))}
-          onApplyImport={handleApplyImport}
-          onApplyPreset={handleApplyPreset}
-        />
-      </div>
+      {/* Main container */}
+      <div className="flex flex-col lg:flex-row gap-5 xl:gap-6 items-start w-full">
+        <div className="w-full lg:w-[44%] xl:w-[42%] flex-shrink-0">
+          <EditorPanel
+            state={state}
+            onNameChange={(v) => setState((s) => ({ ...s, name: v }))}
+            onDescriptionChange={(v) => setState((s) => ({ ...s, description: v }))}
+            onTechsChange={(ids) => setState((s) => ({ ...s, selectedTechs: ids }))}
+            onSocialsChange={(ids) => setState((s) => ({ ...s, selectedSocials: ids }))}
+            onSocialLinkChange={(id, url) =>
+              setState((s) => ({
+                ...s,
+                socialLinks: { ...s.socialLinks, [id]: url },
+              }))
+            }
+            onGithubUsernameChange={(v) => setState((s) => ({ ...s, githubUsername: v }))}
+            onShowCommitPulseChange={(v) => setState((s) => ({ ...s, showCommitPulse: v }))}
+            onCommitPulseAccentChange={(v) => setState((s) => ({ ...s, commitPulseAccent: v }))}
+            onShowSnakeGraphChange={(v) => setState((s) => ({ ...s, showSnakeGraph: v }))}
+            onShowPacmanGraphChange={(v) => setState((s) => ({ ...s, showPacmanGraph: v }))}
+            onGraphPlacementChange={(v) => setState((s) => ({ ...s, graphPlacement: v }))}
+            onShowRepoSpotlightChange={(v) => setState((s) => ({ ...s, showRepoSpotlight: v }))}
+            onSpotlightRepoChange={(v) => setState((s) => ({ ...s, spotlightRepo: v }))}
+            onShowArticlesChange={(v) => setState((s) => ({ ...s, showArticles: v }))}
+            onArticlesPlatformChange={(v) => setState((s) => ({ ...s, articlesPlatform: v }))}
+            onArticlesUsernameChange={(v) => setState((s) => ({ ...s, articlesUsername: v }))}
+            onApplyImport={handleApplyImport}
+          />
+        </div>
 
-      <div className="w-full lg:flex-1 flex flex-col gap-5 xl:gap-6">
-        <PreviewPanel markdown={markdown} state={state} />
-        <CompletionScorePanel state={state} />
-        <ReadmeInsightsPanel state={state} />
-        <ReadmeHealthBreakdown state={state} />
-        <ReadmeInsight state={state} />
+        <div className="w-full lg:flex-1 flex flex-col gap-5 xl:gap-6">
+          <PreviewPanel markdown={markdown} state={state} />
+          <CompletionScorePanel state={state} />
+          <ReadmeInsightsPanel state={state} />
+          <ReadmeHealthBreakdown state={state} />
+          <ReadmeInsight state={state} />
+        </div>
       </div>
-    </div>
+    </>
   );
 }

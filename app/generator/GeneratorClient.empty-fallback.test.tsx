@@ -50,7 +50,7 @@ describe('GeneratorClient - Edge Cases & Empty/Missing Inputs Verification', () 
 
   it('Case 3: preserves layout styling and column widths in the default empty layout state', () => {
     const { container } = render(<GeneratorClient />);
-    const root = container.firstElementChild as HTMLElement;
+    const root = container.children[1] as HTMLElement;
 
     // Outer grid classes
     expect(root).toHaveClass('flex');

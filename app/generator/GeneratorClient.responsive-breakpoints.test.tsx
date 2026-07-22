@@ -45,7 +45,7 @@ describe('GeneratorClient responsive breakpoints', () => {
 
     const { container } = render(<GeneratorClient />);
 
-    const root = container.firstElementChild as HTMLElement;
+    const root = container.children[1] as HTMLElement;
 
     expect(root).toHaveClass('flex');
     expect(root).toHaveClass('flex-col');

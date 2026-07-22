@@ -69,7 +69,7 @@ describe('GeneratorClient theme contrast', () => {
 
   it('keeps responsive layout classes active for visual cohesion', () => {
     const { container } = render(<GeneratorClient />);
-    const root = container.firstElementChild;
+    const root = container.children[1] as HTMLElement;
 
     expect(root).toHaveClass('flex');
     expect(root).toHaveClass('flex-col');
