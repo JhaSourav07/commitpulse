@@ -332,7 +332,7 @@ describe('GET /api/streak — error resilience & exception safety', () => {
 
   describe('Cache-Control on error paths not covered by route.test.ts', () => {
     it('returns a 400 with no-store caching for validation errors so a corrected reload is never served stale data', async () => {
-      const response = await GET(makeRequest({ user: 'octocat', theme: 'nonexistent_theme_name' }));
+      const response = await GET(makeRequest({ user: 'a'.repeat(45) }));
 
       expect(response.status).toBe(400);
       expect(response.headers.get('Cache-Control')).toBe('no-store');

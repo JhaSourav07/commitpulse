@@ -275,13 +275,12 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(400);
     });
 
-    it('returns 400 when an invalid theme value is provided and lists allowed themes', async () => {
-      const response = await GET(makeRequest({ user: 'octocat', theme: 'nonexistent_theme_name' }));
+    it('returns 400 when an invalid user parameter is provided', async () => {
+      const response = await GET(makeRequest({ user: 'a'.repeat(45), theme: 'default' }));
       expect(response.status).toBe(400);
       const body = await response.text();
       expect(body).toContain('<svg');
-      expect(body).toContain('Invalid theme');
-      expect(body).toContain('Supported themes:');
+      expect(body).toContain('cannot exceed 39 characters');
       expect(fetchGitHubContributions).not.toHaveBeenCalled();
     });
 
@@ -793,15 +792,17 @@ describe('GET /api/streak', () => {
       expect(body).toContain('--cp-bg');
     });
 
-    it('returns 400 Bad Request listing allowed themes when an invalid theme is provided', async () => {
+    it('returns 200 OK and applies default theme with a warning header when an unknown theme is provided', async () => {
       const response = await GET(makeRequest({ user: 'octocat', theme: 'nonexistent_theme_name' }));
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('X-Theme-Warning')).toBe(
+        "Unknown theme 'nonexistent_theme_name', falling back to 'default'"
+      );
       const body = await response.text();
       expect(body).toContain('<svg');
-      expect(body).toContain('Invalid theme. Supported themes:');
     });
 
-    it('returns 400 when theme parameter contains only whitespace', async () => {
+    it('returns 200 OK and falls back to default theme when theme parameter contains only whitespace', async () => {
       const response = await GET(
         makeRequest({
           user: 'octocat',
@@ -809,14 +810,9 @@ describe('GET /api/streak', () => {
         })
       );
 
-      expect(response.status).toBe(400);
-
+      expect(response.status).toBe(200);
       const body = await response.text();
       expect(body).toContain('<svg');
-      expect(body).toContain('Invalid theme');
-      expect(body).toContain('Supported themes:');
-
-      expect(fetchGitHubContributions).not.toHaveBeenCalled();
     });
 
     it('accepts capitalized or mixed-case theme parameter like "NEON" and maps it correctly', async () => {

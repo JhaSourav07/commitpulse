@@ -1045,42 +1045,27 @@ describe('ogParamsSchema', () => {
 });
 
 describe('streakParamsSchema — theme validation', () => {
-  it('rejects an invalid theme value with 400 validation error listing allowed themes', () => {
+  it('allows an invalid theme value to pass validation (for graceful fallback)', () => {
     const result = streakParamsSchema.safeParse({
       user: 'octocat',
       theme: 'nonexistent_theme_name',
     });
 
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      const fieldError = result.error.flatten().fieldErrors.theme?.[0];
-      expect(fieldError).toContain('Invalid theme. Supported themes:');
-      expect(fieldError).toContain('dark');
-      expect(fieldError).toContain('light');
-      expect(fieldError).toContain('neon');
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.theme).toBe('nonexistent_theme_name');
     }
   });
 
-  it('should reject nonexistent_theme_name and verify allowed themes are listed in error', () => {
+  it('allows completely unknown theme strings without returning a validation error', () => {
     const result = streakParamsSchema.safeParse({
       user: 'octocat',
-      theme: 'nonexistent_theme_name',
+      theme: 'another_nonexistent_theme',
     });
 
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      const fieldErrors = result.error.flatten().fieldErrors;
-      expect(fieldErrors.theme).toBeDefined();
-      const errorMessage = fieldErrors.theme?.[0];
-      expect(errorMessage).toContain('Invalid theme');
-      expect(errorMessage).toContain('Supported themes:');
-      expect(errorMessage).toContain('auto');
-      expect(errorMessage).toContain('random');
-      expect(errorMessage).toContain('dark');
-      expect(errorMessage).toContain('light');
-      expect(errorMessage).toContain('neon');
-      expect(errorMessage).toContain('github');
-      expect(errorMessage).toContain('dracula');
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.theme).toBe('another_nonexistent_theme');
     }
   });
 });
@@ -1299,12 +1284,15 @@ describe('streakParamsSchema — case-insensitive theme matching', () => {
     }
   });
 
-  it('rejects completely invalid theme name', () => {
+  it('accepts completely invalid theme name for graceful fallback', () => {
     const result = streakParamsSchema.safeParse({
       user: 'octocat',
       theme: 'fictionaltheme',
     });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.theme).toBe('fictionaltheme');
+    }
   });
 });
 
