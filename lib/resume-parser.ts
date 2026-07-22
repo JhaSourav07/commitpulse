@@ -149,8 +149,8 @@ async function extractTextFromBuffer(buffer: Buffer, mimeType: string): Promise<
         rawText = buffer.toString('utf-8');
       }
     } catch (error) {
-      console.warn('Failed to parse PDF using pdf-parse, falling back to UTF-8 decoding:', error);
-      rawText = buffer.toString('utf-8');
+      console.warn('Failed to parse PDF using pdf-parse:', error);
+      rawText = '';
     }
   } else if (
     mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
@@ -166,15 +166,26 @@ async function extractTextFromBuffer(buffer: Buffer, mimeType: string): Promise<
         rawText = buffer.toString('utf-8');
       }
     } catch (error) {
-      console.warn('Failed to parse DOCX using mammoth, falling back to UTF-8 decoding:', error);
-      rawText = buffer.toString('utf-8');
+      console.warn('Failed to parse DOCX using mammoth:', error);
+      rawText = '';
     }
   } else {
     rawText = buffer.toString('utf-8');
   }
 
+  try {
+    if (rawText.includes('Ã')) {
+      const fixedText = Buffer.from(rawText, 'latin1').toString('utf-8');
+      if (!fixedText.includes('\uFFFD')) {
+        rawText = fixedText;
+      }
+    }
+  } catch (e) {
+    // Ignore encoding fix errors
+  }
+
   const printable = rawText
-    .replace(/[^\x20-\x7E\n\r]/g, ' ')
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F\uFFFD]/g, '')
     .replace(/[ \t]+/g, ' ')
     .replace(/\r/g, '')
     .trim();
