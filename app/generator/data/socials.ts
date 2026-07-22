@@ -592,7 +592,7 @@ export const SOCIALS: Social[] = [
     baseUrl: 'https://huggingface.co/',
     placeholder: 'e.g. https://huggingface.co/yourname',
   },
-];
+].sort((a, b) => a.name.localeCompare(b.name));
 
 export const SOCIAL_CATEGORIES: SocialCategory[] = [
   'Social Media',
