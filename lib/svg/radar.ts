@@ -130,8 +130,9 @@ export function generateRadarSVG(
     labelsSVG += `      <text x="${labelX}" y="${labelY}" fill="#${textColor}" font-family="'Inter', sans-serif" font-size="11" font-weight="600" text-anchor="middle" dominant-baseline="central" opacity="0.8">${RADAR_AXES[i].label}</text>\n`;
   }
 
-  // 3. Data Polygon
+  // 3. Data Polygon & Dots
   let dataPoints = '';
+  let dotsSVG = '';
   for (let i = 0; i < RADAR_AXIS_COUNT; i++) {
     const angle = (Math.PI * 2 * i) / RADAR_AXIS_COUNT - Math.PI / 2;
     // ensure minimum size for visual appeal
@@ -140,12 +141,17 @@ export function generateRadarSVG(
     const x = RADAR_CENTER_X + r * Math.cos(angle);
     const y = RADAR_CENTER_Y + r * Math.sin(angle);
     dataPoints += `${x},${y} `;
+    const pct = Math.round(metrics[i] * 100);
+    const axisLabel = RADAR_AXES[i].label;
+    dotsSVG += `      <circle cx="${x}" cy="${y}" r="3" fill="#${accentColor}" aria-label="${axisLabel}: ${pct}%">\n        <title>${axisLabel}: ${pct}%</title>\n      </circle>\n`;
   }
 
   const dataPolygonSVG = `
     <g filter="url(#${CSS_PREFIX}-glow)">
-      <polygon points="${dataPoints.trim()}" fill="#${accentColor}" fill-opacity="0.25" stroke="#${accentColor}" stroke-width="2" style="animation: ${CSS_PREFIX}-pulse 3s infinite alternate;" />
-    </g>`;
+      <polygon points="${dataPoints.trim()}" fill="#${accentColor}" fill-opacity="0.25" stroke="#${accentColor}" stroke-width="2" style="animation: ${CSS_PREFIX}-pulse 3s infinite alternate;">
+        <title>Radar score breakdown for ${safeUser}</title>
+      </polygon>
+${dotsSVG}    </g>`;
 
   // CSS Animations
   const css = `

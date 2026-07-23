@@ -68,6 +68,8 @@ export default function RadarChart({ languagesA, languagesB, labelA, labelB }: R
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.3 }}
+      role="region"
+      aria-label="Language Dominance Radar Comparison"
       className="p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)] flex flex-col items-center justify-between min-h-[360px]"
     >
       <div className="w-full mb-4 flex justify-between items-center">
@@ -100,8 +102,17 @@ export default function RadarChart({ languagesA, languagesB, labelA, labelB }: R
               width="320"
               height="300"
               viewBox="0 0 320 300"
+              role="img"
+              aria-labelledby="radar-chart-title radar-chart-desc"
               className="w-full h-full overflow-visible"
             >
+              <title id="radar-chart-title">
+                Language Dominance Radar Chart comparing {labelA} and {labelB}
+              </title>
+              <desc id="radar-chart-desc">
+                Radar chart visualizing language distribution percentages for top languages across
+                both profiles.
+              </desc>
               <defs>
                 <filter id="glow-cyan" x="-20%" y="-20%" width="140%" height="140%">
                   <feGaussianBlur stdDeviation="3" result="blur" />

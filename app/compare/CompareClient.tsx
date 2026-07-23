@@ -1,7 +1,6 @@
 'use client';
 
 import { copyToClipboard } from '@/utils/clipboard';
-import Image from 'next/image';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import TopRivalriesTicker from '@/components/TopRivalriesTicker';
@@ -1308,7 +1307,7 @@ export default function CompareClient() {
                     setUser1Error('');
                   }}
                   onKeyDown={(e) => e.key === 'Enter' && handleCompare(user1, user2)}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.1)] bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white text-sm placeholder:text-[#A1A1AA] focus:outline-none focus:border-emerald-500/50 transition-colors"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.1)] bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white text-sm placeholder:text-[#A1A1AA] focus:outline-none focus:border-emerald-500/50 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none transition-colors"
                 />
 
                 {user1Error && (
@@ -1337,7 +1336,7 @@ export default function CompareClient() {
                     setUser2Error('');
                   }}
                   onKeyDown={(e) => e.key === 'Enter' && handleCompare(user1, user2)}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.1)] bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white text-sm placeholder:text-[#A1A1AA] focus:outline-none focus:border-emerald-500/50 transition-colors"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.1)] bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white text-sm placeholder:text-[#A1A1AA] focus:outline-none focus:border-emerald-500/50 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none transition-colors"
                 />
 
                 {user2Error && (
@@ -1352,7 +1351,7 @@ export default function CompareClient() {
                 onClick={() => handleCompare(user1, user2)}
                 disabled={loading}
                 aria-label="Compare two GitHub profiles"
-                className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-black dark:bg-white text-white dark:text-black text-sm font-semibold hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-black dark:bg-white text-white dark:text-black text-sm font-semibold hover:bg-zinc-800 dark:hover:bg-zinc-100 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? <Loader2 size={16} className="animate-spin" /> : <Swords size={16} />}
                 {loading ? 'Comparing...' : 'Compare'}
@@ -1370,7 +1369,7 @@ export default function CompareClient() {
 
                 <button
                   onClick={clearSearches}
-                  className="text-xs text-red-500 hover:text-red-600 transition-colors"
+                  className="text-xs text-red-500 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none rounded px-1 transition-colors"
                 >
                   Clear All
                 </button>
@@ -1394,14 +1393,14 @@ export default function CompareClient() {
                           handleCompare(left, right);
                         }
                       }}
-                      className="text-xs text-gray-700 dark:text-gray-300 hover:text-emerald-500 transition-colors"
+                      className="text-xs text-gray-700 dark:text-gray-300 hover:text-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none rounded px-1 transition-colors"
                     >
                       {search}
                     </button>
 
                     <button
                       onClick={() => removeSearch(search)}
-                      className="text-xs text-red-400 hover:text-red-600"
+                      className="text-xs text-red-400 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none rounded px-0.5"
                       aria-label={`Remove ${search} from recent comparisions`}
                     >
                       ×
@@ -1646,7 +1645,8 @@ export default function CompareClient() {
                     whileTap={{ scale: 0.95 }}
                     onClick={handleShareBattle}
                     title="Copy battle link"
-                    className="flex items-center gap-2 px-5 py-4 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white font-bold shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-colors"
+                    aria-label="Copy battle link to clipboard"
+                    className="flex items-center gap-2 px-5 py-4 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white font-bold shadow-[0_0_20px_rgba(255,255,255,0.1)] focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none transition-colors"
                   >
                     {copied ? (
                       <>
@@ -1693,7 +1693,8 @@ export default function CompareClient() {
                     whileTap={{ scale: 0.95 }}
                     onClick={handleTwitterShare}
                     title="Share on X (Twitter)"
-                    className="flex items-center gap-2 px-5 py-4 rounded-full bg-black hover:bg-zinc-800 backdrop-blur-md border border-white/20 text-white font-bold shadow-[0_0_20px_rgba(0,0,0,0.4)] transition-colors"
+                    aria-label="Share comparison battle on X"
+                    className="flex items-center gap-2 px-5 py-4 rounded-full bg-black hover:bg-zinc-800 backdrop-blur-md border border-white/20 text-white font-bold shadow-[0_0_20px_rgba(0,0,0,0.4)] focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none transition-colors"
                   >
                     {/* X logo */}
                     <svg
@@ -1714,7 +1715,8 @@ export default function CompareClient() {
                     whileTap={{ scale: 0.95 }}
                     onClick={handleLinkedInShare}
                     title="Share on LinkedIn"
-                    className="flex items-center gap-2 px-5 py-4 rounded-full bg-[#0A66C2] hover:bg-[#0958a8] backdrop-blur-md border border-[#0A66C2]/50 text-white font-bold shadow-[0_0_20px_rgba(10,102,194,0.4)] transition-colors"
+                    aria-label="Share comparison battle on LinkedIn"
+                    className="flex items-center gap-2 px-5 py-4 rounded-full bg-[#0A66C2] hover:bg-[#0958a8] backdrop-blur-md border border-[#0A66C2]/50 text-white font-bold shadow-[0_0_20px_rgba(10,102,194,0.4)] focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none transition-colors"
                   >
                     {/* LinkedIn logo */}
                     <svg
@@ -1735,7 +1737,8 @@ export default function CompareClient() {
                     whileTap={{ scale: 0.95 }}
                     onClick={handleDownloadCard}
                     disabled={isExporting}
-                    className="flex items-center gap-3 px-6 py-4 rounded-full bg-emerald-500 hover:bg-emerald-400 text-black font-bold shadow-[0_0_30px_rgba(16,185,129,0.5)] transition-colors overflow-hidden relative group"
+                    aria-label="Export comparison wrapped card image"
+                    className="flex items-center gap-3 px-6 py-4 rounded-full bg-emerald-500 hover:bg-emerald-400 text-black font-bold shadow-[0_0_30px_rgba(16,185,129,0.5)] focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none transition-colors overflow-hidden relative group"
                   >
                     <motion.div
                       animate={isExporting ? { rotate: 360 } : {}}
