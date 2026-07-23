@@ -318,11 +318,11 @@ export default function BurnoutRiskTable({ contributors }: BurnoutRiskTableProps
                     className="flex items-center gap-3 cursor-pointer"
                   >
                     <div className="relative w-8 h-8 rounded-full overflow-hidden border border-black/10 dark:border-white/10">
-                      <Image
+                      <img
                         src={c.avatarUrl}
                         alt={c.username}
-                        width={32}
-                        height={32}
+                        width="32"
+                        height="32"
                         className="w-full h-full object-cover"
                       />
                     </div>
