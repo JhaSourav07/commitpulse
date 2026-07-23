@@ -25,23 +25,20 @@ interface ParallaxParticle {
  *  Deterministic math prevents random values from causing SSR/CSR mismatches. */
 function buildParticles(): ParallaxParticle[] {
   const colors = ['#10b981', '#8b5cf6', '#06b6d4', '#3b82f6', '#f59e0b'];
-  return Array.from(
-    { length: PARALLAX_PARTICLE_COUNT },
-    (_, i): ParallaxParticle => ({
-      id: i,
-      // Spread particles across the container using prime-number strides
-      x: (i * 17 + 11) % 100,
-      y: (i * 23 + 7) % 100,
-      size: 4 + (i % 5) * 2, // range: 4–12 px
-      // Keep opacity low so particles never obscure the badge
-      opacity: 0.05 + (i % 4) * 0.025, // range: 0.05–0.125
-      // Vary depth so each "layer" of particles shifts by a different amount,
-      // creating the illusion of 3-D depth. depth 0.1 = farthest; 0.7 = nearest.
-      depth: 0.1 + (i % 6) * 0.1, // range: 0.1–0.6
-      color: colors[i % colors.length],
-      isCircle: i % 4 === 0,
-    })
-  );
+  return Array.from({ length: PARALLAX_PARTICLE_COUNT }, (_, i): ParallaxParticle => ({
+    id: i,
+    // Spread particles across the container using prime-number strides
+    x: (i * 17 + 11) % 100,
+    y: (i * 23 + 7) % 100,
+    size: 4 + (i % 5) * 2, // range: 4–12 px
+    // Keep opacity low so particles never obscure the badge
+    opacity: 0.05 + (i % 4) * 0.025, // range: 0.05–0.125
+    // Vary depth so each "layer" of particles shifts by a different amount,
+    // creating the illusion of 3-D depth. depth 0.1 = farthest; 0.7 = nearest.
+    depth: 0.1 + (i % 6) * 0.1, // range: 0.1–0.6
+    color: colors[i % colors.length],
+    isCircle: i % 4 === 0,
+  }));
 }
 
 // How many pixels a depth-1.0 particle shifts when the cursor is at the
@@ -402,31 +399,29 @@ export default function InteractiveViewer({
              Each particle shifts by (parallaxX * depth, parallaxY * depth) px relative
              to its base position, so "closer" particles (higher depth) shift more —
              creating the impression of a multi-layered isometric space. */}
-        {particles.map(
-          (particle): ReactElement => (
-            <div
-              key={particle.id}
-              style={{
-                position: 'absolute',
-                left: `${particle.x}%`,
-                top: `${particle.y}%`,
-                width: particle.size,
-                height: particle.size,
-                backgroundColor: particle.color,
-                borderRadius: particle.isCircle ? '50%' : '2px',
-                boxShadow: `0 0 ${particle.size * 2}px ${particle.color}55`,
-                opacity: isHovering ? particle.opacity * 1.8 : particle.opacity,
-                // Particles shift in the SAME direction as the cursor offset to create
-                // a realistic parallax: near objects (depth ~0.6) move more than far ones.
-                transform: `translate(${parallaxX * particle.depth}px, ${parallaxY * particle.depth}px)`,
-                // Smooth lerp toward the new position; opacity fades independently
-                transition: `transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.5s ease`,
-                pointerEvents: 'none',
-                willChange: 'transform',
-              }}
-            />
-          )
-        )}
+        {particles.map((particle): ReactElement => (
+          <div
+            key={particle.id}
+            style={{
+              position: 'absolute',
+              left: `${particle.x}%`,
+              top: `${particle.y}%`,
+              width: particle.size,
+              height: particle.size,
+              backgroundColor: particle.color,
+              borderRadius: particle.isCircle ? '50%' : '2px',
+              boxShadow: `0 0 ${particle.size * 2}px ${particle.color}55`,
+              opacity: isHovering ? particle.opacity * 1.8 : particle.opacity,
+              // Particles shift in the SAME direction as the cursor offset to create
+              // a realistic parallax: near objects (depth ~0.6) move more than far ones.
+              transform: `translate(${parallaxX * particle.depth}px, ${parallaxY * particle.depth}px)`,
+              // Smooth lerp toward the new position; opacity fades independently
+              transition: `transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.5s ease`,
+              pointerEvents: 'none',
+              willChange: 'transform',
+            }}
+          />
+        ))}
       </div>
 
       {/* ── Card content ──────────────────────────────────────────────────────
