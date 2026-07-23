@@ -1,6 +1,7 @@
 'use client';
 
 import { copyToClipboard } from '@/utils/clipboard';
+import Image from 'next/image';
 import {
   useEffect,
   useRef,
@@ -111,23 +112,17 @@ const WhatsAppIcon = ({ size = 15 }: { size?: number }) => (
 );
 
 function GitHubAvatar({ username }: { username: string }) {
-  const [src, setSrc] = useState<string | null>(null);
+  const [errored, setErrored] = useState(false);
 
-  useEffect(() => {
-    const img = new Image();
-    img.onload = () => setSrc(`https://avatars.githubusercontent.com/${username}?size=64`);
-    img.onerror = () => setSrc(null);
-    img.src = `https://avatars.githubusercontent.com/${username}?size=64`;
-  }, [username]);
-
-  if (src) {
+  if (!errored) {
     return (
-      <img
-        src={src}
+      <Image
+        src={`https://avatars.githubusercontent.com/${username}?size=64`}
         alt={username}
-        width="36"
-        height="36"
+        width={36}
+        height={36}
         className="w-9 h-9 rounded-full ring-2 ring-zinc-200 dark:ring-zinc-700 object-cover shrink-0"
+        onError={() => setErrored(true)}
       />
     );
   }
@@ -261,7 +256,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
     try {
       const svgString = new XMLSerializer().serializeToString(svgElement);
       const blobURL = URL.createObjectURL(new Blob([svgString], { type: 'image/svg+xml' }));
-      const image = new Image();
+      const image = new window.Image();
       image.onload = async () => {
         const canvas = document.createElement('canvas');
         canvas.width = 512;
