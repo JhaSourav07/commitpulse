@@ -14,7 +14,7 @@ import type {
 
 const GITHUB_REST_URL = 'https://api.github.com';
 const MAX_REPO_PAGES = 2;
-const MAX_ACTION_PAGES = 1;
+const MAX_ACTION_PAGES = 2;
 const MAX_FETCH_TARGETS = 5;
 
 const cache = new DistributedCache<CIAnalyticsData>(500);
