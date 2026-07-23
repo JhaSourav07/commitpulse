@@ -1,8 +1,18 @@
 'use client';
 
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Flame, ShieldAlert, Sparkles } from 'lucide-react';
-import Image from 'next/image';
+import {
+  Flame,
+  ShieldAlert,
+  Sparkles,
+  Search,
+  X,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Filter,
+} from 'lucide-react';
 
 interface ContributorMetric {
   username: string;
@@ -21,6 +31,15 @@ interface ContributorMetric {
 interface BurnoutRiskTableProps {
   contributors: ContributorMetric[];
 }
+
+type SortColumn =
+  | 'username'
+  | 'commitShare'
+  | 'highIntensityWeeks'
+  | 'restWeeks'
+  | 'burnoutScore'
+  | 'totalCommits';
+type SortDirection = 'asc' | 'desc';
 
 // Custom Pure SVG Sparkline for visual performance
 function Sparkline({ data }: { data: number[] }) {
@@ -71,6 +90,11 @@ function Sparkline({ data }: { data: number[] }) {
 }
 
 export default function BurnoutRiskTable({ contributors }: BurnoutRiskTableProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [highRiskOnly, setHighRiskOnly] = useState(false);
+  const [sortColumn, setSortColumn] = useState<SortColumn>('burnoutScore');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
   const getBadgeStyle = (level: 'Low' | 'Medium' | 'High') => {
     switch (level) {
       case 'High':
@@ -82,6 +106,82 @@ export default function BurnoutRiskTable({ contributors }: BurnoutRiskTableProps
     }
   };
 
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('desc');
+    }
+  };
+
+  const filteredAndSortedContributors = useMemo(() => {
+    return contributors
+      .filter((c) => {
+        const matchesSearch = c.username.toLowerCase().includes(searchQuery.toLowerCase().trim());
+        const matchesHighRisk = !highRiskOnly || c.riskLevel === 'High';
+        return matchesSearch && matchesHighRisk;
+      })
+      .sort((a, b) => {
+        let valA: number | string = 0;
+        let valB: number | string = 0;
+
+        switch (sortColumn) {
+          case 'username':
+            valA = a.username.toLowerCase();
+            valB = b.username.toLowerCase();
+            break;
+          case 'totalCommits':
+            valA = a.totalCommits;
+            valB = b.totalCommits;
+            break;
+          case 'commitShare':
+            valA = a.commitShare;
+            valB = b.commitShare;
+            break;
+          case 'highIntensityWeeks':
+            valA = a.highIntensityWeeks;
+            valB = b.highIntensityWeeks;
+            break;
+          case 'restWeeks':
+            valA = a.restWeeks;
+            valB = b.restWeeks;
+            break;
+          case 'burnoutScore':
+          default:
+            valA = a.burnoutScore;
+            valB = b.burnoutScore;
+            break;
+        }
+
+        if (typeof valA === 'string' && typeof valB === 'string') {
+          return sortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        }
+
+        return sortDirection === 'asc'
+          ? (valA as number) - (valB as number)
+          : (valB as number) - (valA as number);
+      });
+  }, [contributors, searchQuery, highRiskOnly, sortColumn, sortDirection]);
+
+  const renderSortIcon = (column: SortColumn) => {
+    if (sortColumn !== column) {
+      return (
+        <ArrowUpDown size={12} className="opacity-40 hover:opacity-100 transition-opacity ml-1" />
+      );
+    }
+    return sortDirection === 'asc' ? (
+      <ArrowUp size={12} className="text-indigo-500 ml-1" />
+    ) : (
+      <ArrowDown size={12} className="text-indigo-500 ml-1" />
+    );
+  };
+
+  const highRiskCount = useMemo(
+    () => contributors.filter((c) => c.riskLevel === 'High').length,
+    [contributors]
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -90,33 +190,123 @@ export default function BurnoutRiskTable({ contributors }: BurnoutRiskTableProps
       transition={{ duration: 0.3, delay: 0.1 }}
       className="p-6 rounded-2xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#0a0a0a]/70 backdrop-blur-xl shadow-sm overflow-hidden"
     >
-      <div className="flex items-center gap-2 mb-6">
-        <Flame size={18} className="text-gray-400" />
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider">
-          Contributor Workload & Burnout Risks
-        </h3>
+      {/* Header & Title */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div className="flex items-center gap-2">
+          <Flame size={18} className="text-gray-400" />
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider">
+            Contributor Workload & Burnout Risks
+          </h3>
+          <span className="ml-2 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-zinc-800 text-[10px] font-bold text-gray-500 dark:text-zinc-400 border border-black/5 dark:border-white/5">
+            Showing {filteredAndSortedContributors.length} of {contributors.length}
+          </span>
+        </div>
+
+        {/* Search & High Risk Toggle Controls */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="relative flex-1 sm:w-56">
+            <input
+              type="text"
+              placeholder="Search contributor..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-8 pr-7 py-1.5 rounded-xl border border-black/10 dark:border-white/10 bg-white/80 dark:bg-[#121212]/80 text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+            <Search
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"
+              size={13}
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+
+          <button
+            onClick={() => setHighRiskOnly(!highRiskOnly)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+              highRiskOnly
+                ? 'bg-rose-500/10 border-rose-500/30 text-rose-500 dark:text-rose-400 shadow-xs'
+                : 'bg-gray-100 dark:bg-zinc-900 border-black/5 dark:border-white/10 text-gray-600 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-zinc-800'
+            }`}
+          >
+            <ShieldAlert size={13} className={highRiskOnly ? 'text-rose-500' : 'text-gray-400'} />
+            <span>High Risk Only</span>
+            {highRiskCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-md bg-rose-500/20 text-[10px] font-bold">
+                {highRiskCount}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
+      {/* Table Container */}
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-black/5 dark:border-white/5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-              <th className="pb-3 pl-1">Contributor</th>
-              <th className="pb-3 text-center">Workload Share</th>
+            <tr className="border-b border-black/5 dark:border-white/5 text-[10px] font-bold text-gray-400 uppercase tracking-wider select-none">
+              <th className="pb-3 pl-1">
+                <button
+                  onClick={() => handleSort('username')}
+                  className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-white transition-colors"
+                >
+                  Contributor {renderSortIcon('username')}
+                </button>
+              </th>
+
+              <th className="pb-3 text-center">
+                <button
+                  onClick={() => handleSort('commitShare')}
+                  className="inline-flex items-center gap-1 hover:text-gray-700 dark:hover:text-white transition-colors"
+                >
+                  Workload Share {renderSortIcon('commitShare')}
+                </button>
+              </th>
+
               <th className="pb-3 text-center">Weekly Activity (12w)</th>
-              <th className="pb-3 text-center">Intensity Weeks</th>
-              <th className="pb-3 text-center">Rest Weeks</th>
-              <th className="pb-3 text-right pr-1">Burnout Risk</th>
+
+              <th className="pb-3 text-center">
+                <button
+                  onClick={() => handleSort('highIntensityWeeks')}
+                  className="inline-flex items-center gap-1 hover:text-gray-700 dark:hover:text-white transition-colors"
+                >
+                  Intensity Weeks {renderSortIcon('highIntensityWeeks')}
+                </button>
+              </th>
+
+              <th className="pb-3 text-center">
+                <button
+                  onClick={() => handleSort('restWeeks')}
+                  className="inline-flex items-center gap-1 hover:text-gray-700 dark:hover:text-white transition-colors"
+                >
+                  Rest Weeks {renderSortIcon('restWeeks')}
+                </button>
+              </th>
+
+              <th className="pb-3 text-right pr-1">
+                <button
+                  onClick={() => handleSort('burnoutScore')}
+                  className="inline-flex items-center gap-1 hover:text-gray-700 dark:hover:text-white transition-colors ml-auto"
+                >
+                  Burnout Risk {renderSortIcon('burnoutScore')}
+                </button>
+              </th>
             </tr>
           </thead>
+
           <tbody className="divide-y divide-black/5 dark:divide-white/5 text-sm">
-            {contributors.map((c, i) => (
+            {filteredAndSortedContributors.map((c, i) => (
               <motion.tr
                 key={c.username}
                 initial={{ opacity: 0, x: -8 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.2, delay: i * 0.05 }}
+                transition={{ duration: 0.2, delay: i * 0.03 }}
                 className="group hover:bg-black/5 dark:hover:bg-white/[0.02] transition-colors"
               >
                 {/* Contributor Profile */}
@@ -190,6 +380,28 @@ export default function BurnoutRiskTable({ contributors }: BurnoutRiskTableProps
             ))}
           </tbody>
         </table>
+
+        {/* Empty State */}
+        {filteredAndSortedContributors.length === 0 && (
+          <div className="py-12 flex flex-col items-center justify-center text-center">
+            <Filter size={24} className="text-gray-400 mb-2 opacity-60" />
+            <p className="text-sm font-semibold text-gray-700 dark:text-zinc-300">
+              No contributors match your filters
+            </p>
+            <p className="text-xs text-gray-400 mt-1 mb-4">
+              Try adjusting your search terms or toggling off &quot;High Risk Only&quot;.
+            </p>
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setHighRiskOnly(false);
+              }}
+              className="px-3 py-1.5 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-xs font-semibold shadow-xs hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors"
+            >
+              Reset Filters
+            </button>
+          </div>
+        )}
       </div>
     </motion.div>
   );

@@ -159,8 +159,11 @@
       "copy_aria_enabled": "Copiar fragmento de exportación {{format}} al portapapeles",
       "footer_tip": "Pega esto en el README.md de tu perfil de GitHub. La insignia se genera en el servidor, no requiere scripts.",
       "tsx": "React TSX",
-      "download_svg": "Download SVG",
-      "download_png": "Download PNG"
+      "download_svg": "Descargar SVG",
+      "download_png": "Descargar PNG",
+      "download_webp": "Descargar WebP",
+      "download_pdf": "Descargar PDF",
+      "export_as": "Exportar como"
     }
   },
   "dashboard": {

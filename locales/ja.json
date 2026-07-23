@@ -159,8 +159,11 @@
       "copy_aria_enabled": "{{format}}エクスポートスニペットをクリップボードにコピー",
       "footer_tip": "これをGitHubプロフィールのREADME.mdに貼り付けます。バッジはサーバーサイドでレンダリングされるため、スクリプトは不要です。",
       "tsx": "React TSX",
-      "download_svg": "Download SVG",
-      "download_png": "Download PNG"
+      "download_svg": "SVGをダウンロード",
+      "download_png": "PNGをダウンロード",
+      "download_webp": "WebPをダウンロード",
+      "download_pdf": "PDFをダウンロード",
+      "export_as": "形式を選択してエクスポート"
     }
   },
   "dashboard": {

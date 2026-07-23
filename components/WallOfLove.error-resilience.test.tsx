@@ -2,6 +2,14 @@ import { expect, it, describe, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 
+vi.stubGlobal(
+  'fetch',
+  vi.fn().mockResolvedValue({
+    ok: true,
+    json: () => Promise.resolve({ success: true, reviews: [] }),
+  })
+);
+
 vi.mock('gsap', () => ({
   default: {
     registerPlugin: vi.fn(),

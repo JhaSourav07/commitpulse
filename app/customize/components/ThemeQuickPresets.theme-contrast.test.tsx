@@ -8,7 +8,7 @@ describe('ThemeQuickPresets Theme Contrast', () => {
     render(<ThemeQuickPresets theme="dark" onThemeChange={vi.fn()} />);
 
     expect(
-      screen.getByRole('button', {
+      screen.getByRole('radio', {
         name: /apply dark theme/i,
       })
     ).toBeInTheDocument();
@@ -18,7 +18,7 @@ describe('ThemeQuickPresets Theme Contrast', () => {
     render(<ThemeQuickPresets theme="light" onThemeChange={vi.fn()} />);
 
     expect(
-      screen.getByRole('button', {
+      screen.getByRole('radio', {
         name: /apply light theme/i,
       })
     ).toBeInTheDocument();
@@ -28,7 +28,7 @@ describe('ThemeQuickPresets Theme Contrast', () => {
     render(<ThemeQuickPresets theme="dark" onThemeChange={vi.fn()} />);
 
     expect(
-      screen.getByRole('button', {
+      screen.getByRole('radio', {
         name: /apply dark theme/i,
       })
     ).toHaveAttribute('aria-pressed', 'true');
@@ -41,7 +41,7 @@ describe('ThemeQuickPresets Theme Contrast', () => {
     render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
 
     await user.click(
-      screen.getByRole('button', {
+      screen.getByRole('radio', {
         name: /apply light theme/i,
       })
     );
@@ -52,7 +52,7 @@ describe('ThemeQuickPresets Theme Contrast', () => {
   it('renders preset buttons with theme styling', () => {
     render(<ThemeQuickPresets theme="dark" onThemeChange={vi.fn()} />);
 
-    const button = screen.getByRole('button', {
+    const button = screen.getByRole('radio', {
       name: /apply dark theme/i,
     });
 

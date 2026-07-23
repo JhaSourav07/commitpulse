@@ -159,8 +159,11 @@
       "copy_aria_enabled": "Copier l'extrait d'exportation {{format}} dans le presse-papiers",
       "footer_tip": "Collez ceci dans le fichier README.md de votre profil GitHub. Le badge est généré côté serveur, aucun script n'est requis.",
       "tsx": "React TSX",
-      "download_svg": "Download SVG",
-      "download_png": "Download PNG"
+      "download_svg": "Télécharger SVG",
+      "download_png": "Télécharger PNG",
+      "download_webp": "Télécharger WebP",
+      "download_pdf": "Télécharger PDF",
+      "export_as": "Exporter sous"
     }
   },
   "dashboard": {

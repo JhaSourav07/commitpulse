@@ -36,6 +36,7 @@ export interface ContributionGraphSectionProps {
   onShowSnakeGraphChange: (v: boolean) => void;
   onShowPacmanGraphChange: (v: boolean) => void;
   onGraphPlacementChange: (v: 'top' | 'middle' | 'bottom') => void;
+  onReset?: () => void;
 }
 
 export function ContributionGraphSection({
@@ -47,6 +48,7 @@ export function ContributionGraphSection({
   onShowSnakeGraphChange,
   onShowPacmanGraphChange,
   onGraphPlacementChange,
+  onReset,
 }: ContributionGraphSectionProps) {
   const safeUsername = githubUsername || '';
   const trimmed = safeUsername.trim();
@@ -126,6 +128,7 @@ export function ContributionGraphSection({
       description="Add animated Snake/Pacman contribution graphs to your README"
       defaultOpen={false}
       badge={activeCount}
+      onReset={onReset}
     >
       <div className="flex flex-col gap-5">
         {/* Toggle Snake Graph */}
