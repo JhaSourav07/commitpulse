@@ -27,11 +27,11 @@ describe('ThemeQuickPresets - timezone boundaries', () => {
 
     const expectedButtons = THEME_KEYS.filter((key) => key !== 'auto' && key !== 'random');
 
-    expect(screen.getAllByRole('button')).toHaveLength(expectedButtons.length);
+    expect(screen.getAllByRole('radio')).toHaveLength(expectedButtons.length);
 
     expectedButtons.forEach((key) => {
       expect(
-        screen.getByRole('button', {
+        screen.getByRole('radio', {
           name: new RegExp(`Apply ${key} theme`, 'i'),
         })
       ).toBeInTheDocument();
@@ -44,7 +44,7 @@ describe('ThemeQuickPresets - timezone boundaries', () => {
     render(<ThemeQuickPresets theme="neon" onThemeChange={vi.fn()} />);
 
     expect(
-      screen.getByRole('button', {
+      screen.getByRole('radio', {
         name: /Apply neon theme/i,
       })
     ).toHaveAttribute('aria-pressed', 'true');
@@ -58,7 +58,7 @@ describe('ThemeQuickPresets - timezone boundaries', () => {
     render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
 
     fireEvent.click(
-      screen.getByRole('button', {
+      screen.getByRole('radio', {
         name: /Apply light theme/i,
       })
     );
@@ -92,7 +92,7 @@ describe('ThemeQuickPresets - timezone boundaries', () => {
 
       render(<ThemeQuickPresets theme="github" onThemeChange={vi.fn()} />);
 
-      expect(screen.getAllByRole('button')).toHaveLength(expected);
+      expect(screen.getAllByRole('radio')).toHaveLength(expected);
     }
   });
 });

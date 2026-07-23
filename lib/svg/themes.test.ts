@@ -258,4 +258,18 @@ describe('getNormalizedThemeKey', () => {
     expect(getNormalizedThemeKey(undefined)).toBe('default');
     expect(getNormalizedThemeKey(null)).toBe('default');
   });
+
+  it('safely handles array inputs by picking the first valid element', () => {
+    expect(getNormalizedThemeKey(['dark', 'light'])).toBe('dark');
+    expect(getNormalizedThemeKey(['  neon  ', 'ocean'])).toBe('neon');
+  });
+
+  it('falls back to default if array is empty', () => {
+    expect(getNormalizedThemeKey([])).toBe('default');
+  });
+
+  it('falls back to default if input is an object or number', () => {
+    expect(getNormalizedThemeKey({} as unknown)).toBe('default');
+    expect(getNormalizedThemeKey(123 as unknown)).toBe('default');
+  });
 });

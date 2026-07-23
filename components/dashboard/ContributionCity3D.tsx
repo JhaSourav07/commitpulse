@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Play, Pause, RotateCcw, Download } from 'lucide-react';
+import { ErrorBoundary } from 'react-error-boundary';
 import type { ActivityData } from '@/types/dashboard';
 import EmptyState from './EmptyState';
 
@@ -87,6 +88,23 @@ export default function ContributionCity3D({
   // Camera state – angles in radians
   const [isDragging, setIsDragging] = useState(false);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const [hasWebGLFailed, setHasWebGLFailed] = useState(false);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const handleContextLost = (e: Event) => {
+      e.preventDefault();
+      setHasWebGLFailed(true);
+    };
+
+    canvas.addEventListener('webglcontextlost', handleContextLost);
+
+    return () => {
+      canvas.removeEventListener('webglcontextlost', handleContextLost);
+    };
+  }, []);
 
   // Time-Lapse state
   const [isPlaying, setIsPlaying] = useState(timeLapseMode);
@@ -567,6 +585,19 @@ export default function ContributionCity3D({
     lastPinchRef.current = null;
   };
 
+  if (hasWebGLFailed) {
+    return (
+      <div
+        className="flex h-[360px] w-full items-center justify-center rounded-xl"
+        style={{ background: palette.bg }}
+      >
+        <div className="text-sm font-medium opacity-60" style={{ color: palette.accent }}>
+          Low Memory - 3D Disabled
+        </div>
+      </div>
+    );
+  }
+
   if (!data || data.length === 0) {
     return <EmptyState message="No activity found for this timeframe" />;
   }
@@ -574,25 +605,38 @@ export default function ContributionCity3D({
   return (
     <div className="relative w-full" style={{ background: palette.bg, borderRadius: 12 }}>
       {/* Canvas container */}
-      <div
-        ref={containerRef}
-        className="w-full"
-        style={{ height: 360, cursor: isDragging ? 'grabbing' : 'grab' }}
+      <ErrorBoundary
+        fallback={
+          <div
+            className="flex h-[360px] w-full items-center justify-center rounded-xl"
+            style={{ background: palette.bg }}
+          >
+            <div className="text-sm font-medium opacity-60" style={{ color: palette.accent }}>
+              Low Memory - 3D Disabled
+            </div>
+          </div>
+        }
       >
-        <canvas
-          ref={canvasRef}
-          className="w-full h-full"
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerLeave={() => setTooltip(null)}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
-          onWheel={onWheel}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
-          style={{ display: 'block' }}
-        />
-      </div>
+        <div
+          ref={containerRef}
+          className="w-full"
+          style={{ height: 360, cursor: isDragging ? 'grabbing' : 'grab' }}
+        >
+          <canvas
+            ref={canvasRef}
+            className="w-full h-full"
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerLeave={() => setTooltip(null)}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+            onWheel={onWheel}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+            style={{ display: 'block' }}
+          />
+        </div>
+      </ErrorBoundary>
 
       {/* Replay My Year button */}
       <div className="absolute top-3 left-4 flex items-center gap-2">

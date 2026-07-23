@@ -82,6 +82,13 @@ export function GeneratorClient() {
     });
   };
 
+  const handleApplyPreset = (presetState: Partial<GeneratorState>) => {
+    setState((prevState) => ({
+      ...prevState,
+      ...presetState,
+    }));
+  };
+
   return (
     <div className="flex flex-col lg:flex-row gap-5 xl:gap-6 items-start w-full">
       <div className="w-full lg:w-[44%] xl:w-[42%] flex-shrink-0">
@@ -113,6 +120,7 @@ export function GeneratorClient() {
           onArticlesPlatformChange={(v) => setState((s) => ({ ...s, articlesPlatform: v }))}
           onArticlesUsernameChange={(v) => setState((s) => ({ ...s, articlesUsername: v }))}
           onApplyImport={handleApplyImport}
+          onApplyPreset={handleApplyPreset}
         />
       </div>
 

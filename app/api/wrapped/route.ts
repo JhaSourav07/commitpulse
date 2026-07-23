@@ -2,11 +2,16 @@
 
 import { NextResponse } from 'next/server';
 import { getWrappedData, getCircuitTelemetry } from '@/lib/github';
-import { generateWrappedSVG, generateNotFoundSVG, generateRateLimitSVG } from '@/lib/svg/generator';
-import { escapeXML } from '@/lib/svg/sanitizer';
+import {
+  generateWrappedSVG,
+  generateNotFoundSVG,
+  generateRateLimitSVG,
+  buildInlineErrorSVG,
+} from '@/lib/svg/generator';
+import { escapeXML, sanitizeHexColor, sanitizeRadius } from '@/lib/svg/sanitizer';
 import { wrappedParamsSchema, coerceQueryParams } from '@/lib/validations';
 import type { BadgeParams } from '@/types';
-import { themes } from '@/lib/svg/themes';
+import { themes, resolveErrorTheme } from '@/lib/svg/themes';
 import { getClientIp } from '@/utils/getClientIp';
 import { quotaMonitor } from '@/services/github/quota-monitor';
 import { refreshPolicy } from '@/services/github/refresh-policy';
@@ -149,13 +154,17 @@ export async function GET(request: Request) {
       },
     });
   } catch (error: unknown) {
-    return buildErrorResponse(error, parseResult);
+    return buildErrorResponse(error, parseResult, request);
   }
 }
 
 type ParseResult = ReturnType<typeof wrappedParamsSchema.safeParse>;
 
-function buildErrorResponse(error: unknown, parseResult: ParseResult): NextResponse {
+function buildErrorResponse(
+  error: unknown,
+  parseResult: ParseResult,
+  request?: Request
+): NextResponse {
   const message = error instanceof Error ? error.message : String(error);
 
   const isNotFound =
@@ -168,22 +177,31 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     message.toLowerCase().includes('invalid') ||
     message.toLowerCase().includes('validation');
 
-  const errBg = `#${(parseResult.success && parseResult.data.bg) || '0d1117'}`;
-  const errAccent = `#${
+  const searchParams = request ? new URL(request.url).searchParams : null;
+  const errTheme = resolveErrorTheme(searchParams);
+  const errBg =
+    parseResult.success && parseResult.data.bg
+      ? `#${sanitizeHexColor(parseResult.data.bg, '0d1117')}`
+      : errTheme.bg;
+  const errAccentRaw =
     (parseResult.success &&
       (Array.isArray(parseResult.data.accent)
         ? parseResult.data.accent[parseResult.data.accent.length - 1]
         : parseResult.data.accent)) ||
-    '58a6ff'
-  }`;
-  const errText = `#${(parseResult.success && parseResult.data.text) || 'c9d1d9'}`;
-  const errRadius = parseResult.success
-    ? (() => {
-        const r = Number(parseResult.data.radius);
-        return Number.isFinite(r) ? Math.min(32, Math.max(0, r)) : 8;
-      })()
-    : 8;
-  const errSpeed = (parseResult.success && parseResult.data.speed) || '8s';
+    undefined;
+  const errAccent = errAccentRaw ? `#${sanitizeHexColor(errAccentRaw, '58a6ff')}` : errTheme.accent;
+  const errText =
+    parseResult.success && parseResult.data.text
+      ? `#${sanitizeHexColor(parseResult.data.text, 'c9d1d9')}`
+      : errTheme.text;
+  const errRadius =
+    parseResult.success && parseResult.data.radius !== undefined
+      ? (() => {
+          const r = Number(parseResult.data.radius);
+          return Number.isFinite(r) ? Math.min(32, Math.max(0, r)) : 8;
+        })()
+      : errTheme.radius;
+  const errSpeed = (parseResult.success && parseResult.data.speed) || errTheme.speed;
 
   if (isRateLimit) {
     const telemetry = getCircuitTelemetry();
@@ -225,14 +243,12 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
   }
 
   if (isValidationError) {
-    const validationSvg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
-        <rect width="100%" height="100%" fill="#2d0000" rx="8"/>
-        <text x="50%" y="50%" text-anchor="middle" fill="#ffcccc" font-family="sans-serif">
-          ${escapeXML(message)}
-        </text>
-      </svg>
-    `;
+    const validationSvg = buildInlineErrorSVG(message, {
+      bg: errBg,
+      accent: errAccent,
+      text: errText,
+      radius: errRadius,
+    });
 
     return new NextResponse(validationSvg, {
       status: 400,
@@ -249,14 +265,12 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     message,
   });
 
-  const errorSvg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
-        <rect width="100%" height="100%" fill="#2d0000" rx="8"/>
-        <text x="50%" y="50%" text-anchor="middle" fill="#ffcccc" font-family="sans-serif">
-          Something went wrong. Please try again later.
-        </text>
-      </svg>
-    `;
+  const errorSvg = buildInlineErrorSVG('Something went wrong. Please try again later.', {
+    bg: errBg,
+    accent: errAccent,
+    text: errText,
+    radius: errRadius,
+  });
 
   return new NextResponse(errorSvg, {
     status: 500,

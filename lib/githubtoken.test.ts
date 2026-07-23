@@ -24,7 +24,7 @@ describe('getUserGitHubToken', () => {
 
   it('decrypts the GitHub token from the JWT cookie', async () => {
     const plainToken = 'gho_test_access_token';
-    vi.mocked(getToken).mockResolvedValue({ ghToken: encryptToken(plainToken) });
+    vi.mocked(getToken).mockResolvedValue({ ghToken: await encryptToken(plainToken) });
 
     await expect(getUserGitHubToken()).resolves.toBe(plainToken);
     expect(getToken).toHaveBeenCalledWith(

@@ -159,8 +159,11 @@
       "copy_aria_enabled": "निर्यात स्निपेट {{format}} क्लिपबोर्ड पर कॉपी करें",
       "footer_tip": "इसे अपनी गिटहब प्रोफ़ाइल के README.md में पेस्ट करें। बैज सर्वर-साइड रेंडर होता है, किसी स्क्रिप्ट की आवश्यकता नहीं है।",
       "tsx": "React TSX",
-      "download_svg": "Download SVG",
-      "download_png": "Download PNG"
+      "download_svg": "SVG डाउनलोड करें",
+      "download_png": "PNG डाउनलोड करें",
+      "download_webp": "WebP डाउनलोड करें",
+      "download_pdf": "PDF डाउनलोड करें",
+      "export_as": "इस रूप में निर्यात करें"
     }
   },
   "dashboard": {

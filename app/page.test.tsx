@@ -1,6 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import type { HTMLAttributes, AnchorHTMLAttributes, ReactNode, ImgHTMLAttributes } from 'react';
 
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';

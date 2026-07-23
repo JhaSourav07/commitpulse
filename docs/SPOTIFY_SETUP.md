@@ -28,11 +28,11 @@ You can easily get a Refresh Token using Spotify's authorization flow:
 4. Run the following cURL command (replace \`YOUR_CLIENT_ID\`, \`YOUR_CLIENT_SECRET\`, and \`YOUR_CODE\`):
    \`\`\`bash
    curl -X POST https://accounts.spotify.com/api/token \
-    -d "grant_type=authorization_code" \
-    -d "code=YOUR_CODE" \
-    -d "redirect_uri=http://localhost:3000/api/auth/callback/spotify" \
-    -H "Authorization: Basic $(echo -n YOUR_CLIENT_ID:YOUR_CLIENT_SECRET | base64)" \
-    -H "Content-Type: application/x-www-form-urlencoded"
+   -d "grant_type=authorization_code" \
+   -d "code=YOUR_CODE" \
+   -d "redirect_uri=http://localhost:3000/api/auth/callback/spotify" \
+   -H "Authorization: Basic $(echo -n YOUR_CLIENT_ID:YOUR_CLIENT_SECRET | base64)" \
+   -H "Content-Type: application/x-www-form-urlencoded"
    \`\`\`
 5. In the JSON response, copy the \`refresh_token\`.
 

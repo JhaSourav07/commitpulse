@@ -58,11 +58,13 @@ describe('Footer Component', () => {
   it('renders Discord community link', () => {
     render(<Footer />);
 
-    const discordLink = screen.getByRole('link', {
-      name: /Discord/i,
+    // Discord now appears twice: once in the Connect column (text + icon) and once in the bottom bar icon strip.
+    const discordLinks = screen.getAllByRole('link', {
+      name: /Join CommitPulse on Discord/i,
     });
 
-    expect(discordLink).toHaveAttribute('href', 'https://discord.gg/f84SDraEBH');
+    expect(discordLinks.length).toBeGreaterThanOrEqual(1);
+    expect(discordLinks[0]).toHaveAttribute('href', 'https://discord.gg/f84SDraEBH');
   });
 
   it('exposes the footer as a semantic contentinfo landmark for screen readers', () => {
@@ -114,10 +116,14 @@ describe('Footer Component', () => {
     const connectHeading = screen.getByRole('heading', { name: /Connect/i });
     expect(connectHeading).toBeInTheDocument();
 
-    // Check for social links
-    expect(screen.getByRole('link', { name: /Creator on X/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /LinkedIn/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Discord/i })).toBeInTheDocument();
+    // Social links now appear twice (Connect column + bottom bar icon strip); use getAllByRole.
+    expect(screen.getAllByRole('link', { name: /Creator on X/i }).length).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getAllByRole('link', { name: /Creator on LinkedIn/i }).length
+    ).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getAllByRole('link', { name: /Join CommitPulse on Discord/i }).length
+    ).toBeGreaterThanOrEqual(1);
   });
 
   it('has proper responsive layout classes', () => {
@@ -158,5 +164,22 @@ describe('Footer Component', () => {
       expect(link.className).toContain('focus:outline-none');
       expect(link.className).toContain('focus:ring');
     });
+  });
+
+  it('renders social icon strip in the bottom bar with correct links and no duplicate creator icon', () => {
+    render(<Footer />);
+
+    // Project GitHub, Discord, X, LinkedIn each appear twice:
+    // once in the Connect column (with text label) and once in the bottom bar icon strip.
+    expect(screen.getAllByRole('link', { name: 'CommitPulse on GitHub' })).toHaveLength(2);
+    expect(screen.getAllByRole('link', { name: 'Join CommitPulse on Discord' })).toHaveLength(2);
+    expect(screen.getAllByRole('link', { name: 'Creator on X' })).toHaveLength(2);
+    expect(screen.getAllByRole('link', { name: 'Creator on LinkedIn' })).toHaveLength(2);
+
+    // The creator's personal GitHub link must appear only once (Connect column only, not in bottom bar).
+    expect(screen.getAllByRole('link', { name: 'Creator Sourav Jha on GitHub' })).toHaveLength(1);
+
+    // The bottom bar nav landmark must be present with an accessible label.
+    expect(screen.getByRole('navigation', { name: 'Social media links' })).toBeInTheDocument();
   });
 });
