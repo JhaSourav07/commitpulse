@@ -287,13 +287,13 @@ export async function fetchWithRetry(
   }
 
   if (didThrow) {
-    if (options.signal?.aborted) throw new Error('AbortError');
+    if (options.signal?.aborted) throw fetchError;
     const isTimeoutAbort = isAbortError(fetchError);
     if (attempt >= MAX_RETRIES) {
       if (isTimeoutAbort) {
         throw new Error(`GitHub API request timed out after ${resolvedTimeout / 1000}s`);
       }
-      throw new Error(fetchError instanceof Error ? fetchError.message : String(fetchError));
+      throw fetchError;
     }
     const delay = getJitteredBackoff(attempt);
     await new Promise((resolve) => setTimeout(resolve, delay));
@@ -910,6 +910,13 @@ export async function fetchGitHubContributions(
 
   const loadWithTimeout = async (): Promise<ExtendedContributionData> => {
     const controller = new AbortController();
+    if (options.signal) {
+      if (options.signal.aborted) {
+        controller.abort();
+      } else {
+        options.signal.addEventListener('abort', () => controller.abort(), { once: true });
+      }
+    }
 
     let timerId = null;
     const timeoutPromise = new Promise<never>((_, reject) => {
@@ -934,7 +941,10 @@ export async function fetchGitHubContributions(
     }
   };
 
-  const coalescedLoad = async () => {
+  const coalescedLoad = () => {
+    if (options.signal) {
+      return loadWithTimeout();
+    }
     let pending = activeContributionsPromises.get(key);
     if (!pending) {
       pending = loadWithTimeout().finally(() => {
@@ -949,29 +959,57 @@ export async function fetchGitHubContributions(
         timer.unref();
       }
     }
-
-    if (!options.signal) {
-      return pending;
-    }
-
-    return new Promise<ExtendedContributionData>((resolve, reject) => {
-      if (options.signal?.aborted) return reject(new Error('AbortError'));
-
-      const onAbort = () => reject(new Error('AbortError'));
-      options.signal?.addEventListener('abort', onAbort, { once: true });
-
-      pending!.then(
-        (val) => {
-          options.signal?.removeEventListener('abort', onAbort);
-          resolve(val);
-        },
-        (err) => {
-          options.signal?.removeEventListener('abort', onAbort);
-          reject(err);
-        }
-      );
-    });
+    return pending;
   };
+
+  if (options.signal) {
+    if (options.bypassCache || options.forceRefresh) {
+      try {
+        return await loadWithTimeout();
+      } catch (err: unknown) {
+        if (shouldFallbackOnError(err)) {
+          const staleData = await contributionsCache.get(key);
+          if (staleData) {
+            logger.warn('GitHub API fetch failed, falling back to stale cache', {
+              component: 'GitHub API',
+              username,
+              error: err,
+            });
+            return {
+              ...staleData,
+              isOfflineFallback: true,
+            };
+          }
+          return getMockContributions();
+        }
+        throw err;
+      }
+    }
+    const cached = await contributionsCache.get(key);
+    if (cached !== null && !shouldFetch(cached)) {
+      return cached;
+    }
+    try {
+      return await loadWithTimeout();
+    } catch (err: unknown) {
+      if (shouldFallbackOnError(err)) {
+        const staleData = await contributionsCache.get(key);
+        if (staleData) {
+          logger.warn('GitHub API fetch failed, falling back to stale cache', {
+            component: 'GitHub API',
+            username,
+            error: err,
+          });
+          return {
+            ...staleData,
+            isOfflineFallback: true,
+          };
+        }
+        return getMockContributions();
+      }
+      throw err;
+    }
+  }
 
   if (options.bypassCache || options.forceRefresh) {
     try {
