@@ -273,6 +273,25 @@ export function Footer() {
         {/* Bottom Section */}
         <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-zinc-500 dark:text-zinc-500">
           <p>{t('footer.copyright', { year: currentYear.toString() })}</p>
+
+          {/* Social Icon Strip */}
+          <nav aria-label="Social media links" className="flex items-center gap-3">
+            {socialLinks
+              .filter((link) => link.icon !== 'creator')
+              .map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={link.ariaLabel}
+                  className="p-1.5 rounded transition-all duration-300 hover:-translate-y-[2px] hover:text-teal-800 dark:hover:text-violet-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-zinc-950"
+                >
+                  {SOCIAL_ICON_MAP[link.icon as keyof typeof SOCIAL_ICON_MAP]}
+                </a>
+              ))}
+          </nav>
+
           <p>{t('footer.made_with')}</p>
         </div>
       </div>

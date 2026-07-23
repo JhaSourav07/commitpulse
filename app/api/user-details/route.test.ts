@@ -9,14 +9,21 @@ vi.mock('@/lib/github', () => ({
 import { fetchUserProfile, fetchGitHubContributions } from '@/lib/github';
 import type { ContributionCalendar } from '@/types';
 
+// Build dates relative to today so the streak is always current regardless of when CI runs
+function todayStr(offsetDays = 0): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + offsetDays);
+  return d.toISOString().split('T')[0];
+}
+
 const mockCalendar: ContributionCalendar = {
   totalContributions: 15,
   weeks: [
     {
       contributionDays: [
-        { contributionCount: 5, date: '2024-06-10' },
-        { contributionCount: 5, date: '2024-06-11' },
-        { contributionCount: 5, date: '2024-06-12' },
+        { contributionCount: 5, date: todayStr(-2) },
+        { contributionCount: 5, date: todayStr(-1) },
+        { contributionCount: 5, date: todayStr(0) },
       ],
     },
   ],

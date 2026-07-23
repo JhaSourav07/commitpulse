@@ -6,6 +6,11 @@ import { act } from '@testing-library/react';
 
 vi.mock('@/utils/clipboard', () => ({
   fallbackCopyToClipboard: vi.fn().mockReturnValue(true),
+  copyToClipboard: vi.fn().mockImplementation(async (text) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      await navigator.clipboard.writeText(text);
+    }
+  }),
 }));
 
 const mockState: GeneratorState = {

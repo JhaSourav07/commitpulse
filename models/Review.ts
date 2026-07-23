@@ -51,5 +51,7 @@ const ReviewSchema: Schema = new Schema({
   },
 });
 
+ReviewSchema.index({ createdAt: 1 }, { expireAfterSeconds: 90 * 24 * 60 * 60 });
+
 export const Review: Model<IReview> =
   mongoose.models.Review || mongoose.model<IReview>('Review', ReviewSchema);

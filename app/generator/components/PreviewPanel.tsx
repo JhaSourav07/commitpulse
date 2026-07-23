@@ -1,6 +1,6 @@
 'use client';
 
-import { fallbackCopyToClipboard } from '@/utils/clipboard';
+import { copyToClipboard } from '@/utils/clipboard';
 import { useState, useCallback } from 'react';
 import { Copy, Check, Eye, Code2, Download, Workflow } from 'lucide-react';
 import type { GeneratorState } from '../types';
@@ -41,23 +41,7 @@ export function PreviewPanel({ markdown, state }: PreviewPanelProps) {
 
   const handleCopy = useCallback(async () => {
     try {
-      if (navigator.clipboard && window.isSecureContext) {
-        try {
-          await navigator.clipboard.writeText(markdown);
-        } catch {
-          const copiedSuccessfully = fallbackCopyToClipboard(markdown);
-
-          if (!copiedSuccessfully) {
-            throw new Error('Clipboard copy failed');
-          }
-        }
-      } else {
-        const copiedSuccessfully = fallbackCopyToClipboard(markdown);
-
-        if (!copiedSuccessfully) {
-          throw new Error('Clipboard copy failed');
-        }
-      }
+      await copyToClipboard(markdown);
 
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);

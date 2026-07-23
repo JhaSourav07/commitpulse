@@ -3,6 +3,14 @@ import '@testing-library/jest-dom/vitest';
 import { describe, expect, it, vi } from 'vitest';
 import { WallOfLove } from './WallOfLove';
 
+vi.stubGlobal(
+  'fetch',
+  vi.fn().mockResolvedValue({
+    ok: true,
+    json: () => Promise.resolve({ success: true, reviews: [] }),
+  })
+);
+
 vi.mock('framer-motion', () => ({
   motion: {
     p: (props: React.ComponentProps<'p'>) => <p {...props} />,
