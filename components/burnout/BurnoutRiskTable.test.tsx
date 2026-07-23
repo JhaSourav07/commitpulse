@@ -1,9 +1,10 @@
+import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import BurnoutRiskTable from './BurnoutRiskTable';
 
 vi.mock('next/image', () => ({
-  default: (props: any) => {
+  default: (props: React.ComponentProps<'img'>) => {
     // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
     return <img {...props} />;
   },
