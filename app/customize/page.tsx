@@ -12,7 +12,7 @@ import { ExportPanel } from './components/ExportPanel';
 import InteractiveViewer from '@/components/InteractiveViewer';
 import { Footer } from '@/app/components/Footer';
 import DOMPurify from 'dompurify';
-import { Check, Link as LinkIcon } from 'lucide-react';
+import { Check, Link as LinkIcon, Moon, Sun, Grid } from 'lucide-react';
 import type {
   ExportFormat,
   Font,
@@ -22,6 +22,7 @@ import type {
   DeltaFormat,
   Language,
   Timezone,
+  PreviewBackgroundMode,
 } from './types';
 import { THEME_KEYS } from './types';
 
@@ -82,6 +83,7 @@ function CustomizePageInner(): ReactElement {
   const [language, setLanguage] = useState<Language>('en');
   const [timezone, setTimezone] = useState<Timezone>('UTC');
   const [exportFormat, setExportFormat] = useState<ExportFormat>('markdown');
+  const [previewBg, setPreviewBg] = useState<PreviewBackgroundMode>('dark');
   const [copied, setCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copyStatusMessage, setCopyStatusMessage] = useState('');
@@ -553,16 +555,78 @@ function CustomizePageInner(): ReactElement {
           >
             {/* Live Preview */}
             <div className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400 mb-5">
-                {t('customize.live_preview')}
-              </p>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400">
+                  {t('customize.live_preview')}
+                </p>
+
+                {/* GitHub Background Simulator Toggle */}
+                <div
+                  className="flex items-center gap-1 bg-gray-100 dark:bg-white/5 border border-black/5 dark:border-white/10 p-1 rounded-xl"
+                  aria-label="GitHub Background Simulator"
+                >
+                  <span className="text-[10px] font-bold uppercase text-gray-400 dark:text-white/40 px-1 hidden sm:inline select-none">
+                    BG Simulator
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewBg('dark')}
+                    aria-pressed={previewBg === 'dark'}
+                    title="GitHub Dark (#0D1117)"
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                      previewBg === 'dark'
+                        ? 'bg-zinc-800 text-white shadow-sm'
+                        : 'text-gray-500 dark:text-white/40 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <Moon size={12} />
+                    <span>Dark</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewBg('light')}
+                    aria-pressed={previewBg === 'light'}
+                    title="GitHub Light (#FFFFFF)"
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                      previewBg === 'light'
+                        ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
+                        : 'text-gray-500 dark:text-white/40 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <Sun size={12} />
+                    <span>Light</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewBg('checkerboard')}
+                    aria-pressed={previewBg === 'checkerboard'}
+                    title="Checkerboard Grid"
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                      previewBg === 'checkerboard'
+                        ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 shadow-sm border border-emerald-500/30'
+                        : 'text-gray-500 dark:text-white/40 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <Grid size={12} />
+                    <span>Grid</span>
+                  </button>
+                </div>
+              </div>
 
               {/* ─── MOVING THE INTERACTION LISTENER DIRECTLY TO THE OUTER WRAPPER CONTAINER ROW ─── */}
               <div className="group relative">
                 {/* Glow ring */}
                 <div className="absolute -inset-px bg-gradient-to-br from-emerald-500/20 to-purple-500/20 rounded-[1.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-lg pointer-events-none" />
 
-                <InteractiveViewer className="relative bg-white/60 backdrop-blur-md border border-black/10 dark:bg-black/40 dark:border-white/10 rounded-[1.25rem] flex items-center justify-center p-6 min-h-[280px]">
+                <InteractiveViewer
+                  className={`relative backdrop-blur-md rounded-[1.25rem] flex items-center justify-center p-6 min-h-[280px] transition-all duration-300 ${
+                    previewBg === 'light'
+                      ? 'bg-white border border-gray-200 text-gray-900 shadow-sm'
+                      : previewBg === 'checkerboard'
+                        ? 'bg-[#161b22] bg-[linear-gradient(45deg,#21262d_25%,transparent_25%),linear-gradient(-45deg,#21262d_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#21262d_75%),linear-gradient(-45deg,transparent_75%,#21262d_75%)] bg-[size:20px_20px] bg-[position:0_0,0_10px,10px_-10px,-10px_0px] border border-zinc-800 text-white'
+                        : 'bg-[#0d1117] border border-zinc-800 text-white'
+                  }`}
+                >
                   {/* Scanning line effect behind image */}
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-500/3 to-transparent animate-[pulse_3s_ease-in-out_infinite] pointer-events-none" />
 
@@ -703,6 +767,8 @@ function CustomizePageInner(): ReactElement {
               username={trimmedUsername}
               onFormatChange={setExportFormat}
               onCopy={copyExportSnippet}
+              previewBg={previewBg}
+              onPreviewBgChange={setPreviewBg}
               onExportConfig={() => {
                 exportConfig({
                   username,

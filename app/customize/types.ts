@@ -4,6 +4,8 @@ export type Scale = 'linear' | 'log' | 'sqrt';
 
 export type ExportFormat = 'markdown' | 'html' | 'action' | 'tsx';
 
+export type PreviewBackgroundMode = 'dark' | 'light' | 'checkerboard';
+
 export type ThemeKey = Extract<keyof typeof themes, string>;
 
 export type ThemeOption = ThemeKey | 'auto' | 'random';
