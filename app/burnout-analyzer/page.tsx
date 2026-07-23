@@ -40,6 +40,7 @@ export default function BurnoutAnalyzerPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [excludeBots, setExcludeBots] = useState(false);
 
   const handleSearch = async (e?: React.FormEvent, targetRepo?: string) => {
     if (e) e.preventDefault();
@@ -58,7 +59,7 @@ export default function BurnoutAnalyzerPage() {
 
     try {
       const res = await fetch(
-        `/api/repo-burnout?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`
+        `/api/repo-burnout?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}&excludeBots=${excludeBots}`
       );
       const data = await res.json();
 
@@ -84,7 +85,7 @@ export default function BurnoutAnalyzerPage() {
 
     try {
       const res = await fetch(
-        `/api/repo-burnout?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}&refresh=true`
+        `/api/repo-burnout?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}&refresh=true&excludeBots=${excludeBots}`
       );
       const data = await res.json();
 
@@ -135,6 +136,7 @@ export default function BurnoutAnalyzerPage() {
             <form onSubmit={(e) => handleSearch(e)} className="w-full mt-8 relative max-w-md">
               <div className="relative">
                 <input
+                  aria-label="Search repository"
                   type="text"
                   placeholder="e.g. facebook/react or vercel/next.js"
                   value={query}
@@ -153,6 +155,21 @@ export default function BurnoutAnalyzerPage() {
                 </button>
               </div>
             </form>
+
+            <div className="mt-4 flex items-center justify-between gap-3 w-full max-w-md bg-white/40 dark:bg-zinc-950/40 border border-black/5 dark:border-white/5 p-3 rounded-2xl">
+              <span className="text-xs font-semibold text-gray-700 dark:text-zinc-300">
+                Exclude Automated Bot Activity
+              </span>
+              <label className="relative inline-flex items-center cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={excludeBots}
+                  onChange={(e) => setExcludeBots(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-gray-205 dark:bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:after:bg-zinc-400 peer-checked:after:bg-indigo-500 after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-500/20 dark:peer-checked:bg-indigo-500/20 border border-black/5 dark:border-white/5"></div>
+              </label>
+            </div>
 
             {error && (
               <motion.p
@@ -231,6 +248,48 @@ export default function BurnoutAnalyzerPage() {
               isRefreshing={isRefreshing}
               report={report}
             />
+
+            <div className="flex justify-between items-center gap-3 bg-white/50 dark:bg-black/30 backdrop-blur-md border border-black/10 dark:border-white/5 px-5 py-3 rounded-2xl shadow-sm">
+              <div className="flex flex-col">
+                <span className="text-xs font-bold text-gray-750 dark:text-white">
+                  Exclude Bots & Dependency Accounts
+                </span>
+                <span className="text-[9px] text-[#A1A1AA] uppercase tracking-wider font-bold">
+                  Analytics Cleanse
+                </span>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={excludeBots}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setExcludeBots(checked);
+                    setTimeout(() => {
+                      const segments = report.repoName.split('/');
+                      if (segments.length === 2) {
+                        setIsLoading(true);
+                        setError(null);
+                        setReport(null);
+                        fetch(
+                          `/api/repo-burnout?owner=${encodeURIComponent(segments[0])}&repo=${encodeURIComponent(segments[1])}&excludeBots=${checked}`
+                        )
+                          .then(async (res) => {
+                            const data = await res.json();
+                            if (!res.ok)
+                              throw new Error(data.error || 'Failed to analyze repository.');
+                            setReport(data);
+                          })
+                          .catch((err) => setError(err.message))
+                          .finally(() => setIsLoading(false));
+                      }
+                    }, 0);
+                  }}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-gray-202 dark:bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:after:bg-zinc-400 peer-checked:after:bg-indigo-500 after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-500/20 dark:peer-checked:bg-indigo-500/20 border border-black/5 dark:border-white/5"></div>
+              </label>
+            </div>
 
             {error && (
               <div className="p-4 rounded-xl border border-rose-500/20 bg-rose-500/10 text-rose-500 text-xs font-semibold">

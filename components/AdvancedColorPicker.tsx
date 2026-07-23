@@ -315,6 +315,7 @@ export default function AdvancedColorPicker({
                   #
                 </span>
                 <input
+                  aria-label="Hex color code"
                   type="text"
                   value={value.replace('#', '')}
                   onChange={(e) => handleHexChange(e.target.value)}
@@ -334,6 +335,7 @@ export default function AdvancedColorPicker({
                       {ch}
                     </span>
                     <input
+                      aria-label="RGB color value"
                       type="number"
                       min={0}
                       max={255}

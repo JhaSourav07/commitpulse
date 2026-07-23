@@ -139,6 +139,19 @@ describe('useRecentSearches', () => {
     expect(result.current.searches).toEqual(['gaearon']);
   });
 
+  it('removes the last individual search and clears localStorage', () => {
+    const removeItemSpy = vi.spyOn(window.localStorage, 'removeItem');
+    const { result } = renderHook(() => useRecentSearches());
+    act(() => {
+      result.current.addSearch('torvalds');
+    });
+    act(() => {
+      result.current.removeSearch('torvalds');
+    });
+    expect(result.current.searches).toEqual([]);
+    expect(removeItemSpy).toHaveBeenCalledWith(STORAGE_KEY);
+  });
+
   it('persists searches across remounts', () => {
     const { result, unmount } = renderHook(() => useRecentSearches());
     act(() => {

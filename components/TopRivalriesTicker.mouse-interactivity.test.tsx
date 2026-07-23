@@ -73,7 +73,7 @@ describe('TopRivalriesTicker Mouse Interactivity', () => {
     render(<TopRivalriesTicker />);
 
     const kernelVsReact = screen.getAllByText('Kernel vs React')[0];
-    const platformWars = screen.getAllByText('Platform Wars')[0];
+    const platformWars = screen.getAllByText('Vercel & Netlify Founders')[0];
 
     const firstContainer = kernelVsReact.closest('div.group');
     const secondContainer = platformWars.closest('div.group');
@@ -88,7 +88,7 @@ describe('TopRivalriesTicker Mouse Interactivity', () => {
 
     expect(mockPush).toHaveBeenNthCalledWith(1, '/compare?user1=torvalds&user2=gaearon');
 
-    expect(mockPush).toHaveBeenNthCalledWith(2, '/compare?user1=vercel&user2=netlify');
+    expect(mockPush).toHaveBeenNthCalledWith(2, '/compare?user1=rauchg&user2=biilmann');
   });
 
   it('renders empty state safely without triggering navigation actions', () => {

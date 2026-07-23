@@ -21,3 +21,19 @@ export const fallbackCopyToClipboard = (text: string): boolean => {
     }
   }
 };
+
+export const copyToClipboard = async (text: string): Promise<void> => {
+  if (typeof navigator !== 'undefined' && navigator.clipboard) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch {
+      // Ignore error and fall through to fallback
+    }
+  }
+
+  const success = fallbackCopyToClipboard(text);
+  if (!success) {
+    throw new Error('Clipboard copy failed');
+  }
+};

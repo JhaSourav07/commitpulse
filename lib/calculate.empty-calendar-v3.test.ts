@@ -69,7 +69,8 @@ describe('calculateStreak — empty contribution calendar timeline (Variation 3)
       { date: '2026-05-02', count: 0 },
     ]);
 
-    // Today is 2026-06-05, calendar ends on 2026-05-02
+    // Today is 2026-06-05, calendar ends on 2026-05-02.
+    // All contributions are 0, so currentStreak=0. todayDate falls back to localTodayStr.
     const result = calculateStreak(calendar, 'UTC', new Date('2026-06-05T12:00:00Z'));
     expect(result.currentStreak).toBe(0);
     expect(result.longestStreak).toBe(0);

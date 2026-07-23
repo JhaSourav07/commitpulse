@@ -48,7 +48,13 @@ export function generateWeekdaySVG(
   params: BadgeParams,
   calendar: ContributionCalendar
 ): string {
-  const grouped = groupByWeekday(calendar);
+  let grouped = groupByWeekday(calendar);
+
+  if (params.hide_weekend) {
+    // Keep only Mon-Fri
+    grouped = grouped.filter((d, i) => i !== 0 && i !== 6);
+  }
+
   const max = Math.max(...grouped.map((d) => d.total), 1);
   const peakIndex = grouped.reduce((best, d, i, arr) => (d.total > arr[best].total ? i : best), 0);
 
@@ -59,7 +65,8 @@ export function generateWeekdaySVG(
   // Reserve ~40px at the top for the contributions subtitle and ~40px at the
   // bottom for the day-of-week labels, leaving the remainder for bar height.
   const chartHeight = height - 80;
-  const startX = (width - (7 * barWidth + 6 * gap)) / 2;
+  const numBars = grouped.length;
+  const startX = (width - (numBars * barWidth + (numBars - 1) * gap)) / 2;
 
   // params.accent can be HexColor | HexColor[] — normalize to a single color
   const accentColor = Array.isArray(params.accent)

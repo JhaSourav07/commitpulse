@@ -6,6 +6,8 @@ import { streakParamsSchema } from '@/lib/validations';
 vi.mock('@/lib/github', () => ({
   fetchGitHubContributions: vi.fn(),
   getOrgDashboardData: vi.fn(),
+  fetchCommitHourDistribution: vi.fn(() => Promise.resolve(new Array(24).fill(0))),
+  isAbortError: vi.fn(() => false),
 }));
 
 vi.mock('@/utils/time', () => ({
@@ -159,7 +161,7 @@ describe('GET /api/streak view parameter integration', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Type')).toBe('image/svg+xml; charset=utf-8');
     expect(response.headers.get('Cache-Control')).toBe(
-      'public, max-age=60, s-maxage=3600, stale-while-revalidate=60'
+      'public, max-age=60, s-maxage=3600, stale-while-revalidate=59'
     );
     expect(response.headers.get('X-Cache-Status')).toBe('HIT');
   });

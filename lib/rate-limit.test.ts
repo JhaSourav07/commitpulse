@@ -496,3 +496,26 @@ describe('getRateLimitHeaders', () => {
     expect(headers['Retry-After']).toBe('45');
   });
 });
+
+describe('[Bug fix] RateLimiter.cache type consistency', () => {
+  it('remaining() correctly reads back the in-memory counter without a type cast', async () => {
+    const limiter = new RateLimiter(5, 60000);
+    const ip = '203.0.113.5';
+
+    await limiter.check(ip);
+    await limiter.check(ip);
+    await limiter.check(ip);
+
+    const left = await limiter.remaining(ip);
+
+    expect(left).toBe(2); // 5 - 3 = 2
+    expect(typeof left).toBe('number');
+  });
+
+  it('remaining() returns the full limit for an IP with no recorded requests', async () => {
+    const limiter = new RateLimiter(5, 60000);
+    const left = await limiter.remaining('203.0.113.99');
+
+    expect(left).toBe(5);
+  });
+});

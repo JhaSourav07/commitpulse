@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { copyToClipboard } from '@/utils/clipboard';
+import { useState, useRef } from 'react';
 import { toast } from 'sonner';
 import type { ReactElement } from 'react';
 import type { ExportFormat } from '../types';
-import { getPlaceholderSnippet } from '../utils';
+import type { CustomizeOptions } from '../types';
+import { getPlaceholderSnippet, importConfig } from '../utils';
 import { useTranslation } from '@/context/TranslationContext';
 import { Copy, Check } from 'lucide-react';
 
@@ -22,6 +24,8 @@ export function ExportPanel({
   username,
   onFormatChange,
   onCopy,
+  onExportConfig = () => {},
+  onImportConfig = () => {},
 }: {
   format: ExportFormat;
   snippet: string;
@@ -31,6 +35,8 @@ export function ExportPanel({
   username: string;
   onFormatChange: (format: ExportFormat) => void;
   onCopy: () => void | Promise<void>;
+  onExportConfig?: () => void;
+  onImportConfig?: (options: CustomizeOptions) => void;
 }): ReactElement {
   const { t } = useTranslation();
   const activeSnippet = hasUsername ? snippet : getPlaceholderSnippet(format);
@@ -68,6 +74,31 @@ export function ExportPanel({
   const [isDownloading, setIsDownloading] = useState(false);
   const [filePathCopied, setFilePathCopied] = useState(false);
   const [markdownCopied, setMarkdownCopied] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const importFileRef = useRef<HTMLInputElement>(null);
+
+  const handleImportConfig = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Reset the input so the same file can be re-imported if needed
+    e.target.value = '';
+    if (!file) return;
+
+    setIsImporting(true);
+    try {
+      const text = await file.text();
+      const result = importConfig(text);
+      if (!result.ok) {
+        toast.error(result.error);
+      } else {
+        onImportConfig(result.options);
+        toast.success('Configuration imported successfully!');
+      }
+    } catch {
+      toast.error('Failed to read the config file. Please try again.');
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   const handleDownloadBadge = async () => {
     if (!hasUsername || !snippet) return;
@@ -81,6 +112,7 @@ export function ExportPanel({
 
       if (!targetUrl) {
         console.error('Could not parse the live API badge target URL from snippet.');
+        toast.error('Could not determine badge URL.');
         return;
       }
 
@@ -152,6 +184,8 @@ export function ExportPanel({
       setIsDownloading(false);
       console.error(err);
       toast.error('Failed to retrieve the latest badge asset. Please try again.');
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -236,6 +270,7 @@ export function ExportPanel({
 
           {/* Centered High-Definition Vector Download Button */}
           <button
+            id="download-svg-btn"
             type="button"
             onClick={handleDownloadBadge}
             disabled={!hasUsername || isDownloading || format === 'action'}
@@ -304,7 +339,7 @@ export function ExportPanel({
             type="button"
             onClick={async () => {
               try {
-                await navigator.clipboard.writeText(window.location.href);
+                await copyToClipboard(window.location.href);
                 toast.success('Configuration URL copied to clipboard!');
               } catch (err) {
                 console.error('Failed to copy URL', err);
@@ -331,6 +366,88 @@ export function ExportPanel({
               <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
             </svg>
             {t('customize.export.share_config', { defaultValue: 'Share Config' })}
+          </button>
+
+          {/* Export JSON Config Button */}
+          <button
+            id="export-config-btn"
+            type="button"
+            onClick={onExportConfig}
+            aria-label={t('customize.export.export_config_aria', {
+              defaultValue: 'Export current configuration to a JSON file',
+            })}
+            className="relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 hover:scale-[1.03] active:scale-[0.97]"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-3.5 h-3.5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="12" y1="18" x2="12" y2="12" />
+              <line x1="9" y1="15" x2="15" y2="15" />
+            </svg>
+            {t('customize.export.export_config', { defaultValue: 'Export Config' })}
+          </button>
+
+          {/* Import JSON Config Button + hidden file input */}
+          <input
+            ref={importFileRef}
+            type="file"
+            id="import-config-file-input"
+            accept=".json,application/json"
+            aria-label={t('customize.export.import_config_file_input_aria', {
+              defaultValue: 'Choose a CommitPulse config JSON file to import',
+            })}
+            className="sr-only"
+            onChange={handleImportConfig}
+          />
+          <button
+            id="import-config-btn"
+            type="button"
+            disabled={isImporting}
+            onClick={() => importFileRef.current?.click()}
+            aria-label={t('customize.export.import_config_aria', {
+              defaultValue: 'Import configuration from a JSON file',
+            })}
+            className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
+              isImporting
+                ? 'bg-gray-200/90 border border-black/10 text-gray-500 cursor-not-allowed dark:bg-white/10 dark:border-white/10 dark:text-white/35'
+                : 'bg-sky-500/10 border border-sky-500/30 text-sky-600 dark:text-sky-400 hover:bg-sky-500/20 hover:scale-[1.03] active:scale-[0.97]'
+            }`}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className={`w-3.5 h-3.5 ${isImporting ? 'animate-spin' : ''}`}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              {isImporting ? (
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+              ) : (
+                <>
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="12" y1="12" x2="12" y2="18" />
+                  <polyline points="9 15 12 18 15 15" />
+                </>
+              )}
+            </svg>
+            {isImporting
+              ? t('customize.export.importing', { defaultValue: 'Importing...' })
+              : t('customize.export.import_config', { defaultValue: 'Import Config' })}
           </button>
 
           {/* Clipboard Copy Button */}
@@ -425,7 +542,7 @@ export function ExportPanel({
               <button
                 type="button"
                 onClick={async () => {
-                  await navigator.clipboard.writeText('.github/workflows/commitpulse.yml');
+                  await copyToClipboard('.github/workflows/commitpulse.yml');
 
                   if ('vibrate' in navigator) {
                     navigator.vibrate(30);
@@ -477,7 +594,7 @@ export function ExportPanel({
               <button
                 type="button"
                 onClick={async () => {
-                  await navigator.clipboard.writeText('![CommitPulse](commitpulse.svg)');
+                  await copyToClipboard('![CommitPulse](commitpulse.svg)');
 
                   if ('vibrate' in navigator) {
                     navigator.vibrate(30);

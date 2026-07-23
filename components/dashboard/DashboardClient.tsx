@@ -1,5 +1,6 @@
 'use client';
 
+import { copyToClipboard } from '@/utils/clipboard';
 import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -46,6 +47,7 @@ import GoalTracker from './GoalTracker';
 import ActivityHeatmapPro from './ActivityHeatmapPro';
 import DeveloperJourneyTimeline from './DeveloperJourneyTimeline';
 import RepositoryContributionExplorer from './RepositoryContributionExplorer';
+import BotFilterToggle from './BotFilterToggle';
 
 // Define the dashboard data structure
 export interface DashboardData {
@@ -474,7 +476,7 @@ export default function DashboardClient({
           url: compareUrl,
         });
       } else {
-        await navigator.clipboard.writeText(compareUrl);
+        await copyToClipboard(compareUrl);
         toast.success('Comparison link copied!');
       }
     } catch (error) {
@@ -488,7 +490,7 @@ export default function DashboardClient({
 
   const handleShareDashboard = async () => {
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      await copyToClipboard(window.location.href);
       toast.success('Link copied to clipboard!');
     } catch {
       toast.error('Failed to copy dashboard link');
@@ -725,6 +727,7 @@ export default function DashboardClient({
                     activity: initialData.activity,
                   }}
                 />
+                <BotFilterToggle />
                 <Achievements achievements={initialData.achievements} />
                 <ResumeProfileSection githubUsername={username} />
                 <DeploymentTracker data={initialData.deployments} />

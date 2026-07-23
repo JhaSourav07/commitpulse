@@ -64,7 +64,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const { user, refresh, bypassCache: bypassCacheParam, tz } = parseResult.data;
+  const { user, refresh, bypassCache: bypassCacheParam, tz, excludeBots } = parseResult.data;
   // Treat either ?refresh=true or ?bypassCache=true as a cache-bypass request
   const isRefreshRequested = refresh || bypassCacheParam;
 
@@ -128,13 +128,14 @@ export async function GET(request: Request) {
     const userData = await fetchGitHubContributions(user, {
       bypassCache: shouldBypassCache,
       token: userToken,
+      excludeBots,
     });
 
     const calendar = userData.calendar;
     const stats = calculateStreak(calendar, timezone);
     const headers = new Headers({
       // Cache until next UTC midnight; clients can bust with ?refresh=true
-      'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+      'Cache-Control': 'public, s-maxage=1, stale-while-revalidate=59',
     });
 
     if (shouldBypassCache) {

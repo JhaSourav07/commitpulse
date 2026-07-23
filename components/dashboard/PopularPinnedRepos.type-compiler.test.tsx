@@ -13,6 +13,7 @@ interface Repository {
     name: string;
     color: string;
   } | null;
+  updatedAt?: string;
 }
 
 describe('PopularRepos Type Compiler Validation', () => {

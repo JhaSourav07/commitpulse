@@ -96,6 +96,18 @@ describe('Footer Component', () => {
     expect(screen.getByRole('link', { name: /GitHub Repository/i })).toBeInTheDocument();
   });
 
+  it('renders readable footer labels instead of exposing localization keys', () => {
+    render(<Footer />);
+
+    expect(screen.getByRole('link', { name: /^Guidelines$/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^Support$/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^FAQ$/i })).toBeInTheDocument();
+
+    expect(screen.queryByText('footer.guidelines')).not.toBeInTheDocument();
+    expect(screen.queryByText('footer.support')).not.toBeInTheDocument();
+    expect(screen.queryByText('footer.faq')).not.toBeInTheDocument();
+  });
+
   it('includes Connect section with social media links', () => {
     render(<Footer />);
 
