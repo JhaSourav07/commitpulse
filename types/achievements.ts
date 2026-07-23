@@ -1,4 +1,4 @@
-﻿export type AchievementTier = 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond';
+export type AchievementTier = 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond';
 
 export type AchievementRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
 
@@ -131,9 +131,9 @@ export const ACHIEVEMENT_TIER_COLORS: Record<AchievementTier, string> = {
 };
 
 export const CATEGORY_META: Record<AchievementCategory, { label: string; icon: string }> = {
-  contribution: { label: 'Contribution', icon: '≡ƒöÑ' },
-  'pull-request': { label: 'Pull Requests', icon: '≡ƒÜÇ' },
-  repository: { label: 'Repository', icon: 'Γ¡É' },
-  collaboration: { label: 'Collaboration', icon: '≡ƒñ¥' },
-  technology: { label: 'Technology', icon: '≡ƒºá' },
+  contribution: { label: 'Contribution', icon: '🔥' },
+  'pull-request': { label: 'Pull Requests', icon: '🚀' },
+  repository: { label: 'Repository', icon: '⭐' },
+  collaboration: { label: 'Collaboration', icon: '🤝' },
+  technology: { label: 'Technology', icon: '🧠' },
 };
