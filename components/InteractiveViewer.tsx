@@ -1,11 +1,11 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useRef, ReactNode, useMemo, useEffect, type ReactElement } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence } from 'framer-motion';
 import VisualizationTooltip from './dashboard/VisualizationTooltip';
 
-// ── Parallax particle configuration ──────────────────────────────────────────
+// ΓöÇΓöÇ Parallax particle configuration ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 // Particles are generated deterministically so SSR and client renders match,
 // preventing React hydration mismatches.
 const PARALLAX_PARTICLE_COUNT = 20;
@@ -16,7 +16,7 @@ interface ParallaxParticle {
   y: number; // base Y position as percentage of container height
   size: number; // side length in px
   opacity: number; // resting opacity (intentionally subtle)
-  depth: number; // parallax depth multiplier (0–1); deeper = more shift on mouse move
+  depth: number; // parallax depth multiplier (0ΓÇô1); deeper = more shift on mouse move
   color: string;
   isCircle: boolean; // mix of rounded and square contribution cells
 }
@@ -32,12 +32,12 @@ function buildParticles(): ParallaxParticle[] {
       // Spread particles across the container using prime-number strides
       x: (i * 17 + 11) % 100,
       y: (i * 23 + 7) % 100,
-      size: 4 + (i % 5) * 2, // range: 4–12 px
+      size: 4 + (i % 5) * 2, // range: 4ΓÇô12 px
       // Keep opacity low so particles never obscure the badge
-      opacity: 0.05 + (i % 4) * 0.025, // range: 0.05–0.125
+      opacity: 0.05 + (i % 4) * 0.025, // range: 0.05ΓÇô0.125
       // Vary depth so each "layer" of particles shifts by a different amount,
       // creating the illusion of 3-D depth. depth 0.1 = farthest; 0.7 = nearest.
-      depth: 0.1 + (i % 6) * 0.1, // range: 0.1–0.6
+      depth: 0.1 + (i % 6) * 0.1, // range: 0.1ΓÇô0.6
       color: colors[i % colors.length],
       isCircle: i % 4 === 0,
     })
@@ -118,10 +118,10 @@ export default function InteractiveViewer({
     setMounted(true);
   }, []);
 
-  // Stable particle list — generated once on mount, never re-shuffled.
+  // Stable particle list ΓÇö generated once on mount, never re-shuffled.
   const particles = useMemo((): ParallaxParticle[] => buildParticles(), []);
 
-  // ── Parallax math ──────────────────────────────────────────────────────────
+  // ΓöÇΓöÇ Parallax math ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   // Offset from center: at mousePos.x = 0.5, offset = 0 (no shift).
   // At the left edge (0), offset = -STRENGTH/2; at right (1), offset = +STRENGTH/2.
   const hoverParallaxX = (mousePos.x - 0.5) * PARALLAX_STRENGTH;
@@ -132,7 +132,7 @@ export default function InteractiveViewer({
   const parallaxX = hoverParallaxX + pan.x;
   const parallaxY = hoverParallaxY + pan.y;
 
-  // ── Keyboard navigation ────────────────────────────────────────────────────
+  // ΓöÇΓöÇ Keyboard navigation ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>): void => {
     // Ignore if user is typing in an input or textarea
     if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName || '')) return;
@@ -205,7 +205,7 @@ export default function InteractiveViewer({
     e.preventDefault();
   };
 
-  // ── Pointer events ─────────────────────────────────────────────────────────
+  // ΓöÇΓöÇ Pointer events ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const handlePointerDown = (e: React.PointerEvent): void => {
     isDragging.current = true;
     setIsDraggingState(true);
@@ -357,7 +357,7 @@ export default function InteractiveViewer({
       onDoubleClick={handleDoubleClick}
       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
     >
-      {/* ── Parallax background layer ──────────────────────────────────────────
+      {/* ΓöÇΓöÇ Parallax background layer ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
            This layer renders behind the card content (DOM order + z-index).
            It reacts to the cursor without touching the badge SVG or its animations. */}
       <div
@@ -365,7 +365,7 @@ export default function InteractiveViewer({
         aria-hidden="true"
         data-testid="parallax-bg-layer"
       >
-        {/* Cursor-following radial glow — softly illuminates the area under the cursor */}
+        {/* Cursor-following radial glow ΓÇö softly illuminates the area under the cursor */}
         <div
           data-testid="parallax-cursor-glow"
           style={{
@@ -385,7 +385,7 @@ export default function InteractiveViewer({
           }}
         />
 
-        {/* Ambient lighting — a broad, soft gradient that shifts with the cursor quadrant,
+        {/* Ambient lighting ΓÇö a broad, soft gradient that shifts with the cursor quadrant,
              making the overall card background feel responsive to where the user looks */}
         <div
           style={{
@@ -400,7 +400,7 @@ export default function InteractiveViewer({
 
         {/* Floating contribution squares at varying parallax depths.
              Each particle shifts by (parallaxX * depth, parallaxY * depth) px relative
-             to its base position, so "closer" particles (higher depth) shift more —
+             to its base position, so "closer" particles (higher depth) shift more ΓÇö
              creating the impression of a multi-layered isometric space. */}
         {particles.map(
           (particle): ReactElement => (
@@ -429,7 +429,7 @@ export default function InteractiveViewer({
         )}
       </div>
 
-      {/* ── Card content ──────────────────────────────────────────────────────
+      {/* ΓöÇΓöÇ Card content ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
            Rendered above the parallax layer via DOM order; position:relative +
            zIndex ensures the badge always sits in front of the background. */}
       <div
