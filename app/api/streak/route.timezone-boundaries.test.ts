@@ -83,6 +83,7 @@ describe('ApiStreakRoute Timezone Normalization & Calendar Boundary Alignment', 
       makeRequest({
         user: 'octocat',
         tz: 'Asia/Kolkata',
+        format: 'png',
       })
     );
 

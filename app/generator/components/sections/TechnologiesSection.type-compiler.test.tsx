@@ -34,10 +34,10 @@ describe('TechnologiesSection Type Compiler Validation (Variation 10)', () => {
 
   // 2. Verify required properties remain required and optional properties remain optional.
   it('2. verifies required properties remain required and optional properties remain optional', () => {
-    // Check required properties of TechnologiesSectionProps using Required utility
-    expectTypeOf<Required<TechnologiesSectionProps>>().toEqualTypeOf<TechnologiesSectionProps>();
+    // Check required properties of TechnologiesSectionProps
     expectTypeOf<TechnologiesSectionProps['selected']>().not.toBeUndefined();
     expectTypeOf<TechnologiesSectionProps['onChange']>().not.toBeUndefined();
+    expectTypeOf<TechnologiesSectionProps['onReset']>().toEqualTypeOf<(() => void) | undefined>();
 
     // Check required properties of Technology
     expectTypeOf<Required<Technology>>().toEqualTypeOf<Technology>();

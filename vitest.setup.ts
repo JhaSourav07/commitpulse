@@ -45,6 +45,34 @@ vi.mock('next/headers', () => {
   };
 });
 
+// Automatically inject Origin header to satisfy CSRF protection in API tests
+vi.mock('next/server', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('next/server')>();
+  class MockNextRequest extends actual.NextRequest {
+    constructor(input: URL | RequestInfo, init?: RequestInit) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      super(input, init as any);
+      if (!this.headers.has('origin') && !this.headers.has('referer')) {
+        this.headers.set('origin', 'https://commitpulse.vercel.app');
+      }
+    }
+  }
+  return {
+    ...actual,
+    NextRequest: MockNextRequest,
+  };
+});
+
+const OriginalRequest = globalThis.Request;
+globalThis.Request = class extends OriginalRequest {
+  constructor(input: RequestInfo | URL, init?: RequestInit) {
+    super(input, init);
+    if (!this.headers.has('origin') && !this.headers.has('referer')) {
+      this.headers.set('origin', 'https://commitpulse.vercel.app');
+    }
+  }
+} as typeof Request;
+
 // Custom Storage prototype override to fix Node.js v25+ experimental localStorage incompatibility with JSDOM
 if (typeof window !== 'undefined' && typeof window.Storage !== 'undefined') {
   const stores = new WeakMap<object, Map<string, string>>();
@@ -171,6 +199,19 @@ if (typeof globalThis.fetch !== 'undefined') {
       return originalFetch(url, init);
     }
 
+    // Allow specific API endpoints that components use (these should be mocked in tests)
+    if (normalizedUrl.includes('/api/reviews/approved') || normalizedUrl.includes('/api/reviews')) {
+      // Return a mock successful response for these endpoints
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ success: true, reviews: [] }),
+      } as Response);
+    }
+
+    throw new Error(
+      `[Vitest Guard] Blocked outbound network request to: ${urlString}. ` +
+        `Do not make real network requests in unit tests. Please mock global.fetch or use MSW.`
+    );
     return Promise.resolve({
       ok: true,
       status: 200,

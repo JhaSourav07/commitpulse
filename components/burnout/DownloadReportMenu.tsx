@@ -2,20 +2,30 @@
 
 import { copyToClipboard } from '@/utils/clipboard';
 import { useState } from 'react';
-import { Download, FileText, Copy, FileDown, Check } from 'lucide-react';
+import { Download, FileText, Copy, FileDown, Check, FileCode, Link } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { BurnoutReport } from '@/services/github/burnout-analyzer';
 import jsPDF from 'jspdf';
 
 export default function DownloadReportMenu({ report }: { report: BurnoutReport }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedSummary, setCopiedSummary] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const triggerToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 2800);
+  };
 
   const generateMarkdown = () => {
     const date = new Date().toLocaleDateString();
     let md = `# Team Health Report: ${report.repoName}\n\n`;
     md += `**Analysis Date:** ${date}\n\n`;
-    md += `## Overall Risk: ${report.dependencyRisk}\n\n`;
+    md += `## Sustainability Score: ${report.sustainabilityScore}/100\n`;
+    md += `## Dependency Risk (Bus Factor ${report.busFactor}): ${report.dependencyRisk}\n\n`;
     md += `### Key Findings:\n`;
 
     if (report.contributors.length > 0) {
@@ -23,7 +33,7 @@ export default function DownloadReportMenu({ report }: { report: BurnoutReport }
       const topShare = report.contributors
         .slice(0, topCount)
         .reduce((acc, c) => acc + c.commitShare, 0);
-      md += `- ${topCount} contributors handled ${Math.round(topShare)}% of recent commits.\n`;
+      md += `- ${topCount} contributor(s) handled ${Math.round(topShare)}% of recent commits.\n`;
     }
 
     const inactiveCount = report.inactivityAlerts.length;
@@ -38,7 +48,7 @@ export default function DownloadReportMenu({ report }: { report: BurnoutReport }
       md += `- Maintenance load is fairly distributed among active contributors.\n`;
     }
 
-    md += `\n### Recommendations:\n`;
+    md += `\n### AI Recommendations:\n`;
     if (report.recommendations.length > 0) {
       report.recommendations.forEach((rec) => {
         const cleanRec = rec.replace('[AI Recommendation] ', '');
@@ -52,28 +62,58 @@ export default function DownloadReportMenu({ report }: { report: BurnoutReport }
     return md;
   };
 
+  const handleDownloadJson = () => {
+    const jsonStr = JSON.stringify(report, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${report.repoName.replace('/', '-')}-burnout-report.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setIsOpen(false);
+    triggerToast('✓ JSON report downloaded!');
+  };
+
   const handleDownloadMd = () => {
     const md = generateMarkdown();
     const blob = new Blob([md], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${report.repoName.replace('/', '-')}-health-report.md`;
+    a.download = `${report.repoName.replace('/', '-')}-burnout-report.md`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     setIsOpen(false);
+    triggerToast('✓ Markdown report downloaded!');
+  };
+
+  const handleCopyShareLink = async () => {
+    const [owner, repo] = report.repoName.split('/');
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const shareUrl = `${origin}/burnout-analyzer?owner=${encodeURIComponent(owner || '')}&repo=${encodeURIComponent(repo || '')}`;
+    await copyToClipboard(shareUrl);
+    setCopiedLink(true);
+    triggerToast('✓ Share link copied to clipboard!');
+    setTimeout(() => {
+      setCopiedLink(false);
+      setIsOpen(false);
+    }, 1800);
   };
 
   const handleCopySummary = async () => {
     const md = generateMarkdown();
     await copyToClipboard(md);
-    setCopied(true);
+    setCopiedSummary(true);
+    triggerToast('✓ Markdown report copied to clipboard!');
     setTimeout(() => {
-      setCopied(false);
+      setCopiedSummary(false);
       setIsOpen(false);
-    }, 2000);
+    }, 1800);
   };
 
   const handleDownloadPdf = () => {
@@ -84,8 +124,9 @@ export default function DownloadReportMenu({ report }: { report: BurnoutReport }
     doc.setFontSize(12);
     const lines = doc.splitTextToSize(md, 180);
     doc.text(lines, 10, 30);
-    doc.save(`${report.repoName.replace('/', '-')}-health-report.pdf`);
+    doc.save(`${report.repoName.replace('/', '-')}-burnout-report.pdf`);
     setIsOpen(false);
+    triggerToast('✓ PDF report downloaded!');
   };
 
   return (
@@ -95,8 +136,8 @@ export default function DownloadReportMenu({ report }: { report: BurnoutReport }
         className="flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-sm font-medium transition-colors shadow-sm active:scale-95"
       >
         <Download size={16} />
-        <span className="hidden sm:inline">Download Report</span>
-        <span className="sm:hidden">Report</span>
+        <span className="hidden sm:inline">Export Report</span>
+        <span className="sm:hidden">Export</span>
       </button>
 
       <AnimatePresence>
@@ -106,35 +147,70 @@ export default function DownloadReportMenu({ report }: { report: BurnoutReport }
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 mt-2 w-56 bg-white dark:bg-[#111] border border-black/10 dark:border-white/10 rounded-xl shadow-lg overflow-hidden z-50"
+            className="absolute right-0 mt-2 w-60 bg-white dark:bg-[#111] border border-black/10 dark:border-white/10 rounded-xl shadow-lg overflow-hidden z-50"
           >
-            <div className="p-1 flex flex-col">
+            <div className="p-1.5 flex flex-col gap-0.5">
+              <button
+                onClick={handleDownloadJson}
+                className="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors text-left"
+              >
+                <FileCode size={15} className="text-indigo-500" />
+                Download as JSON
+              </button>
+
               <button
                 onClick={handleDownloadMd}
-                className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors text-left"
+                className="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors text-left"
               >
-                <FileText size={16} className="text-gray-400" />
-                Download as Markdown
+                <FileText size={15} className="text-blue-500" />
+                Export as Markdown
               </button>
+
               <button
-                onClick={handleDownloadPdf}
-                className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors text-left"
+                onClick={handleCopyShareLink}
+                className="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors text-left"
               >
-                <FileDown size={16} className="text-gray-400" />
-                Download as PDF
+                {copiedLink ? (
+                  <Check size={15} className="text-emerald-500" />
+                ) : (
+                  <Link size={15} className="text-purple-500" />
+                )}
+                {copiedLink ? 'Link Copied!' : 'Copy Share Link'}
               </button>
+
               <button
                 onClick={handleCopySummary}
-                className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors text-left"
+                className="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors text-left"
               >
-                {copied ? (
-                  <Check size={16} className="text-emerald-500" />
+                {copiedSummary ? (
+                  <Check size={15} className="text-emerald-500" />
                 ) : (
-                  <Copy size={16} className="text-gray-400" />
+                  <Copy size={15} className="text-amber-500" />
                 )}
-                {copied ? 'Copied!' : 'Copy Summary'}
+                {copiedSummary ? 'Summary Copied!' : 'Copy Markdown Summary'}
+              </button>
+
+              <button
+                onClick={handleDownloadPdf}
+                className="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors text-left"
+              >
+                <FileDown size={15} className="text-rose-500" />
+                Download as PDF
               </button>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.95 }}
+            className="fixed bottom-6 right-6 z-50 px-4 py-2.5 bg-gray-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-semibold rounded-xl shadow-xl border border-black/10 dark:border-white/10 flex items-center gap-2 pointer-events-none"
+          >
+            <span>{toastMessage}</span>
           </motion.div>
         )}
       </AnimatePresence>

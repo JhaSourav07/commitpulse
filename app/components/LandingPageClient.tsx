@@ -386,7 +386,24 @@ export default function LandingPageClient() {
     link.click();
     document.body.removeChild(link);
   };
+  const handleCopySvg = async () => {
+    try {
+      const response = await fetch(badgeUrl);
 
+      if (!response.ok) {
+        throw new Error('Failed to fetch SVG');
+      }
+
+      const svgText = await response.text();
+
+      await navigator.clipboard.writeText(svgText);
+
+      alert('SVG copied to clipboard!');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to copy SVG.');
+    }
+  };
   const DownloadPDF = async () => {
     try {
       const response = await fetch(badgeUrl);
@@ -956,7 +973,12 @@ export default function LandingPageClient() {
                               defaultValue: 'Download SVG',
                             })}
                           </button>
-
+                          <button
+                            onClick={handleCopySvg}
+                            className="px-4 py-2 rounded-lg bg-purple-600 text-sm font-medium text-white hover:bg-purple-800 transition-colors"
+                          >
+                            Copy SVG
+                          </button>
                           <button
                             onClick={DownloadPDF}
                             className="px-4 py-2 rounded-lg bg-emerald-600 text-sm font-medium text-white hover:bg-emerald-800 transition-colors"

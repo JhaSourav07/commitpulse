@@ -229,7 +229,7 @@ export default function AdvancedColorPicker({
           <button
             type="button"
             onClick={() => setActiveTab('presets')}
-            className={`flex-1 text-xs font-medium py-1.5 rounded-md transition-all ${
+            className={`flex-1 text-xs font-medium py-1.5 rounded-md transition-all focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${
               activeTab === 'presets'
                 ? 'bg-zinc-700 dark:bg-white text-zinc-100 dark:text-slate-900 shadow-sm'
                 : 'text-zinc-400 dark:text-slate-400 hover:text-zinc-200 dark:hover:text-slate-700'
@@ -241,7 +241,7 @@ export default function AdvancedColorPicker({
         <button
           type="button"
           onClick={() => setActiveTab('picker')}
-          className={`flex-1 text-xs font-medium py-1.5 rounded-md transition-all ${
+          className={`flex-1 text-xs font-medium py-1.5 rounded-md transition-all focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 outline-none ${
             activeTab === 'picker'
               ? 'bg-zinc-700 dark:bg-white text-zinc-100 dark:text-slate-900 shadow-sm'
               : 'text-zinc-400 dark:text-slate-400 hover:text-zinc-200 dark:hover:text-slate-700'
@@ -258,6 +258,8 @@ export default function AdvancedColorPicker({
               key={hex}
               type="button"
               title={label}
+              aria-label={label}
+              aria-pressed={value === hex}
               onClick={() => updateColor(hex)}
               className={`w-9 h-9 rounded-full transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500 ${
                 value === hex
@@ -277,7 +279,9 @@ export default function AdvancedColorPicker({
               ref={spectrumCanvasRef}
               width={spectrumSize}
               height={Math.round(spectrumSize * 0.5)}
-              className="w-full rounded-lg cursor-crosshair"
+              className="w-full rounded-lg cursor-crosshair focus-visible:ring-2 focus-visible:ring-blue-500 outline-none"
+              tabIndex={0}
+              aria-label="Color spectrum canvas"
               style={{ height: `${Math.round(spectrumSize * 0.5)}px` }}
               onMouseDown={(e) => {
                 draggingRef.current = 'spectrum';
@@ -295,7 +299,9 @@ export default function AdvancedColorPicker({
               ref={hueCanvasRef}
               width={spectrumSize}
               height={hueHeight}
-              className="w-full rounded-md cursor-pointer"
+              className="w-full rounded-md cursor-pointer focus-visible:ring-2 focus-visible:ring-blue-500 outline-none"
+              tabIndex={0}
+              aria-label="Color hue slider"
               style={{ height: `${hueHeight}px` }}
               onMouseDown={(e) => {
                 draggingRef.current = 'hue';
@@ -325,7 +331,7 @@ export default function AdvancedColorPicker({
                     hexError
                       ? 'border-red-500 text-red-400 dark:text-red-600'
                       : 'border-zinc-700 dark:border-slate-400 text-zinc-200 dark:text-slate-800'
-                  } focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors`}
+                  } focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors`}
                 />
               </div>
               <div className="flex items-center gap-1">
@@ -341,7 +347,7 @@ export default function AdvancedColorPicker({
                       max={255}
                       value={rgb[ch]}
                       onChange={(e) => handleRgbChange(ch, e.target.value)}
-                      className="w-10 px-1 py-1 text-[10px] font-mono rounded-md border border-zinc-700 dark:border-slate-400 bg-zinc-900 dark:bg-slate-100 text-zinc-200 dark:text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      className="w-10 px-1 py-1 text-[10px] font-mono rounded-md border border-zinc-700 dark:border-slate-400 bg-zinc-900 dark:bg-slate-100 text-zinc-200 dark:text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                   </div>
                 ))}
@@ -358,7 +364,8 @@ export default function AdvancedColorPicker({
                 onClick={handleEyedropper}
                 disabled={isPicking}
                 title="Pick color from page"
-                className="w-8 h-8 flex items-center justify-center rounded-md border border-zinc-700 dark:border-slate-400 bg-zinc-900 dark:bg-slate-100 hover:bg-zinc-800 dark:hover:bg-slate-200 transition-colors disabled:opacity-50"
+                aria-label="Pick color from page"
+                className="w-8 h-8 flex items-center justify-center rounded-md border border-zinc-700 dark:border-slate-400 bg-zinc-900 dark:bg-slate-100 hover:bg-zinc-800 dark:hover:bg-slate-200 focus-visible:ring-2 focus-visible:ring-blue-500 outline-none transition-colors disabled:opacity-50"
               >
                 {isPicking ? (
                   <svg

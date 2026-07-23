@@ -26,6 +26,15 @@ const eslintConfig = defineConfig([
   {
     rules: {
       'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+        },
+      ],
     },
   },
   {
@@ -33,9 +42,19 @@ const eslintConfig = defineConfig([
       '**/*.test.{js,jsx,ts,tsx}',
       '**/__tests__/**/*.{js,jsx,ts,tsx}',
       'scripts/**/*.{js,jsx,ts,tsx}',
+      'test-utils/**/*.{js,jsx,ts,tsx}',
     ],
     rules: {
       'no-console': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+        },
+      ],
     },
   },
 ]);

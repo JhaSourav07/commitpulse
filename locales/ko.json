@@ -159,8 +159,11 @@
       "copy_aria_enabled": "{{format}} 내보내기 스니펫을 클립보드에 복사",
       "footer_tip": "이것을 GitHub 프로필 README.md 파일에 붙여넣으세요. 배지는 서버 측에서 렌더링되므로 스크립트가 필요하지 않습니다.",
       "tsx": "React TSX",
-      "download_svg": "Download SVG",
-      "download_png": "Download PNG"
+      "download_svg": "SVG 다운로드",
+      "download_png": "PNG 다운로드",
+      "download_webp": "WebP 다운로드",
+      "download_pdf": "PDF 다운로드",
+      "export_as": "다른 형식으로 내보내기"
     }
   },
   "dashboard": {

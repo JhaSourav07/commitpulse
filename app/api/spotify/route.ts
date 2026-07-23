@@ -3,6 +3,8 @@
 import { NextResponse } from 'next/server';
 import { getCurrentlyPlaying } from '@/services/spotify/api';
 import { generateSpotifySVG } from '@/lib/svg/spotify';
+import { buildInlineErrorSVG } from '@/lib/svg/generator';
+import { resolveErrorTheme } from '@/lib/svg/themes';
 import { spotifyParamsSchema, coerceQueryParams } from '@/lib/validations';
 import { optimizeSVG } from '@/lib/svg/optimizer';
 import crypto from 'crypto';
@@ -39,10 +41,13 @@ export async function GET(request: Request) {
       fieldErrors.formErrors[0] ??
       'Invalid parameters';
 
-    const errorSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="150" viewBox="0 0 400 150">
-      <rect width="400" height="150" fill="#2d0000" rx="8"/>
-      <text x="200" y="75" text-anchor="middle" dominant-baseline="central" fill="#ffcccc" font-family="sans-serif" font-size="13">${firstError}</text>
-    </svg>`;
+    const errTheme = resolveErrorTheme(searchParams);
+    const errorSvg = buildInlineErrorSVG(firstError, {
+      bg: errTheme.bg,
+      accent: errTheme.accent,
+      text: errTheme.text,
+      radius: errTheme.radius,
+    });
 
     return new NextResponse(errorSvg, {
       status: 400,
