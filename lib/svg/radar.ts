@@ -66,7 +66,15 @@ function calculateRadarMetrics(
   }
 
   // 5. Growth: using monthly delta
-  const monthly = calculateMonthlyStats(calendar, 'UTC', new Date());
+  let refDate: Date | undefined;
+  if (calendar?.weeks?.length) {
+    const lastWeek = calendar.weeks[calendar.weeks.length - 1];
+    const lastDay = lastWeek?.contributionDays?.[lastWeek.contributionDays.length - 1];
+    if (lastDay?.date) {
+      refDate = new Date(lastDay.date);
+    }
+  }
+  const monthly = calculateMonthlyStats(calendar, 'UTC', refDate || new Date());
   let growth = 0.5; // neutral
   if (monthly.deltaPercentage !== null) {
     growth = Math.min(1, Math.max(0, 0.5 + monthly.deltaPercentage / 200));
