@@ -3,6 +3,10 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { EditorPanel } from './EditorPanel';
 import type { GeneratorState } from '../types';
 
+vi.mock('@/hooks/useGitHubUserExists', () => ({
+  useGitHubUserExists: vi.fn().mockReturnValue({ status: 'idle', avatarUrl: null }),
+}));
+
 const mockState: GeneratorState = {
   name: 'Original Name',
   description: 'Original Description',
