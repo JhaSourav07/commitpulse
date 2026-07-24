@@ -8,20 +8,20 @@ export function sanitizeMongoPayload<T>(input: T): T {
   }
 
   if (Array.isArray(input)) {
+    const cloned = [];
     for (let i = 0; i < input.length; i++) {
-      input[i] = sanitizeMongoPayload(input[i]);
+      cloned.push(sanitizeMongoPayload(input[i]));
     }
-    return input;
+    return cloned as unknown as T;
   }
 
   const obj = input as Record<string, unknown>;
+  const result: Record<string, unknown> = {};
   for (const key of Object.keys(obj)) {
-    if (key.startsWith('$')) {
-      delete obj[key];
-    } else {
-      obj[key] = sanitizeMongoPayload(obj[key]);
+    if (!key.startsWith('$')) {
+      result[key] = sanitizeMongoPayload(obj[key]);
     }
   }
 
-  return input;
+  return result as T;
 }
