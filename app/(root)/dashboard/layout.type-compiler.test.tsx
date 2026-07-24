@@ -22,32 +22,32 @@ describe('DashboardLayout - TypeScript Compiler Validation & Schema Constraints 
     expectTypeOf<Params[0]>().toEqualTypeOf<{
       children: React.ReactNode;
     }>();
+  });
 
-    it('asserts invalid prop shapes are rejected at compile time', () => {
-      const element = (
-        // @ts-expect-error - DashboardLayout does not accept arbitrary props
-        <DashboardLayout invalidProp="test">
-          <div />
-        </DashboardLayout>
-      );
+  it('asserts invalid prop shapes are rejected at compile time', () => {
+    const element = (
+      // @ts-expect-error - DashboardLayout does not accept arbitrary props
+      <DashboardLayout invalidProp="test">
+        <div />
+      </DashboardLayout>
+    );
 
-      expect(element).toBeDefined();
-    });
+    expect(element).toBeDefined();
+  });
 
-    it('verifies valid ReactNode children compile successfully and render', () => {
-      const { container } = render(
-        <DashboardLayout>
-          <div>Dashboard</div>
-        </DashboardLayout>
-      );
+  it('verifies valid ReactNode children compile successfully and render', () => {
+    const { container } = render(
+      <DashboardLayout>
+        <div>Dashboard</div>
+      </DashboardLayout>
+    );
 
-      expect(container.firstChild).toBeInTheDocument();
-    });
+    expect(container.firstChild).toBeInTheDocument();
+  });
 
-    it('validates component return type constraints remain stable', () => {
-      type JSXElement = React.JSX.Element;
+  it('validates component return type constraints remain stable', () => {
+    type JSXElement = React.JSX.Element;
 
-      expectTypeOf<ReturnType<typeof DashboardLayout>>().toMatchTypeOf<JSXElement>();
-    });
+    expectTypeOf<ReturnType<typeof DashboardLayout>>().toMatchTypeOf<JSXElement>();
   });
 });
