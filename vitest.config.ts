@@ -33,6 +33,22 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
+      include: [
+        'app/**/*.{ts,tsx}',
+        'lib/**/*.{ts,tsx}',
+        'services/**/*.{ts,tsx}',
+        'components/**/*.{ts,tsx}',
+        'utils/**/*.{ts,tsx}',
+        'src/**/*.{ts,tsx}',
+      ],
+      exclude: [
+        '**/*.test.{ts,tsx}',
+        '**/*.spec.{ts,tsx}',
+        '**/__tests__/**',
+        '**/*.d.ts',
+        '**/node_modules/**',
+        '**/.next/**',
+      ],
       thresholds: {
         statements: 50,
         branches: 50,

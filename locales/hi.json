@@ -30,7 +30,30 @@
     "discord": "डिस्कॉर्ड",
     "twitter": "ट्विटर",
     "linkedin": "लिंक्डइन",
-    "generator": "जनरेटर"
+    "generator": "जनरेटर",
+    "guidelines": "दिशानिर्देश",
+    "faq": "सामान्य प्रश्न",
+    "support": "सहायता",
+    "privacy": "गोपनीयता नीति",
+    "terms": "उपयोग की शर्तें"
+  },
+  "faq": {
+    "q1": "What is CommitPulse?",
+    "a1": "CommitPulse turns your public GitHub contribution history into customizable SVG badges, dashboards, and 3D-style visualizations for your profile README.",
+    "q2": "How does CommitPulse get my GitHub data?",
+    "a2": "CommitPulse reads public contribution data from GitHub, then renders it as streak stats, heatmaps, comparison views, and shareable badge images.",
+    "q3": "Is CommitPulse completely free?",
+    "a3": "Yes. CommitPulse is free and open source. You can use the hosted badge generator or self-host your own instance.",
+    "q4": "Can I customize the badge?",
+    "a4": "Yes. You can choose themes, colors, views, layout dimensions, grace periods, timezone behavior, and other URL parameters.",
+    "q5": "Why does my contribution count differ from GitHub?",
+    "a5": "GitHub and CommitPulse may calculate time boundaries differently. CommitPulse uses UTC-aware caching and supports timezone options to keep streak calculations consistent.",
+    "q6": "Do private contributions count?",
+    "a6": "Private contributions can only appear when your GitHub profile settings allow private contribution visibility. Otherwise, CommitPulse can only show public activity.",
+    "q7": "Can I self-host CommitPulse?",
+    "a7": "Yes. You can clone the repository, configure the required environment variables, and deploy it on Vercel or another compatible platform.",
+    "q8": "How can I contribute to the project?",
+    "a8": "We welcome contributions. Check the GitHub repository for open issues, read the contribution guidelines, and pick a beginner-friendly issue to start."
   },
   "landing": {
     "empty_username_warning": "बैज लिंक कॉपी करने के लिए कृपया गिटहब यूजरनेम दर्ज करें।",
@@ -136,8 +159,11 @@
       "copy_aria_enabled": "निर्यात स्निपेट {{format}} क्लिपबोर्ड पर कॉपी करें",
       "footer_tip": "इसे अपनी गिटहब प्रोफ़ाइल के README.md में पेस्ट करें। बैज सर्वर-साइड रेंडर होता है, किसी स्क्रिप्ट की आवश्यकता नहीं है।",
       "tsx": "React TSX",
-      "download_svg": "Download SVG",
-      "download_png": "Download PNG"
+      "download_svg": "SVG डाउनलोड करें",
+      "download_png": "PNG डाउनलोड करें",
+      "download_webp": "WebP डाउनलोड करें",
+      "download_pdf": "PDF डाउनलोड करें",
+      "export_as": "इस रूप में निर्यात करें"
     }
   },
   "dashboard": {
@@ -154,7 +180,9 @@
       "joined": "शामिल हुए",
       "pro_badge": "प्रो",
       "pro": "PRO",
-      "share": "Share Your Pulse"
+      "share": "Share Your Pulse",
+      "username_copied": "उपयोगकर्ता नाम कॉपी हो गया!",
+      "copy_username_aria": "उपयोगकर्ता नाम क्लिपबोर्ड पर कॉपी करें"
     },
     "achievements": {
       "title": "उपलब्धियां",

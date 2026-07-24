@@ -4,6 +4,14 @@ import type { CIWorkflowRun, CIInsights } from '@/types/ci-analytics';
 
 interface WebhookPayload {
   action?: string;
+  repository?: {
+    name: string;
+    full_name: string;
+    owner: {
+      login: string;
+      type: string;
+    };
+  };
   workflow_run?: {
     id: number;
     name: string;
@@ -105,7 +113,7 @@ function extractCheckRunEvent(payload: WebhookPayload): CIEvent | null {
   if (!payload.check_run) return null;
 
   const checkRun = payload.check_run;
-  const repo = payload.workflow_run?.repository;
+  const repo = payload.repository || payload.workflow_run?.repository;
 
   if (!repo) return null;
 

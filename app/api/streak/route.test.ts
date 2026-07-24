@@ -6,11 +6,16 @@ import { getValidationCacheForTests } from './validation-cache';
 // We only mock the two things that reach outside this process:
 // the GitHub API call and the wall-clock time helper.
 // calculateStreak and generateSVG run for real, giving us genuine end-to-end coverage.
-vi.mock('../../../lib/github', () => ({
-  fetchGitHubContributions: vi.fn(),
-  getOrgDashboardData: vi.fn(),
-  getCircuitTelemetry: vi.fn().mockReturnValue({ isOpen: false, resetInMs: 0 }),
-}));
+vi.mock('../../../lib/github', async () => {
+  const actual = await vi.importActual<typeof import('../../../lib/github')>('../../../lib/github');
+
+  return {
+    ...actual,
+    fetchGitHubContributions: vi.fn(),
+    getOrgDashboardData: vi.fn(),
+    getCircuitTelemetry: vi.fn().mockReturnValue({ isOpen: false, resetInMs: 0 }),
+  };
+});
 
 vi.mock('../../../utils/time', () => ({
   getSecondsUntilUTCMidnight: vi.fn(),
@@ -145,6 +150,18 @@ describe('GET /api/streak', () => {
       // No week exceeds 7 days, so isometric towers do not collapse and heatmap cells
       // do not overflow the canvas below row 6.
       expect(weeks.every((w) => w.contributionDays.length <= 7)).toBe(true);
+    });
+
+    it('does not truncate calculated streak stats when the days parameter is set', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', days: '3', format: 'json' }));
+      expect(response.status).toBe(200);
+      const body = await response.json();
+
+      // Slicing to the last 3 days (all 0 contributions in mockCalendar)
+      expect(body.calendar.totalContributions).toBe(0);
+
+      // But streak statistics must still reflect the full 14 days calendar contributions (total 10)
+      expect(body.stats.totalContributions).toBe(10);
     });
 
     it('returns 400 Bad Request when ?layout= is set to an unsupported format', async () => {
@@ -340,7 +357,7 @@ describe('GET /api/streak', () => {
       const response = await GET(makeRequest({ user: 'octocat' }));
       const body = await response.text();
       expect(body).toContain('<title>');
-      expect(body).toContain('Stats for');
+      expect(body).toContain('streak for');
     });
 
     it('returns a small SVG when size=small', async () => {
@@ -435,18 +452,25 @@ describe('GET /api/streak', () => {
   });
 
   describe('cache-control header', () => {
-    it('caches until UTC midnight by default, using the value from getSecondsUntilUTCMidnight', async () => {
+    it('caches SVG responses with static max-age and stale-while-revalidate values', async () => {
       const response = await GET(makeRequest({ user: 'octocat' }));
       expect(response.headers.get('Cache-Control')).toBe(
-        'public, max-age=60, s-maxage=3600, stale-while-revalidate=60'
+        'public, max-age=300, stale-while-revalidate=3600'
+      );
+    });
+
+    it('caches until UTC midnight by default, using the value from getSecondsUntilUTCMidnight', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', format: 'png' }));
+      expect(response.headers.get('Cache-Control')).toBe(
+        'public, max-age=60, s-maxage=3600, stale-while-revalidate=59'
       );
     });
 
     it('reflects a different time value when the clock changes', async () => {
       vi.mocked(getSecondsUntilUTCMidnight).mockReturnValue(7200);
-      const response = await GET(makeRequest({ user: 'octocat' }));
+      const response = await GET(makeRequest({ user: 'octocat', format: 'png' }));
       expect(response.headers.get('Cache-Control')).toBe(
-        'public, max-age=60, s-maxage=7200, stale-while-revalidate=60'
+        'public, max-age=60, s-maxage=7200, stale-while-revalidate=59'
       );
     });
 
@@ -1005,10 +1029,12 @@ describe('GET /api/streak', () => {
     });
 
     it('uses getSecondsUntilMidnightInTimezone (not UTC) for the cache TTL when ?tz= is set', async () => {
-      const response = await GET(makeRequest({ user: 'octocat', tz: 'America/New_York' }));
+      const response = await GET(
+        makeRequest({ user: 'octocat', tz: 'America/New_York', format: 'png' })
+      );
 
       expect(response.headers.get('Cache-Control')).toBe(
-        'public, max-age=60, s-maxage=7200, stale-while-revalidate=60'
+        'public, max-age=60, s-maxage=7200, stale-while-revalidate=59'
       );
       expect(getSecondsUntilMidnightInTimezone).toHaveBeenCalledWith('America/New_York');
       expect(getSecondsUntilUTCMidnight).not.toHaveBeenCalled();
@@ -1351,7 +1377,7 @@ describe('GET /api/streak', () => {
 
   describe('theme=random cache header', () => {
     it('returns no-cache header when ?theme=random is given', async () => {
-      const response = await GET(makeRequest({ user: 'octocat', theme: 'random' }));
+      const response = await GET(makeRequest({ user: 'octocat', theme: 'random', format: 'png' }));
 
       expect(response.headers.get('Cache-Control')).toMatch(/public, max-age=60, s-maxage=/);
     });
@@ -1566,16 +1592,16 @@ describe('GET /api/streak', () => {
   });
 
   describe('stale-while-revalidate cache header', () => {
-    it('contains stale-while-revalidate=60 for normal request', async () => {
-      const response = await GET(makeRequest({ user: 'octocat' }));
+    it('contains stale-while-revalidate=59 for normal request', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', format: 'png' }));
 
-      expect(response.headers.get('Cache-Control')).toContain('stale-while-revalidate=60');
+      expect(response.headers.get('Cache-Control')).toContain('stale-while-revalidate=59');
     });
 
     it('does NOT contain stale-while-revalidate when ?refresh=true', async () => {
-      const response = await GET(makeRequest({ user: 'octocat', refresh: 'true' }));
+      const response = await GET(makeRequest({ user: 'octocat', refresh: 'true', format: 'png' }));
 
-      expect(response.headers.get('Cache-Control')).not.toContain('stale-while-revalidate=60');
+      expect(response.headers.get('Cache-Control')).not.toContain('stale-while-revalidate=59');
     });
   });
 
@@ -1647,14 +1673,14 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(404);
     });
 
-    it('rejects requests with more than 2 users with a 400 Bad Request', async () => {
-      const response = await GET(makeRequest({ user: 'a, b, c, d' }));
+    it('rejects requests with more than 7 users with a 400 Bad Request', async () => {
+      const response = await GET(makeRequest({ user: 'a, b, c, d, e, f, g, h' }));
       expect(response.status).toBe(400);
 
       expect(fetchGitHubContributions).not.toHaveBeenCalled();
 
       const body = await response.text();
-      expect(body).toContain('a maximum of 2 usernames');
+      expect(body).toContain('maximum of 7 usernames');
     });
   });
 

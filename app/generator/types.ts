@@ -58,4 +58,7 @@ export interface GeneratorState {
   showSnakeGraph: boolean;
   showPacmanGraph: boolean;
   graphPlacement: 'top' | 'middle' | 'bottom';
+  showArticles?: boolean;
+  articlesPlatform?: 'devto' | 'hashnode';
+  articlesUsername?: string;
 }

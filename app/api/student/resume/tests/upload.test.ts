@@ -38,7 +38,7 @@ function makeUploadRequest(content: string | number[], type: string, name = 'res
   form.append('resume', file);
 
   return {
-    headers: new Headers(),
+    headers: new Headers({ Origin: 'https://commitpulse.vercel.app' }),
     formData: async () => form,
   } as unknown as Request;
 }
@@ -46,7 +46,7 @@ function makeUploadRequest(content: string | number[], type: string, name = 'res
 function makeEmptyUploadRequest(): Request {
   const form = new FormData();
   return {
-    headers: new Headers(),
+    headers: new Headers({ Origin: 'https://commitpulse.vercel.app' }),
     formData: async () => form,
   } as unknown as Request;
 }
@@ -101,7 +101,7 @@ describe('POST /api/student/resume/upload', () => {
     form.append('resume', largeFile);
 
     const request = {
-      headers: new Headers(),
+      headers: new Headers({ Origin: 'https://commitpulse.vercel.app' }),
       formData: async () => form,
     } as unknown as Request;
 

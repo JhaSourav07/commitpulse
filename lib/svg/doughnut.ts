@@ -141,7 +141,7 @@ export function generateDoughnutSVG(
   // Validate the corner radius before interpolation into SVG attributes
   const safeRadius = sanitizeRadius(params.radius, 8);
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(DOUGHNUT_SVG_WIDTH * sf)}" height="${Math.round(DOUGHNUT_SVG_HEIGHT * sf)}" viewBox="0 0 ${DOUGHNUT_SVG_WIDTH} ${DOUGHNUT_SVG_HEIGHT}" role="img" aria-labelledby="cp-doughnut-title cp-doughnut-desc">
+  return `<svg style="max-width: 100%; height: auto;" xmlns="http://www.w3.org/2000/svg" width="${Math.round(DOUGHNUT_SVG_WIDTH * sf)}" height="${Math.round(DOUGHNUT_SVG_HEIGHT * sf)}" viewBox="0 0 ${DOUGHNUT_SVG_WIDTH} ${DOUGHNUT_SVG_HEIGHT}" role="img" aria-labelledby="cp-doughnut-title cp-doughnut-desc">
   <title id="cp-doughnut-title">CommitPulse ${viewTitle} for ${safeUser}</title>
   <desc id="cp-doughnut-desc">A ${viewTitle.toLowerCase()} showing weekday vs weekend commits for ${safeUser}.</desc>
   <defs>

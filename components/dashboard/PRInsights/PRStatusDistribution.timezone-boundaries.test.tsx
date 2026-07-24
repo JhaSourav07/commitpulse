@@ -18,7 +18,7 @@ describe('PRStatusDistribution - Timezone Normalization & Calendar Data Boundary
 
   afterEach(() => {
     vi.useRealTimers();
-    vi.stubEnv('TZ', '');
+    vi.unstubAllEnvs();
   });
 
   // Test Case 1: Timezone offset block shifting calculations

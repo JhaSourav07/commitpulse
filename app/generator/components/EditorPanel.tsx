@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Sparkles } from 'lucide-react';
 import { NameSection } from './sections/NameSection';
 import { DescriptionSection } from './sections/DescriptionSection';
 import { TechnologiesSection } from './sections/TechnologiesSection';
@@ -8,12 +9,14 @@ import { SocialsSection } from './sections/SocialsSection';
 import { CommitPulseSection } from './sections/CommitPulseSection';
 import { RepoSpotlightSection } from './sections/RepoSpotlightSection';
 import { ContributionGraphSection } from './sections/ContributionGraphSection';
+import { ArticlesSection } from './sections/ArticlesSection';
 import { GitHubImportModal } from './GitHubImportModal';
 import { FaGithub } from 'react-icons/fa';
+import { PROFILE_PRESETS } from '../data/presets';
 import type { GeneratorState } from '../types';
 import type { ImportedData } from '../utils/githubMapper';
 
-interface EditorPanelProps {
+export interface EditorPanelProps {
   state: GeneratorState;
   onNameChange: (v: string) => void;
   onDescriptionChange: (v: string) => void;
@@ -33,7 +36,11 @@ interface EditorPanelProps {
   spotlightRepo?: string;
   onShowRepoSpotlightChange?: (v: boolean) => void;
   onSpotlightRepoChange?: (v: string) => void;
+  onShowArticlesChange?: (v: boolean) => void;
+  onArticlesPlatformChange?: (v: 'devto' | 'hashnode') => void;
+  onArticlesUsernameChange?: (v: string) => void;
   onApplyImport: (data: ImportedData) => void;
+  onApplyPreset?: (presetState: Partial<GeneratorState>) => void;
 }
 
 export function EditorPanel({
@@ -51,7 +58,11 @@ export function EditorPanel({
   onGraphPlacementChange = () => {},
   onShowRepoSpotlightChange = () => {},
   onSpotlightRepoChange = () => {},
+  onShowArticlesChange = () => {},
+  onArticlesPlatformChange = () => {},
+  onArticlesUsernameChange = () => {},
   onApplyImport,
+  onApplyPreset,
 }: EditorPanelProps) {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
@@ -62,6 +73,7 @@ export function EditorPanel({
       className="flex flex-col gap-4"
       onSubmit={(e) => e.preventDefault()}
     >
+      {/* GitHub Import */}
       <button
         type="button"
         onClick={() => setIsImportModalOpen(true)}
@@ -74,20 +86,67 @@ export function EditorPanel({
         </span>
       </button>
 
+      {/* Profile Presets Selector */}
+      <div className="p-4 rounded-2xl bg-white dark:bg-[#111111] border border-gray-200 dark:border-white/10 shadow-sm">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <Sparkles size={16} className="text-emerald-500" />
+            <h3 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+              Profile Presets
+            </h3>
+          </div>
+          <span className="text-[10px] text-gray-400 dark:text-white/40">
+            1-click template setup
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-2 mt-3">
+          {PROFILE_PRESETS.map((preset) => (
+            <button
+              key={preset.id}
+              type="button"
+              onClick={() => onApplyPreset?.(preset.state)}
+              className="flex flex-col text-left p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200/60 dark:border-white/5 hover:border-emerald-500/40 dark:hover:border-emerald-500/40 hover:bg-emerald-500/5 transition-all group"
+            >
+              <div className="flex items-center justify-between w-full mb-1">
+                <span className="text-sm select-none">{preset.icon}</span>
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                  {preset.badge}
+                </span>
+              </div>
+              <span className="text-xs font-semibold text-gray-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                {preset.name}
+              </span>
+              <span className="text-[10px] text-gray-500 dark:text-white/40 truncate mt-0.5">
+                {preset.description}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       <GitHubImportModal
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         onApply={onApplyImport}
       />
 
-      <NameSection value={state.name} onChange={onNameChange} />
-      <DescriptionSection value={state.description} onChange={onDescriptionChange} />
-      <TechnologiesSection selected={state.selectedTechs} onChange={onTechsChange} />
+      <NameSection value={state.name} onChange={onNameChange} onReset={() => onNameChange('')} />
+      <DescriptionSection
+        value={state.description}
+        onChange={onDescriptionChange}
+        onReset={() => onDescriptionChange('')}
+      />
+      <TechnologiesSection
+        selected={state.selectedTechs}
+        onChange={onTechsChange}
+        onReset={() => onTechsChange([])}
+      />
       <SocialsSection
         selected={state.selectedSocials}
         socialLinks={state.socialLinks}
         onSelectedChange={onSocialsChange}
         onLinkChange={onSocialLinkChange}
+        onReset={() => onSocialsChange([])}
       />
       <CommitPulseSection
         githubUsername={state.githubUsername}
@@ -96,6 +155,10 @@ export function EditorPanel({
         onGithubUsernameChange={onGithubUsernameChange}
         onShowCommitPulseChange={onShowCommitPulseChange}
         onCommitPulseAccentChange={onCommitPulseAccentChange}
+        onReset={() => {
+          onShowCommitPulseChange(false);
+          onCommitPulseAccentChange('');
+        }}
       />
       <ContributionGraphSection
         githubUsername={state.githubUsername}
@@ -106,6 +169,11 @@ export function EditorPanel({
         onShowSnakeGraphChange={onShowSnakeGraphChange}
         onShowPacmanGraphChange={onShowPacmanGraphChange}
         onGraphPlacementChange={onGraphPlacementChange}
+        onReset={() => {
+          onShowSnakeGraphChange(false);
+          onShowPacmanGraphChange(false);
+          onGraphPlacementChange('bottom');
+        }}
       />
       <RepoSpotlightSection
         githubUsername={state.githubUsername}
@@ -114,6 +182,23 @@ export function EditorPanel({
         commitPulseAccent={state.commitPulseAccent}
         onShowRepoSpotlightChange={onShowRepoSpotlightChange}
         onSpotlightRepoChange={onSpotlightRepoChange}
+        onReset={() => {
+          onShowRepoSpotlightChange(false);
+          onSpotlightRepoChange('');
+        }}
+      />
+      <ArticlesSection
+        showArticles={state.showArticles ?? false}
+        articlesPlatform={state.articlesPlatform ?? 'devto'}
+        articlesUsername={state.articlesUsername ?? ''}
+        onShowArticlesChange={onShowArticlesChange}
+        onArticlesPlatformChange={onArticlesPlatformChange}
+        onArticlesUsernameChange={onArticlesUsernameChange}
+        onReset={() => {
+          onShowArticlesChange(false);
+          onArticlesPlatformChange('devto');
+          onArticlesUsernameChange('');
+        }}
       />
     </form>
   );

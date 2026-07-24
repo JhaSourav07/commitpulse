@@ -286,6 +286,7 @@ export default function HistoricalTrendView({
             </p>
             <div className="mt-3 flex gap-2">
               <input
+                aria-label="Target month"
                 name="month"
                 type="month"
                 defaultValue={period.kind === 'month' && period.month ? period.month : ''}
@@ -309,6 +310,7 @@ export default function HistoricalTrendView({
             </p>
             <div className="mt-3 flex gap-2">
               <input
+                aria-label="Target year"
                 name="year"
                 type="number"
                 min="2008"
@@ -334,12 +336,14 @@ export default function HistoricalTrendView({
             </p>
             <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
               <input
+                aria-label="Start date"
                 name="from"
                 type="date"
                 defaultValue={formatDateInput(period.from)}
                 className="rounded-lg border border-black/10 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-emerald-500 dark:border-[rgba(255,255,255,0.08)] dark:bg-black/30 dark:text-white"
               />
               <input
+                aria-label="End date"
                 name="to"
                 type="date"
                 defaultValue={formatDateInput(period.to)}

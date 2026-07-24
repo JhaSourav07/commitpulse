@@ -95,8 +95,13 @@ export default function RadarChart({ languagesA, languagesB, labelA, labelB }: R
 
       {hasLanguages ? (
         <>
-          <div className="relative w-[320px] h-[300px] flex items-center justify-center">
-            <svg width="320" height="300" className="overflow-visible">
+          <div className="relative w-full max-w-[320px] aspect-[320/300] flex items-center justify-center">
+            <svg
+              width="320"
+              height="300"
+              viewBox="0 0 320 300"
+              className="w-full h-full overflow-visible"
+            >
               <defs>
                 <filter id="glow-cyan" x="-20%" y="-20%" width="140%" height="140%">
                   <feGaussianBlur stdDeviation="3" result="blur" />

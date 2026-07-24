@@ -2,11 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createRequest } from 'node-mocks-http';
 import { GET } from '../route';
 
-vi.mock('../../../../lib/github', () => ({
-  fetchGitHubContributions: vi.fn(),
-  getOrgDashboardData: vi.fn(),
-  getCircuitTelemetry: vi.fn().mockReturnValue({ isOpen: false, resetInMs: 0 }),
-}));
+vi.mock('../../../../lib/github', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../../lib/github')>();
+  return {
+    ...actual,
+    fetchGitHubContributions: vi.fn(),
+    getOrgDashboardData: vi.fn(),
+    getCircuitTelemetry: vi.fn().mockReturnValue({ isOpen: false, resetInMs: 0 }),
+  };
+});
 
 vi.mock('../../../../utils/time', () => ({
   getSecondsUntilUTCMidnight: vi.fn(),
@@ -101,7 +105,7 @@ describe('GET /api/streak - refresh parameter group', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe(
-      'public, max-age=60, s-maxage=3600, stale-while-revalidate=60'
+      'public, max-age=300, stale-while-revalidate=3600'
     );
     expect(response.headers.get('X-Cache-Status')).toBe('HIT');
   });

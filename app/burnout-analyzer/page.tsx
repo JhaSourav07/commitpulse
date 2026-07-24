@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Flame } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -34,46 +35,82 @@ interface BurnoutReport {
   recommendations: string[];
 }
 
-export default function BurnoutAnalyzerPage() {
+function BurnoutAnalyzerContent() {
+  const searchParams = useSearchParams();
   const [query, setQuery] = useState('');
   const [report, setReport] = useState<BurnoutReport | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [excludeBots, setExcludeBots] = useState(false);
+  const initialFetchAttempted = useRef(false);
 
-  const handleSearch = async (e?: React.FormEvent, targetRepo?: string) => {
-    if (e) e.preventDefault();
-    const repoPath = (targetRepo || query).trim();
-    const segments = repoPath.split('/');
-    if (segments.length !== 2 || !segments[0].trim() || !segments[1].trim()) {
-      setError('Please enter a valid repository path in "owner/repo" format.');
-      return;
-    }
-    const owner = segments[0].trim();
-    const repo = segments[1].trim();
-
-    setIsLoading(true);
-    setError(null);
-    setReport(null);
-
-    try {
-      const res = await fetch(
-        `/api/repo-burnout?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`
-      );
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to analyze repository.');
+  const executeSearch = useCallback(
+    async (rawPath: string) => {
+      const repoPath = rawPath.trim();
+      const segments = repoPath.split('/');
+      if (segments.length !== 2 || !segments[0].trim() || !segments[1].trim()) {
+        setError('Please enter a valid repository path in "owner/repo" format.');
+        return;
       }
+      const owner = segments[0].trim();
+      const repo = segments[1].trim();
 
-      setReport(data);
-      setQuery(repoPath);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
-    } finally {
-      setIsLoading(false);
-    }
+      setIsLoading(true);
+      setError(null);
+      setReport(null);
+
+      try {
+        const res = await fetch(
+          `/api/repo-burnout?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}&excludeBots=${excludeBots}`
+        );
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to analyze repository.');
+        }
+
+        setReport(data);
+        setQuery(repoPath);
+
+        if (typeof window !== 'undefined' && window.history) {
+          const newUrl = `${window.location.pathname}?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`;
+          window.history.pushState(null, '', newUrl);
+        }
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [excludeBots]
+  );
+
+  const handleSearch = (e?: React.FormEvent, targetRepo?: string) => {
+    if (e) e.preventDefault();
+    executeSearch(targetRepo || query);
   };
+
+  useEffect(() => {
+    if (initialFetchAttempted.current) return;
+
+    const ownerParam = searchParams.get('owner');
+    const repoParam = searchParams.get('repo');
+
+    let initialRepo = '';
+    if (ownerParam && repoParam) {
+      initialRepo = `${ownerParam.trim()}/${repoParam.trim()}`;
+    } else if (repoParam && repoParam.includes('/')) {
+      initialRepo = repoParam.trim();
+    }
+
+    if (initialRepo) {
+      initialFetchAttempted.current = true;
+      setTimeout(() => {
+        executeSearch(initialRepo);
+      }, 0);
+    }
+  }, [searchParams, executeSearch]);
 
   const handleRefresh = async () => {
     if (!report) return;
@@ -84,7 +121,7 @@ export default function BurnoutAnalyzerPage() {
 
     try {
       const res = await fetch(
-        `/api/repo-burnout?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}&refresh=true`
+        `/api/repo-burnout?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}&refresh=true&excludeBots=${excludeBots}`
       );
       const data = await res.json();
 
@@ -135,6 +172,7 @@ export default function BurnoutAnalyzerPage() {
             <form onSubmit={(e) => handleSearch(e)} className="w-full mt-8 relative max-w-md">
               <div className="relative">
                 <input
+                  aria-label="Search repository"
                   type="text"
                   placeholder="e.g. facebook/react or vercel/next.js"
                   value={query}
@@ -153,6 +191,21 @@ export default function BurnoutAnalyzerPage() {
                 </button>
               </div>
             </form>
+
+            <div className="mt-4 flex items-center justify-between gap-3 w-full max-w-md bg-white/40 dark:bg-zinc-950/40 border border-black/5 dark:border-white/5 p-3 rounded-2xl">
+              <span className="text-xs font-semibold text-gray-700 dark:text-zinc-300">
+                Exclude Automated Bot Activity
+              </span>
+              <label className="relative inline-flex items-center cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={excludeBots}
+                  onChange={(e) => setExcludeBots(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-gray-205 dark:bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:after:bg-zinc-400 peer-checked:after:bg-indigo-500 after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-500/20 dark:peer-checked:bg-indigo-500/20 border border-black/5 dark:border-white/5"></div>
+              </label>
+            </div>
 
             {error && (
               <motion.p
@@ -232,6 +285,48 @@ export default function BurnoutAnalyzerPage() {
               report={report}
             />
 
+            <div className="flex justify-between items-center gap-3 bg-white/50 dark:bg-black/30 backdrop-blur-md border border-black/10 dark:border-white/5 px-5 py-3 rounded-2xl shadow-sm">
+              <div className="flex flex-col">
+                <span className="text-xs font-bold text-gray-750 dark:text-white">
+                  Exclude Bots & Dependency Accounts
+                </span>
+                <span className="text-[9px] text-[#A1A1AA] uppercase tracking-wider font-bold">
+                  Analytics Cleanse
+                </span>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={excludeBots}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setExcludeBots(checked);
+                    setTimeout(() => {
+                      const segments = report.repoName.split('/');
+                      if (segments.length === 2) {
+                        setIsLoading(true);
+                        setError(null);
+                        setReport(null);
+                        fetch(
+                          `/api/repo-burnout?owner=${encodeURIComponent(segments[0])}&repo=${encodeURIComponent(segments[1])}&excludeBots=${checked}`
+                        )
+                          .then(async (res) => {
+                            const data = await res.json();
+                            if (!res.ok)
+                              throw new Error(data.error || 'Failed to analyze repository.');
+                            setReport(data);
+                          })
+                          .catch((err) => setError(err.message))
+                          .finally(() => setIsLoading(false));
+                      }
+                    }, 0);
+                  }}
+                  className="sr-only peer"
+                />
+                <div className="w-9 h-5 bg-gray-202 dark:bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:after:bg-zinc-400 peer-checked:after:bg-indigo-500 after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-500/20 dark:peer-checked:bg-indigo-500/20 border border-black/5 dark:border-white/5"></div>
+              </label>
+            </div>
+
             {error && (
               <div className="p-4 rounded-xl border border-rose-500/20 bg-rose-500/10 text-rose-500 text-xs font-semibold">
                 {error}
@@ -269,5 +364,20 @@ export default function BurnoutAnalyzerPage() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+export default function BurnoutAnalyzerPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-12 min-h-[80vh] flex flex-col gap-6">
+          <div className="h-32 w-full rounded-2xl shimmer" />
+          <div className="h-96 w-full rounded-2xl shimmer" />
+        </div>
+      }
+    >
+      <BurnoutAnalyzerContent />
+    </Suspense>
   );
 }

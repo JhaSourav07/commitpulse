@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   fetchGitHubContributions,
+  fetchCommitHourDistribution,
   fetchUserProfile,
   fetchUserRepos,
   fetchContributedRepos,
@@ -54,6 +55,7 @@ beforeEach(() => {
   clearGitHubApiCacheForTests();
   process.env.GITHUB_PAT = 'ghp_testTokenAAAAAAAAAAAAAAAAAAAAAAAA';
   delete process.env.GITHUB_TOKEN;
+  delete process.env.GITHUB_TOKENS;
 });
 
 afterEach(() => {
@@ -176,10 +178,13 @@ describe('fetchGitHubContributions', () => {
     const [url, options] = vi.mocked(fetch).mock.calls[0];
     expect(url).toBe('https://api.github.com/graphql');
     expect(options?.method).toBe('POST');
-    expect(options?.headers).toMatchObject({
-      Authorization: 'bearer ghp_testTokenAAAAAAAAAAAAAAAAAAAAAAAA',
-      'Content-Type': 'application/json',
-    });
+    const headers = new Headers(options?.headers);
+
+    const authHeader = headers.get('authorization');
+    expect(authHeader?.match(/^bearer\s+/i)).toBeTruthy();
+    expect(authHeader?.replace(/^bearer\s+/i, '')).toBe('ghp_testTokenAAAAAAAAAAAAAAAAAAAAAAAA');
+
+    expect(headers.get('content-type')).toBe('application/json');
 
     const body = JSON.parse(options?.body as string);
     expect(body.variables).toEqual({ login: 'octocat' });
@@ -205,9 +210,11 @@ describe('fetchGitHubContributions', () => {
     await fetchGitHubContributions('octocat');
 
     const [, options] = vi.mocked(fetch).mock.calls[0];
-    expect(options?.headers).toMatchObject({
-      Authorization: 'bearer ghp_actionsTokenAAAAAAAAAAAAAAAAAAAAA',
-    });
+    const headers = new Headers(options?.headers);
+
+    const authHeader = headers.get('authorization');
+    expect(authHeader?.match(/^bearer\s+/i)).toBeTruthy();
+    expect(authHeader?.replace(/^bearer\s+/i, '')).toBe('ghp_actionsTokenAAAAAAAAAAAAAAAAAAAAA');
   });
 
   it('verifies Authorization header uses GITHUB_TOKEN value in fallback path', async () => {
@@ -229,14 +236,17 @@ describe('fetchGitHubContributions', () => {
     await fetchGitHubContributions('octocat');
 
     const [, options] = vi.mocked(fetch).mock.calls[0];
-    expect(options?.headers).toMatchObject({
-      Authorization: 'bearer ghp_myActionsTokenAAAAAAAAAAAAAAAAAAA',
-    });
+    const headers = new Headers(options?.headers);
+
+    const authHeader = headers.get('authorization');
+    expect(authHeader?.match(/^bearer\s+/i)).toBeTruthy();
+    expect(authHeader?.replace(/^bearer\s+/i, '')).toBe('ghp_myActionsTokenAAAAAAAAAAAAAAAAAAA');
   });
 
   it('throws before fetching when no GitHub token is configured', async () => {
     delete process.env.GITHUB_PAT;
     delete process.env.GITHUB_TOKEN;
+    delete process.env.GITHUB_TOKENS;
 
     await expect(fetchGitHubContributions('octocat')).rejects.toThrow(
       'GitHub token is missing. Set GITHUB_PAT or GITHUB_TOKEN.'
@@ -444,7 +454,8 @@ describe('fetchGitHubContributions', () => {
     const key = cacheKey('contributions', 'fallback-user');
     const cachedData = await contributionsCache.get(key);
     if (cachedData) {
-      cachedData.calendar.lastSyncedAt = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      cachedData.data.calendar.lastSyncedAt = new Date(Date.now() - 70 * 60 * 1000).toISOString();
+      cachedData.fetchedAt = Date.now() - 70 * 60 * 1000;
       await contributionsCache.set(key, cachedData, 7 * 24 * 60 * 60 * 1000);
     }
 
@@ -475,6 +486,163 @@ describe('fetchGitHubContributions', () => {
     const result = await fetchGitHubContributions('bypass-fallback-user', { bypassCache: true });
     expect(result.calendar.totalContributions).toBe(mockCalendar.totalContributions);
     expect(result.isOfflineFallback).toBe(true);
+  });
+
+  it('correctly resolves organization Node ID and uses it in contributions query', async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        mockResponse({
+          data: {
+            organization: {
+              id: 'test-org-node-id',
+            },
+          },
+        })
+      )
+      .mockResolvedValueOnce(
+        mockResponse({
+          data: {
+            user: {
+              contributionsCollection: {
+                contributionCalendar: mockCalendar,
+                commitContributionsByRepository: [],
+              },
+            },
+          },
+        })
+      );
+
+    const result = await fetchGitHubContributions('octocat', {
+      org: 'github-org',
+      bypassCache: true,
+    });
+    expect(result.calendar.totalContributions).toBe(mockCalendar.totalContributions);
+
+    // Verify first call to resolve organization ID
+    expect(fetch).toHaveBeenNthCalledWith(
+      1,
+      'https://api.github.com/graphql',
+      expect.objectContaining({
+        body: expect.stringContaining('"variables":{"login":"github-org"}'),
+      })
+    );
+
+    // Verify second call to query contributions with organizationID
+    expect(fetch).toHaveBeenNthCalledWith(
+      2,
+      'https://api.github.com/graphql',
+      expect.objectContaining({
+        body: expect.stringContaining('"orgId":"test-org-node-id"'),
+      })
+    );
+  });
+});
+
+describe('fetchCommitHourDistribution', () => {
+  beforeEach(() => {
+    vi.spyOn(global, 'fetch');
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('buckets the same commit into different hours for different timezones', async () => {
+    const isoTimestamp = '2024-06-10T21:00:00Z';
+
+    vi.mocked(fetch).mockImplementation(async (_url, options) => {
+      const body = JSON.parse(options?.body as string);
+
+      if (body.variables?.login) {
+        return mockResponse({
+          data: {
+            user: {
+              contributionsCollection: {
+                commitContributionsByRepository: [
+                  {
+                    repository: {
+                      owner: { login: 'octocat' },
+                      name: 'repo-1',
+                    },
+                    contributions: { totalCount: 1 },
+                  },
+                ],
+              },
+            },
+          },
+        });
+      }
+
+      return mockResponse({
+        data: {
+          repository: {
+            defaultBranchRef: {
+              target: {
+                history: {
+                  nodes: [{ committedDate: isoTimestamp }],
+                },
+              },
+            },
+          },
+        },
+      });
+    });
+
+    const utcResult = await fetchCommitHourDistribution('octocat');
+    expect(utcResult[21]).toBe(1);
+    expect(utcResult[2]).toBe(0);
+
+    clearGitHubApiCacheForTests();
+
+    const istResult = await fetchCommitHourDistribution('octocat', undefined, 'Asia/Kolkata');
+    expect(istResult[2]).toBe(1);
+    expect(istResult[21]).toBe(0);
+  });
+
+  it('falls back to UTC when the timezone string is invalid', async () => {
+    const isoTimestamp = '2024-06-10T21:00:00Z';
+
+    vi.mocked(fetch).mockImplementation(async (_url, options) => {
+      const body = JSON.parse(options?.body as string);
+
+      if (body.variables?.login) {
+        return mockResponse({
+          data: {
+            user: {
+              contributionsCollection: {
+                commitContributionsByRepository: [
+                  {
+                    repository: {
+                      owner: { login: 'octocat' },
+                      name: 'repo-1',
+                    },
+                    contributions: { totalCount: 1 },
+                  },
+                ],
+              },
+            },
+          },
+        });
+      }
+
+      return mockResponse({
+        data: {
+          repository: {
+            defaultBranchRef: {
+              target: {
+                history: {
+                  nodes: [{ committedDate: isoTimestamp }],
+                },
+              },
+            },
+          },
+        },
+      });
+    });
+
+    const result = await fetchCommitHourDistribution('octocat', undefined, 'Not/A_Real_Zone');
+    expect(result[21]).toBe(1);
+    expect(result[2]).toBe(0);
   });
 });
 
@@ -1219,8 +1387,8 @@ describe('getFullDashboardData', () => {
       const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
 
       if (urlStr.includes('/actions/runs') || urlStr.includes('/deployments')) {
-        const headers = init?.headers as Record<string, string> | undefined;
-        capturedAuthHeaders.push(headers?.Authorization ?? '');
+        const headers = new Headers(init?.headers as HeadersInit | undefined);
+        capturedAuthHeaders.push(headers.get('authorization') ?? '');
         if (urlStr.includes('/actions/runs')) {
           return mockResponse({ workflow_runs: [] });
         }
@@ -1267,7 +1435,8 @@ describe('getFullDashboardData', () => {
 
     expect(capturedAuthHeaders.length).toBeGreaterThan(0);
     for (const authHeader of capturedAuthHeaders) {
-      expect(authHeader).toBe(`bearer ${userToken}`);
+      expect(authHeader?.match(/^bearer\s+/i)).toBeTruthy();
+      expect(authHeader?.replace(/^bearer\s+/i, '')).toBe(userToken);
     }
   });
   it('caps developerScore at 100 for extreme profile metrics', async () => {
@@ -1638,5 +1807,39 @@ describe('configurable GitHub API constants', () => {
     vi.resetModules();
     await import('./github');
     delete process.env.GITHUB_ORG_MEMBER_LIMIT;
+  });
+});
+
+describe('cacheKey', () => {
+  it('creates key without year', () => {
+    expect(cacheKey('profile', 'DeepSikha')).toBe('profile:deepsikha');
+  });
+
+  it('creates key with year', () => {
+    expect(cacheKey('contributions', 'DeepSikha', '2025')).toBe('contributions:deepsikha:2025');
+  });
+
+  it('creates key with from and to date range', () => {
+    expect(cacheKey('contributions', 'octocat', '2024-01-01', '2024-06-30')).toBe(
+      'contributions:octocat:2024-01-01:2024-06-30'
+    );
+  });
+
+  it('collision test: different to dates produce different keys', () => {
+    const keyA = cacheKey('contributions', 'octocat', '2024-01-01', '2024-06-30');
+    const keyB = cacheKey('contributions', 'octocat', '2024-01-01', '2024-12-31');
+    expect(keyA).not.toBe(keyB);
+  });
+
+  it('creates key with org parameter', () => {
+    expect(cacheKey('contributions', 'octocat', '2024-01-01', '2024-06-30', 'github')).toBe(
+      'contributions:octocat:2024-01-01:2024-06-30:org:github'
+    );
+    expect(cacheKey('contributions', 'octocat', '2025', undefined, 'github')).toBe(
+      'contributions:octocat:2025:org:github'
+    );
+    expect(cacheKey('profile', 'octocat', undefined, undefined, 'github')).toBe(
+      'profile:octocat:org:github'
+    );
   });
 });

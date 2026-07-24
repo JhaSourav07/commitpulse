@@ -108,9 +108,11 @@ export default function Leaderboard({ contributors = [] }: LeaderboardProps) {
               {/* Avatar */}
               <div className="relative w-10 h-10 rounded-full overflow-hidden border border-black/10 dark:border-white/10 group-hover:border-cyan-400/40 transition-colors">
                 {contributor.avatar_url ? (
-                  <img
+                  <Image
                     src={contributor.avatar_url}
                     alt={contributor.login}
+                    width={40}
+                    height={40}
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -222,9 +224,11 @@ function PodiumItem({ contributor, rank, height, variant, delay, isFirst }: Podi
               ${isFirst ? 'w-16 h-16 sm:w-[88px] sm:h-[88px]' : 'w-12 h-12 sm:w-[72px] sm:h-[72px]'}`}
           >
             {contributor.avatar_url ? (
-              <img
+              <Image
                 src={contributor.avatar_url}
                 alt={contributor.login}
+                width={88}
+                height={88}
                 className="rounded-full object-cover w-full h-full"
               />
             ) : (

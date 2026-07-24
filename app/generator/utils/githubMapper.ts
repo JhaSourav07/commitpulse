@@ -1,5 +1,6 @@
 import { SOCIALS } from '../data/socials';
 import { TECHNOLOGIES } from '../data/technologies';
+import { sanitizeSocialUrl } from './urlSanitizer';
 
 export interface GitHubUser {
   name: string | null;
@@ -56,7 +57,7 @@ export function mapGitHubData(
     const twitterSocial = SOCIALS.find((s) => s.id === 'twitter');
     if (twitterSocial && !result.selectedSocials.includes(twitterSocial.id)) {
       result.selectedSocials.push(twitterSocial.id);
-      result.socialLinks[twitterSocial.id] = `https://x.com/${user.twitter_username}`;
+      result.socialLinks[twitterSocial.id] = user.twitter_username;
     }
   }
 
@@ -91,7 +92,7 @@ export function mapGitHubData(
 
     if (matchingSocial && !result.selectedSocials.includes(matchingSocial.id)) {
       result.selectedSocials.push(matchingSocial.id);
-      result.socialLinks[matchingSocial.id] = account.url;
+      result.socialLinks[matchingSocial.id] = sanitizeSocialUrl(matchingSocial.id, account.url);
     }
   });
 

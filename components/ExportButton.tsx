@@ -112,6 +112,15 @@ export default function ExportButton({
             <li role="none">
               <button
                 role="menuitem"
+                onClick={() => handleExport('pdf')}
+                className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left text-white/80 hover:text-white hover:bg-white/10 transition-colors duration-100"
+              >
+                Download PDF
+              </button>
+            </li>
+            <li role="none">
+              <button
+                role="menuitem"
                 onClick={() => handleExport('svg')}
                 className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left text-white/80 hover:text-white hover:bg-white/10 transition-colors duration-100"
               >
