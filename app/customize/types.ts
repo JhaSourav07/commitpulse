@@ -4,6 +4,7 @@ export type Scale = 'linear' | 'log' | 'sqrt';
 
 export type ExportFormat = 'markdown' | 'html' | 'action' | 'tsx';
 
+/** Available background view modes for GitHub card simulator preview (Dark, Light, Checkerboard) */
 export type PreviewBackgroundMode = 'dark' | 'light' | 'checkerboard';
 
 export type ThemeKey = Extract<keyof typeof themes, string>;
