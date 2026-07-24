@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { EditorPanel } from './EditorPanel';
 import type { GeneratorState } from '../types';
@@ -31,6 +31,10 @@ describe('EditorPanel Section Reset & Profile Presets', () => {
         json: async () => ({ exists: false, reason: 'unverifiable' }),
       }))
     );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('renders Profile Presets section and options', () => {
