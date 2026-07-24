@@ -25,6 +25,10 @@ const mockState: GeneratorState = {
 describe('EditorPanel Section Reset & Profile Presets', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ exists: true }),
+    }) as unknown as typeof fetch;
   });
 
   it('renders Profile Presets section and options', () => {

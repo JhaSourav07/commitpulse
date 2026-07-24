@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import {
   Flame,
@@ -33,12 +34,7 @@ interface BurnoutRiskTableProps {
 }
 
 type SortColumn =
-  | 'username'
-  | 'commitShare'
-  | 'highIntensityWeeks'
-  | 'restWeeks'
-  | 'burnoutScore'
-  | 'totalCommits';
+  'username' | 'commitShare' | 'highIntensityWeeks' | 'restWeeks' | 'burnoutScore' | 'totalCommits';
 type SortDirection = 'asc' | 'desc';
 
 // Custom Pure SVG Sparkline for visual performance
