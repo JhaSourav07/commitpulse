@@ -12,6 +12,8 @@ import {
   BookOpen,
   GitBranch,
   HelpCircle,
+  Shield,
+  FileText,
 } from 'lucide-react';
 import { FaGithub, FaDiscord, FaLinkedin } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
@@ -41,7 +43,7 @@ function LinkComponent({
   className?: string;
   ariaLabel?: string;
 }) {
-  const baseClasses = `group inline-block px-1 rounded transition-all duration-300 hover:-translate-y-[2px] hover:font-medium hover:text-teal-800 dark:hover:text-violet-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-zinc-950 ${className}`;
+  const baseClasses = `group inline-block px-1 rounded transition-all duration-300 hover:-translate-y-[2px] hover:font-medium hover:text-teal-800 dark:hover:text-violet-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-zinc-950 footer-link ${className}`;
 
   if (isExternal) {
     return (
@@ -92,6 +94,8 @@ const RESOURCE_ICON_MAP: Record<string, React.ReactNode> = {
   github_repo: <GitBranch size={15} className="shrink-0" />,
   guidelines: <BookOpen size={15} className="shrink-0" />,
   faq: <HelpCircle size={15} className="shrink-0" />,
+  privacy: <Shield size={15} className="shrink-0" />,
+  terms: <FileText size={15} className="shrink-0" />,
 };
 
 export function Footer() {
@@ -126,6 +130,16 @@ export function Footer() {
     {
       label: t('footer.faq'),
       href: '/support',
+      isExternal: false,
+    },
+    {
+      label: t('footer.privacy'),
+      href: '/privacy',
+      isExternal: false,
+    },
+    {
+      label: t('footer.terms'),
+      href: '/terms',
       isExternal: false,
     },
   ];
@@ -207,6 +221,8 @@ export function Footer() {
                 if (link.href.includes('README')) iconKey = 'documentation';
                 else if (link.href.includes('CODE_OF_CONDUCT') || link.href.includes('guidelines'))
                   iconKey = 'guidelines';
+                else if (link.href === '/privacy') iconKey = 'privacy';
+                else if (link.href === '/terms') iconKey = 'terms';
                 else if (link.href.includes('support') || link.href.includes('faq'))
                   iconKey = 'faq';
 
@@ -257,6 +273,25 @@ export function Footer() {
         {/* Bottom Section */}
         <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-zinc-500 dark:text-zinc-500">
           <p>{t('footer.copyright', { year: currentYear.toString() })}</p>
+
+          {/* Social Icon Strip */}
+          <nav aria-label="Social media links" className="flex items-center gap-3">
+            {socialLinks
+              .filter((link) => link.icon !== 'creator')
+              .map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={link.ariaLabel}
+                  className="p-1.5 rounded transition-all duration-300 hover:-translate-y-[2px] hover:text-teal-800 dark:hover:text-violet-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-zinc-950"
+                >
+                  {SOCIAL_ICON_MAP[link.icon as keyof typeof SOCIAL_ICON_MAP]}
+                </a>
+              ))}
+          </nav>
+
           <p>{t('footer.made_with')}</p>
         </div>
       </div>

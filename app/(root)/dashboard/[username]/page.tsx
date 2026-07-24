@@ -10,6 +10,8 @@ import { notFound, redirect } from 'next/navigation';
 import { resolveDashboardPeriod } from '@/utils/dashboardPeriod';
 import DashboardPageWrapper from '../DashboardPageWrapper';
 
+import EducationalCurveTracker from '@/components/dashboard/EducationalCurveTracker';
+
 export const revalidate = 3600; // Cache for 1 hour
 
 const BASE_URL =
@@ -92,6 +94,7 @@ export default async function DashboardPage({
     month?: string;
     from?: string;
     to?: string;
+    excludeBots?: string;
   }>;
 }) {
   const { username } = await params;
@@ -116,9 +119,11 @@ async function DashboardContent({
     month?: string;
     from?: string;
     to?: string;
+    excludeBots?: string;
   };
 }) {
   const bypassCache = searchParams?.refresh === 'true';
+  const excludeBots = searchParams?.excludeBots === 'true';
   const compareUsername = searchParams?.compare;
   const period = resolveDashboardPeriod({
     year: searchParams?.year,
@@ -137,6 +142,7 @@ async function DashboardContent({
       to: period.to,
       rangeLabel: period.label,
       token: userToken,
+      excludeBots,
     });
   } catch (error) {
     if (error instanceof Error && error.message.includes('not found')) {
@@ -176,6 +182,7 @@ async function DashboardContent({
       compareData = await getFullDashboardData(compareUsername, {
         bypassCache,
         token: userToken,
+        excludeBots,
       });
     } catch {
       compareData = null;
@@ -184,6 +191,7 @@ async function DashboardContent({
 
   return (
     <DashboardPageWrapper>
+      <EducationalCurveTracker username={username} />
       <DashboardClient
         initialData={data}
         allRepoActivity={allRepos}

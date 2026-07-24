@@ -74,7 +74,7 @@ describe('calculateStreak', () => {
       1, 1, 1, 1, 1, 1, 1,
     ]);
 
-    const result = calculateStreak(calendar);
+    const result = calculateStreak(calendar, 'UTC', new Date('2024-01-28T12:00:00Z'));
 
     expect(result.currentStreak).toBe(7);
     expect(result.longestStreak).toBe(7);
@@ -179,7 +179,7 @@ describe('calculateStreak', () => {
       1, // Streak 2
     ]);
 
-    const result = calculateStreak(calendar);
+    const result = calculateStreak(calendar, 'UTC', new Date('2024-01-28T12:00:00Z'));
 
     expect(result.currentStreak).toBe(9);
     expect(result.longestStreak).toBe(9);
@@ -205,7 +205,7 @@ describe('calculateStreak', () => {
       1, // week 2 — last day is "today"
     ]);
 
-    const result = calculateStreak(calendar);
+    const result = calculateStreak(calendar, 'UTC', new Date('2024-01-14T12:00:00Z'));
 
     expect(result.currentStreak).toBe(9);
     expect(result.longestStreak).toBe(9);
@@ -259,7 +259,7 @@ describe('calculateStreak', () => {
       1, // week 2 — 6-day streak ending today
     ]);
 
-    const result = calculateStreak(calendar);
+    const result = calculateStreak(calendar, 'UTC', new Date('2024-01-14T12:00:00Z'));
 
     expect(result.longestStreak).toBe(7);
     expect(result.currentStreak).toBe(6);
@@ -454,7 +454,7 @@ describe('calculateStreak', () => {
       0, // week 2 — today=0, yesterday=1 (grace period)
     ]);
 
-    const result = calculateStreak(calendar);
+    const result = calculateStreak(calendar, 'UTC', new Date('2024-01-14T12:00:00Z'));
 
     expect(result.currentStreak).toBe(2);
     expect(result.longestStreak).toBe(2);
@@ -481,11 +481,11 @@ describe('calculateStreak', () => {
     ]);
 
     // Using default grace (1)
-    const resultGrace1 = calculateStreak(calendar, 'UTC', undefined, 1);
+    const resultGrace1 = calculateStreak(calendar, 'UTC', new Date('2024-01-14T12:00:00Z'), 1);
     expect(resultGrace1.currentStreak).toBe(0);
 
     // Using grace = 2
-    const resultGrace2 = calculateStreak(calendar, 'UTC', undefined, 2);
+    const resultGrace2 = calculateStreak(calendar, 'UTC', new Date('2024-01-14T12:00:00Z'), 2);
     expect(resultGrace2.currentStreak).toBe(1);
     expect(resultGrace2.longestStreak).toBe(1);
   });
@@ -531,7 +531,7 @@ describe('calculateStreak', () => {
   it('does not walk past the start of a 1-day calendar when grace is larger than the available days', () => {
     const calendar = buildCalendar([1]);
 
-    const result = calculateStreak(calendar, 'UTC', undefined, 7);
+    const result = calculateStreak(calendar, 'UTC', new Date('2024-01-01T12:00:00Z'), 7);
     expect(result.currentStreak).toBe(1);
   });
 
@@ -619,7 +619,7 @@ describe('calculateStreak', () => {
       1, // Week 2: Mon-Fri (0), Sat-Sun (1)
     ]);
 
-    const result = calculateStreak(calendar);
+    const result = calculateStreak(calendar, 'UTC', new Date('2024-01-14T12:00:00Z'));
 
     // The gap from Monday to Friday is 5 days, which far exceeds the
     // default grace period of 1. Therefore, the streak must break every week.
@@ -1040,7 +1040,7 @@ describe('calculateStreak', () => {
       1,
       1, // Week 3 (Ends Wed)
     ]);
-    const result = calculateStreak(calendar);
+    const result = calculateStreak(calendar, 'UTC', new Date('2024-01-17T12:00:00Z'));
     expect(result.currentStreak).toBe(15);
     expect(result.longestStreak).toBe(15);
   });
@@ -1071,7 +1071,7 @@ describe('calculateStreak', () => {
       1,
       1, // Week 3 (Ends Fri)
     ]);
-    const result = calculateStreak(calendar);
+    const result = calculateStreak(calendar, 'UTC', new Date('2024-01-19T12:00:00Z'));
     expect(result.currentStreak).toBe(15);
     expect(result.longestStreak).toBe(15);
   });

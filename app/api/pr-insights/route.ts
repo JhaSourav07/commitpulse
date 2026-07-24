@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { fetchPRInsights } from '@/services/github/pr-insights';
+import { isAbortError } from '@/lib/github';
 import { validateGitHubUsername } from '@/lib/validations';
 import { getRateLimitHeaders, RateLimiter } from '@/lib/rate-limit';
 import { getUserGitHubToken } from '@/lib/githubtoken';
@@ -42,6 +43,12 @@ export async function GET(request: Request) {
     return NextResponse.json(data);
   } catch (error: unknown) {
     console.error('Error fetching PR insights:', error);
+    if (isAbortError(error)) {
+      return NextResponse.json(
+        { error: 'Upstream request timed out after 10 seconds.' },
+        { status: 504 }
+      );
+    }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to fetch PR insights' },
       { status: 500 }

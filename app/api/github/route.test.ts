@@ -3,9 +3,14 @@ import { GET } from './route';
 import { RateLimiter } from '@/lib/rate-limit';
 
 // Replace the real GitHub API with a fake function
-vi.mock('../../../lib/github', () => ({
-  getFullDashboardData: vi.fn(),
-}));
+vi.mock('../../../lib/github', async () => {
+  const actual = await vi.importActual<typeof import('../../../lib/github')>('../../../lib/github');
+
+  return {
+    ...actual,
+    getFullDashboardData: vi.fn(),
+  };
+});
 
 // Run after() callbacks synchronously in tests (outside a request scope it is otherwise a no-op).
 vi.mock('next/server', async (importOriginal) => {
@@ -239,5 +244,18 @@ describe('Standard route behavior', () => {
 
     expect(response.status).toBe(500);
     expect(body.error).toBe('Circular cause root');
+  });
+
+  it('parses valid org parameter and passes it to getFullDashboardData', async () => {
+    const response = await GET(makeRequest({ username: 'octocat', org: 'github' }));
+    expect(response.status).toBe(200);
+    expect(getFullDashboardData).toHaveBeenCalledWith(
+      'octocat',
+      expect.objectContaining({
+        bypassCache: false,
+        org: 'github',
+        signal: expect.any(AbortSignal),
+      })
+    );
   });
 });

@@ -80,26 +80,31 @@ export default function UnifiedIntelligenceCenter({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3 gap-4 mb-8">
         {metrics.map((metric, i) => (
           <motion.div
             key={metric.name}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: i * 0.1 }}
-            className={`p-5 rounded-xl border border-gray-100 dark:border-gray-800 ${metric.bgColor}`}
+            className={`p-4 rounded-xl border border-gray-100 dark:border-gray-800 ${metric.bgColor}`}
           >
-            <div className="flex items-center gap-3 mb-4">
-              <metric.icon className={`w-6 h-6 ${metric.color}`} />
-              <h3 className="font-semibold text-gray-900 dark:text-white">{metric.name}</h3>
+            <div className="flex items-center gap-2 mb-2">
+              <metric.icon className={`w-5 h-5 flex-shrink-0 ${metric.color}`} />
+              <h3
+                className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white truncate"
+                title={metric.name}
+              >
+                {metric.name}
+              </h3>
             </div>
-            <div className="flex items-end gap-2">
-              <span className="text-4xl font-bold text-gray-900 dark:text-white">
+            <div className="flex items-end gap-1">
+              <span className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white leading-none">
                 {metric.value}
               </span>
-              <span className="text-sm text-gray-500 font-medium mb-1">/ 100</span>
+              <span className="text-[10px] sm:text-xs text-gray-500 font-medium pb-0.5">/ 100</span>
             </div>
-            <div className="mt-4 h-2 w-full bg-white/50 dark:bg-black/50 rounded-full overflow-hidden">
+            <div className="mt-3 h-1.5 w-full bg-white/50 dark:bg-black/50 rounded-full overflow-hidden">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${metric.value}%` }}

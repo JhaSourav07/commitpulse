@@ -5,11 +5,12 @@ import { SectionCard, FieldLabel } from '../SectionCard';
 interface DescriptionSectionProps {
   value: string;
   onChange: (v: string) => void;
+  onReset?: () => void;
 }
 
 const CHAR_LIMIT = 280;
 
-export function DescriptionSection({ value, onChange }: DescriptionSectionProps) {
+export function DescriptionSection({ value, onChange, onReset }: DescriptionSectionProps) {
   const safeValue = value || '';
   const remaining = CHAR_LIMIT - safeValue.length;
   const isNearLimit = remaining < 40;
@@ -20,6 +21,7 @@ export function DescriptionSection({ value, onChange }: DescriptionSectionProps)
         title="Description"
         description="A short bio or tagline about yourself"
         defaultOpen
+        onReset={onReset}
       >
         <FieldLabel htmlFor="editor-bio">Bio / Tagline</FieldLabel>
         <textarea

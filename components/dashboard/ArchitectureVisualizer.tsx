@@ -493,6 +493,7 @@ export default function ArchitectureVisualizer({ onClose }: ArchitectureVisualiz
                     <GitBranch size={16} />
                   </div>
                   <input
+                    aria-label="Repository URL"
                     type="text"
                     required
                     value={repoUrl}

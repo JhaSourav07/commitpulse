@@ -42,6 +42,7 @@ export const VIEW_MODES = [
   { value: 'pulse', label: 'Heartbeat Pulse' },
   { value: 'skyline', label: 'Skyline Horizon' },
   { value: 'languages', label: 'Top Languages Skyline' },
+  { value: 'punchcard', label: 'Punch Card Heatmap' },
 ] as const satisfies readonly { value: string; label: string }[];
 
 export type ViewMode = (typeof VIEW_MODES)[number]['value'];

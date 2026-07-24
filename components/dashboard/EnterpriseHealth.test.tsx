@@ -29,6 +29,13 @@ const mockTeamHealthData: TeamHealthData = {
     indicators: [],
     recommendations: [],
   },
+  healthScore: {
+    overall: 85,
+    productivity: 90,
+    sustainability: 85,
+    collaboration: 80,
+    level: 'excellent',
+  },
   contributionCalendar: { totalContributions: 800, weeks: [] },
   generatedAt: new Date().toISOString(),
 };

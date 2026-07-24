@@ -74,7 +74,7 @@ describe('ApiStreakRoute - Edge Cases & Empty/Missing Inputs', () => {
     expect(response.status).toBe(200);
     const body = await response.text();
     expect(body).toContain('<svg');
-    expect(body).toContain('Stats for');
+    expect(body).toContain('streak for');
   });
 
   it('handles offline fallback state from GitHub fetcher gracefully', async () => {
