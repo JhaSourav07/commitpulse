@@ -120,6 +120,10 @@
     "title": "Fine-tune your monolith.",
     "desc": "Every change below updates the preview in real-time. Copy the export snippet when you're done. No extra steps required.",
     "live_preview": "Live Preview",
+    "preview_toggle_to_light": "Switch to light background preview",
+    "preview_toggle_to_dark": "Switch to dark background preview",
+    "preview_toggle_light_label": "Light",
+    "preview_toggle_dark_label": "Dark",
     "active_params": "Active Parameters",
     "empty_preview_desc": "The live badge preview will appear here once a username is added.",
     "controls": {

@@ -120,6 +120,10 @@
     "title": "모놀리스 미세 조정.",
     "desc": "아래의 모든 변경 사항은 실시간으로 미리보기에 업데이트됩니다. 작업이 끝나면 내보내기 스니펫을 복사하세요. 추가 단계가 필요 없습니다.",
     "live_preview": "라이브 미리보기",
+    "preview_toggle_to_light": "밝은 배경 미리보기로 전환",
+    "preview_toggle_to_dark": "어두운 배경 미리보기로 전환",
+    "preview_toggle_light_label": "밝게",
+    "preview_toggle_dark_label": "어둡게",
     "active_params": "활성 매개변수",
     "empty_preview_desc": "사용자 이름을 추가하면 배지 라이브 미리보기가 여기에 표시됩니다.",
     "controls": {
