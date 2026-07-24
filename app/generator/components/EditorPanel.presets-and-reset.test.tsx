@@ -26,7 +26,6 @@ describe('EditorPanel Section Reset & Profile Presets', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllMocks();
-
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => ({
