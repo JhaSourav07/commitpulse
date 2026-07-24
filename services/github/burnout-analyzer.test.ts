@@ -121,4 +121,45 @@ describe('BurnoutAnalyzer Service', () => {
 
     delete process.env.GEMINI_API_KEY;
   });
+
+  it('filters out bot accounts when excludeBots option is true', async () => {
+    const mockStats = [
+      {
+        author: { login: 'key-dev', avatar_url: 'https://avatar/key-dev' },
+        total: 100,
+        weeks: Array.from({ length: 52 }, (_, i) => ({
+          w: 1600000000 + i * 7 * 24 * 3600,
+          a: 100,
+          d: 10,
+          c: 2,
+        })),
+      },
+      {
+        author: { login: 'dependabot[bot]', avatar_url: 'https://avatar/dependabot' },
+        total: 500,
+        weeks: Array.from({ length: 52 }, (_, i) => ({
+          w: 1600000000 + i * 7 * 24 * 3600,
+          a: 1000,
+          d: 10,
+          c: 20,
+        })),
+      },
+    ];
+
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => mockStats,
+      headers: new Headers(),
+    } as Response);
+
+    const report = await fetchBurnoutAnalysis('owner', 'repo', {
+      bypassCache: true,
+      excludeBots: true,
+    });
+
+    expect(report.totalContributors).toBe(1);
+    expect(report.totalCommits).toBe(100);
+    expect(report.contributors[0].username).toBe('key-dev');
+  });
 });

@@ -22,7 +22,11 @@ import {
   RADAR_AXIS_OPACITY,
 } from './radarConstants';
 
-function calculateRadarMetrics(stats: StreakStats, calendar: ContributionCalendar): number[] {
+function calculateRadarMetrics(
+  stats: StreakStats,
+  calendar: ContributionCalendar,
+  hourCounts?: number[]
+): number[] {
   // 1. Consistency: current streak vs longest
   const consistency =
     stats.longestStreak > 0 ? Math.min(1, stats.currentStreak / stats.longestStreak) : 0;
@@ -34,21 +38,32 @@ function calculateRadarMetrics(stats: StreakStats, calendar: ContributionCalenda
   const wrapped = calculateWrappedStats(calendar);
   const weekend = Math.min(1, wrapped.weekendRatio / 100);
 
-  // 4. Night Owl proxy: ratio of weeknight (Mon–Thu) contributions to all weekday contributions.
-  // GitHub's calendar has no hour data, but weeknight commits (Mon–Thu) are a real behavioral
-  // signal for late-evening coding patterns versus weekend/Friday casual commits.
-  const weeks = calendar.weeks || [];
-  const allDays = weeks.flatMap((w) => w?.contributionDays || []).filter(Boolean);
-  let weeknightCommits = 0;
-  let weekdayCommits = 0;
-  for (const day of allDays) {
-    if (!day?.date) continue;
-    const dow = new Date(day.date).getUTCDay(); // 0=Sun … 6=Sat
-    const count = day.contributionCount || 0;
-    if (dow >= 1 && dow <= 5) weekdayCommits += count;
-    if (dow >= 1 && dow <= 4) weeknightCommits += count; // Mon–Thu as weeknight proxy
+  // 4. Night Owl: ratio of commits made between 9pm-4am to total sampled commits,
+  // using real per-hour commit timestamps (the same fetchCommitHourDistribution
+  // data already powering the commit_clock view) rather than a day-of-week proxy.
+  // Falls back to a day-of-week heuristic only when hour data wasn't supplied
+  // (e.g. hourCounts fetch failed or was skipped) — clearly weaker signal, but
+  // avoids a hard crash if the caller doesn't have hour data available.
+  let nightOwl: number;
+  if (hourCounts && hourCounts.length === 24) {
+    const totalSampled = hourCounts.reduce((sum, count) => sum + count, 0);
+    const NIGHT_HOURS = [21, 22, 23, 0, 1, 2, 3, 4];
+    const nightCommits = NIGHT_HOURS.reduce((sum, hour) => sum + hourCounts[hour], 0);
+    nightOwl = totalSampled > 0 ? Math.min(1, nightCommits / totalSampled) : 0;
+  } else {
+    const weeks = calendar.weeks || [];
+    const allDays = weeks.flatMap((w) => w?.contributionDays || []).filter(Boolean);
+    let weeknightCommits = 0;
+    let weekdayCommits = 0;
+    for (const day of allDays) {
+      if (!day?.date) continue;
+      const dow = new Date(day.date).getUTCDay();
+      const count = day.contributionCount || 0;
+      if (dow >= 1 && dow <= 5) weekdayCommits += count;
+      if (dow >= 1 && dow <= 4) weeknightCommits += count;
+    }
+    nightOwl = weekdayCommits > 0 ? Math.min(1, weeknightCommits / weekdayCommits) : 0;
   }
-  const nightOwl = weekdayCommits > 0 ? Math.min(1, weeknightCommits / weekdayCommits) : 0;
 
   // 5. Growth: using monthly delta
   const monthly = calculateMonthlyStats(calendar, 'UTC', new Date());
@@ -70,7 +85,8 @@ function calculateRadarMetrics(stats: StreakStats, calendar: ContributionCalenda
 export function generateRadarSVG(
   stats: StreakStats,
   params: BadgeParams,
-  calendar: ContributionCalendar
+  calendar: ContributionCalendar,
+  hourCounts?: number[]
 ): string {
   const sf = getSizeScale(params.size);
   const safeUser = escapeXML(truncateUsername(params.user));
@@ -80,7 +96,7 @@ export function generateRadarSVG(
     ? params.accent[params.accent.length - 1]
     : params.accent || '58a6ff';
 
-  const metrics = calculateRadarMetrics(stats, calendar);
+  const metrics = calculateRadarMetrics(stats, calendar, hourCounts);
 
   // Build SVG content
 

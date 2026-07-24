@@ -209,4 +209,38 @@ describe('streakParamsSchema', () => {
     const result = streakParamsSchema.safeParse({ user: 'octocat', versus: 'bad user!' });
     expect(result.success).toBe(false);
   });
+
+  describe('label parameter', () => {
+    it('transforms string "false" to boolean false', () => {
+      const result = streakParamsSchema.safeParse({ user: 'octocat', label: 'false' });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.label).toBe(false);
+      }
+    });
+
+    it('transforms string "true" to boolean true', () => {
+      const result = streakParamsSchema.safeParse({ user: 'octocat', label: 'true' });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.label).toBe(true);
+      }
+    });
+
+    it('retains custom label strings', () => {
+      const result = streakParamsSchema.safeParse({ user: 'octocat', label: 'Team Streak' });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.label).toBe('Team Streak');
+      }
+    });
+
+    it('retains undefined if label parameter is missing', () => {
+      const result = streakParamsSchema.safeParse({ user: 'octocat' });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.label).toBeUndefined();
+      }
+    });
+  });
 });

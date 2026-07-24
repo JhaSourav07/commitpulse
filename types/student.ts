@@ -1,3 +1,5 @@
+import { AcademicDomain } from '@/lib/educational/syllabus-mapper';
+
 export interface ParsedResume {
   name: string;
   email: string;
@@ -37,6 +39,8 @@ export interface StudentProfile {
   resumeFileName?: string;
   createdAt: Date;
   updatedAt: Date;
+  learningCurve?: LearningCurveData;
+  activeStudyStreak?: StudyStreak;
 }
 
 export interface ResumeUploadResponse {
@@ -49,4 +53,33 @@ export interface ResumeUploadResponse {
 export interface ResumeConfirmResponse {
   success: boolean;
   error?: string;
+}
+
+export interface DomainStats {
+  domain: AcademicDomain;
+  commitCount: number;
+  linesAdded: number;
+  linesDeleted: number;
+  primaryLanguagesUsed: string[];
+}
+
+export interface LearningCurveDataPoint {
+  date: string; // ISO string format (e.g., '2026-04-15')
+  domains: Partial<Record<AcademicDomain, DomainStats>>;
+  totalDailyCommits: number;
+}
+
+export interface LearningCurveData {
+  timeline: LearningCurveDataPoint[]; // Rolling 30-day array
+  primaryDomain: AcademicDomain;
+  totalStudyDays: number;
+}
+
+export interface StudyStreak {
+  currentStreak: number;
+  longestStreak: number;
+  startDate: string;
+  endDate: string;
+  activeDomains: AcademicDomain[];
+  isActive: boolean;
 }

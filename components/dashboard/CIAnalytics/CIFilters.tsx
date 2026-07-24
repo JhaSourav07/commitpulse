@@ -194,6 +194,7 @@ export default function CIFilters({ filters, onChange }: CIFiltersProps) {
           <div className="relative flex-grow">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
+              aria-label="Text input"
               type="text"
               placeholder={getPlaceholder()}
               value={getInputValue()}

@@ -160,7 +160,10 @@
       "footer_tip": "Füge dies in die README.md deines GitHub-Profils ein. Das Badge wird serverseitig gerendert, kein Skript erforderlich.",
       "tsx": "React TSX",
       "download_svg": "SVG herunterladen",
-      "download_png": "PNG herunterladen"
+      "download_png": "PNG herunterladen",
+      "download_webp": "WebP herunterladen",
+      "download_pdf": "PDF herunterladen",
+      "export_as": "Exportieren als"
     }
   },
   "dashboard": {
@@ -177,7 +180,9 @@
       "joined": "Beigetreten",
       "pro_badge": "PRO",
       "pro": "PRO",
-      "share": "Teile deinen Pulse"
+      "share": "Teile deinen Pulse",
+      "username_copied": "Benutzername kopiert!",
+      "copy_username_aria": "Benutzername in die Zwischenablage kopieren"
     },
     "achievements": {
       "title": "Erfolge",

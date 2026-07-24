@@ -8,6 +8,7 @@ import { ReadmeInsightsPanel } from './components/ReadmeInsightsPanel';
 import { ReadmeHealthBreakdown } from './components/ReadmeHealthBreakdown';
 import { ReadmeInsight } from './components/ReadmeInsight';
 import { generateReadme, getEmptyReadme } from './utils/readmeGenerator';
+import { sanitizeSocialUrl } from './utils/urlSanitizer';
 import type { GeneratorState } from './types';
 import type { ImportedData } from './utils/githubMapper';
 
@@ -70,13 +71,22 @@ export function GeneratorClient() {
           confirmOverwrite || !prevState.description
             ? data.description || prevState.description
             : prevState.description,
-        selectedTechs: Array.from(new Set([...prevState.selectedTechs, ...data.selectedTechs])),
+        selectedTechs: Array.from(
+          new Set([...prevState.selectedTechs, ...(data.selectedTechs || [])])
+        ),
         selectedSocials: Array.from(
-          new Set([...prevState.selectedSocials, ...data.selectedSocials])
+          new Set([...prevState.selectedSocials, ...(data.selectedSocials || [])])
         ),
         socialLinks: { ...prevState.socialLinks, ...data.socialLinks },
       };
     });
+  };
+
+  const handleApplyPreset = (presetState: Partial<GeneratorState>) => {
+    setState((prevState) => ({
+      ...prevState,
+      ...presetState,
+    }));
   };
 
   return (
@@ -86,12 +96,16 @@ export function GeneratorClient() {
           state={state}
           onNameChange={(v) => setState((s) => ({ ...s, name: v }))}
           onDescriptionChange={(v) => setState((s) => ({ ...s, description: v }))}
-          onTechsChange={(ids) => setState((s) => ({ ...s, selectedTechs: ids }))}
-          onSocialsChange={(ids) => setState((s) => ({ ...s, selectedSocials: ids }))}
+          onTechsChange={(ids) =>
+            setState((s) => ({ ...s, selectedTechs: Array.from(new Set(ids)) }))
+          }
+          onSocialsChange={(ids) =>
+            setState((s) => ({ ...s, selectedSocials: Array.from(new Set(ids)) }))
+          }
           onSocialLinkChange={(id, url) =>
             setState((s) => ({
               ...s,
-              socialLinks: { ...s.socialLinks, [id]: url },
+              socialLinks: { ...s.socialLinks, [id]: sanitizeSocialUrl(id, url) },
             }))
           }
           onGithubUsernameChange={(v) => setState((s) => ({ ...s, githubUsername: v }))}
@@ -106,11 +120,12 @@ export function GeneratorClient() {
           onArticlesPlatformChange={(v) => setState((s) => ({ ...s, articlesPlatform: v }))}
           onArticlesUsernameChange={(v) => setState((s) => ({ ...s, articlesUsername: v }))}
           onApplyImport={handleApplyImport}
+          onApplyPreset={handleApplyPreset}
         />
       </div>
 
       <div className="w-full lg:flex-1 flex flex-col gap-5 xl:gap-6">
-        <PreviewPanel markdown={markdown} />
+        <PreviewPanel markdown={markdown} state={state} />
         <CompletionScorePanel state={state} />
         <ReadmeInsightsPanel state={state} />
         <ReadmeHealthBreakdown state={state} />

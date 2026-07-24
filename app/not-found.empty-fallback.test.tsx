@@ -1,9 +1,14 @@
 // app/not-found.empty-fallback.test.tsx
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { copyToClipboard } from '@/utils/clipboard';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { toast } from 'sonner';
+
+vi.mock('@/utils/clipboard', () => ({
+  copyToClipboard: vi.fn(),
+}));
 
 vi.mock('next/link', () => ({
   default: ({
@@ -26,14 +31,8 @@ import NotFound from './not-found';
 describe('NotFound Component - Empty & Missing Input Fallbacks', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Default mock for navigator.clipboard
-    Object.defineProperty(navigator, 'clipboard', {
-      value: {
-        writeText: vi.fn().mockResolvedValue(undefined),
-      },
-      configurable: true,
-      writable: true,
-    });
+
+    vi.mocked(copyToClipboard).mockResolvedValue(undefined);
   });
 
   it('renders successfully with default empty layout state and correct header', () => {
@@ -82,7 +81,7 @@ describe('NotFound Component - Empty & Missing Input Fallbacks', () => {
 
     if (terminalContainer) {
       await fireEvent.click(terminalContainer);
-      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      expect(copyToClipboard).toHaveBeenCalledWith(
         expect.stringContaining('git checkout this-page')
       );
       expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Terminal output copied!');
@@ -91,7 +90,7 @@ describe('NotFound Component - Empty & Missing Input Fallbacks', () => {
 
   it('handles clipboard writeText rejection gracefully and calls toast.error', async () => {
     // Override writeText to reject
-    vi.mocked(navigator.clipboard.writeText).mockRejectedValueOnce(new Error('Clipboard error'));
+    vi.mocked(copyToClipboard).mockRejectedValueOnce(new Error('Clipboard error'));
 
     render(<NotFound />);
 
@@ -100,18 +99,14 @@ describe('NotFound Component - Empty & Missing Input Fallbacks', () => {
 
     if (terminalContainer) {
       await fireEvent.click(terminalContainer);
-      expect(navigator.clipboard.writeText).toHaveBeenCalled();
+      expect(copyToClipboard).toHaveBeenCalled();
       expect(vi.mocked(toast.error)).toHaveBeenCalledWith('Failed to copy terminal output');
     }
   });
 
   it('handles missing navigator.clipboard gracefully and calls toast.error without crashing', async () => {
     // Delete navigator.clipboard
-    Object.defineProperty(navigator, 'clipboard', {
-      value: undefined,
-      configurable: true,
-      writable: true,
-    });
+    vi.mocked(copyToClipboard).mockRejectedValueOnce(new Error('Clipboard unavailable'));
 
     render(<NotFound />);
 

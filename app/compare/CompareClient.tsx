@@ -1,5 +1,6 @@
 'use client';
 
+import { copyToClipboard } from '@/utils/clipboard';
 import Image from 'next/image';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -993,7 +994,7 @@ export default function CompareClient() {
     const url = window.location.href;
 
     try {
-      await navigator.clipboard.writeText(url);
+      await copyToClipboard(url);
 
       setCopied(true);
       toast.success('Comparison link copied!');

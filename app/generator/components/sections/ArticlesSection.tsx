@@ -12,6 +12,7 @@ export interface ArticlesSectionProps {
   onShowArticlesChange: (v: boolean) => void;
   onArticlesPlatformChange: (v: 'devto' | 'hashnode') => void;
   onArticlesUsernameChange: (v: string) => void;
+  onReset?: () => void;
 }
 
 export function ArticlesSection({
@@ -21,6 +22,7 @@ export function ArticlesSection({
   onShowArticlesChange,
   onArticlesPlatformChange,
   onArticlesUsernameChange,
+  onReset,
 }: ArticlesSectionProps) {
   const safeUsername = articlesUsername || '';
   const trimmed = safeUsername.trim();
@@ -53,6 +55,7 @@ export function ArticlesSection({
         description="Display your most recent blog posts dynamically"
         defaultOpen={true}
         badge={badgeCount}
+        onReset={onReset}
       >
         <div className="flex items-start justify-between mb-5">
           <div>

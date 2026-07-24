@@ -10,6 +10,7 @@ import type {
   GraphLink,
 } from '@/types';
 import { calculateStreak, aggregateCalendars, convertLocalToUtc } from '@/lib/calculate';
+import { isBotAuthor } from './bot-filter';
 import { DistributedCache } from '@/lib/cache';
 import { LANGUAGE_COLORS } from '@/lib/svg/languageColors';
 import { CONTRIBUTION_MILESTONES, STREAK_MILESTONES } from './svg/constants';
@@ -100,6 +101,38 @@ const MAX_GRAPHQL_REPOSITORY_RESULTS = 500;
 let currentTokenIndex = 0;
 const rateLimitedTokens = new Map<string, number>();
 const tokenStats = new Map<string, { remaining: number; resetTime: number }>();
+
+// Issue #7380: Promise-based mutex serializing every read-modify-write of
+// currentTokenIndex.  Because getGitHubToken and the 401/429 handlers run
+// across `await` boundaries, two concurrent async requests can otherwise
+// interleave between reading currentTokenIndex and writing it back — corrupting
+// the value (e.g. letting it exceed tokens.length or skipping a healthy token).
+// The lock guarantees only one caller mutates the index at a time.  getGitHubToken
+// itself is synchronous and therefore already atomic, but the handlers below run
+// asynchronously and must take the lock before touching the shared index.
+let tokenIndexLock: Promise<void> = Promise.resolve();
+
+function withTokenIndexLock<T>(fn: () => T | Promise<T>): Promise<T> {
+  const acquire = tokenIndexLock;
+  let release!: () => void;
+  const released = new Promise<void>((r) => {
+    release = r;
+  });
+  tokenIndexLock = released.then(() => undefined);
+
+  return acquire.then(() => {
+    try {
+      return Promise.resolve(fn()).finally(release);
+    } catch (err) {
+      release();
+      throw err;
+    }
+  });
+}
+
+export function getTokenIndexLockForTests() {
+  return tokenIndexLock;
+}
 
 // Issue #7213: Per-token pending refresh promise to deduplicate concurrent rotations.
 // When multiple concurrent requests detect an expired token, only one triggers
@@ -329,10 +362,14 @@ export async function fetchWithRetry(
       }
       rateLimitedTokens.set(currentToken, resetTime);
       tokenStats.set(currentToken, { remaining: 0, resetTime });
-      const tokens = getGitHubTokens();
-      if (tokens.length > 1) {
-        currentTokenIndex = (currentTokenIndex + 1) % tokens.length;
-      }
+      // Issue #7380: advance the rotation index under the mutex so concurrent
+      // rate-limit handlers cannot both read then write the same value.
+      await withTokenIndexLock(() => {
+        const tokens = getGitHubTokens();
+        if (tokens.length > 1) {
+          currentTokenIndex = (currentTokenIndex + 1) % tokens.length;
+        }
+      });
     }
 
     if (attempt >= MAX_RETRIES) return res;
@@ -567,6 +604,7 @@ type FetchOptions = {
   rangeLabel?: string;
   signal?: AbortSignal;
   org?: string;
+  excludeBots?: boolean;
   // Authenticated user's OAuth token. When set, GitHub calls use THIS token
   // (the user's personal rate-limit quota) instead of the global PAT pool.
   token?: string;
@@ -574,7 +612,12 @@ type FetchOptions = {
 
 export const GITHUB_CACHE_TTL_MS = Number(process.env.GITHUB_CACHE_TTL_MS ?? String(5 * 60 * 1000));
 
-export const contributionsCache = new DistributedCache<ExtendedContributionData>(1000);
+export interface CachedContributions {
+  data: ExtendedContributionData;
+  fetchedAt: number;
+}
+
+export const contributionsCache = new DistributedCache<CachedContributions>(1000);
 const profileCache = new DistributedCache<GitHubUserProfile>(1000);
 const reposCache = new DistributedCache<GitHubRepo[]>(500);
 const contributedReposCache = new DistributedCache<ContributedRepo[]>(500);
@@ -670,6 +713,8 @@ export function clearGitHubApiCacheForTests(): void {
   tokenStats.clear();
   pendingRefreshPromises.clear();
   currentTokenIndex = 0;
+  // Issue #7380: reset the mutex so tests start from a clean (unlocked) state.
+  tokenIndexLock = Promise.resolve();
   globalCircuitBreakerOpenUntil = 0;
 }
 
@@ -792,10 +837,14 @@ export async function handleTokenExpiration(token: string): Promise<void> {
 
   const refreshPromise = (async () => {
     rateLimitedTokens.set(token, Date.now() + 24 * 60 * 60 * 1000);
-    const tokens = getGitHubTokens();
-    if (tokens.length > 1) {
-      currentTokenIndex = (currentTokenIndex + 1) % tokens.length;
-    }
+    // Issue #7380: advance the rotation index under the mutex so concurrent
+    // expiration handlers cannot both read then write the same value.
+    await withTokenIndexLock(() => {
+      const tokens = getGitHubTokens();
+      if (tokens.length > 1) {
+        currentTokenIndex = (currentTokenIndex + 1) % tokens.length;
+      }
+    });
   })();
 
   pendingRefreshPromises.set(token, refreshPromise);
@@ -857,13 +906,6 @@ export async function fetchGitHubContributions(
     process.env.GITHUB_LONG_CACHE_TTL_MS ?? String(7 * 24 * 60 * 60 * 1000)
   );
 
-  const shouldFetch = (cached: ExtendedContributionData) => {
-    const now = Date.now();
-    return cached?.calendar.lastSyncedAt
-      ? now - new Date(cached.calendar.lastSyncedAt).getTime() > GITHUB_CACHE_TTL_MS
-      : true;
-  };
-
   const loadWithTimeout = async (): Promise<ExtendedContributionData> => {
     const controller = new AbortController();
     if (options.signal) {
@@ -918,83 +960,50 @@ export async function fetchGitHubContributions(
     return pending;
   };
 
-  if (options.signal) {
-    if (options.bypassCache || options.forceRefresh) {
-      try {
-        return await loadWithTimeout();
-      } catch (err: unknown) {
-        if (shouldFallbackOnError(err)) {
-          const staleData = await contributionsCache.get(key);
-          if (staleData) {
-            logger.warn('GitHub API fetch failed, falling back to stale cache', {
-              component: 'GitHub API',
-              username,
-              error: err,
-            });
-            return {
-              ...staleData,
-              isOfflineFallback: true,
-            };
-          }
-          return getMockContributions();
-        }
-        throw err;
-      }
+  const revalidateInBackground = (username: string, cacheKey: string) => {
+    const quota = quotaMonitor.getQuota();
+    if (quota.remaining < 100) {
+      logger.warn('Background revalidation paused due to low GitHub API quota', {
+        username,
+        remaining: quota.remaining,
+      });
+      return;
     }
-    const cached = await contributionsCache.get(key);
-    if (cached !== null && !shouldFetch(cached)) {
-      return cached;
-    }
-    try {
-      return await loadWithTimeout();
-    } catch (err: unknown) {
-      if (shouldFallbackOnError(err)) {
-        const staleData = await contributionsCache.get(key);
-        if (staleData) {
-          logger.warn('GitHub API fetch failed, falling back to stale cache', {
-            component: 'GitHub API',
-            username,
-            error: err,
-          });
-          return {
-            ...staleData,
-            isOfflineFallback: true,
-          };
-        }
-        return getMockContributions();
-      }
-      throw err;
-    }
-  }
 
-  if (options.bypassCache || options.forceRefresh) {
-    try {
-      const result = await coalescedLoad();
-      if (options.forceRefresh) {
-        await contributionsCache.set(key, result, LONG_CACHE_TTL);
+    (async () => {
+      try {
+        const fresh = await coalescedLoad();
+        await contributionsCache.set(
+          cacheKey,
+          { data: fresh, fetchedAt: Date.now() },
+          LONG_CACHE_TTL
+        );
+      } catch (err: unknown) {
+        logger.error('Background revalidation failed', { username, error: err });
       }
-      return result;
-    } catch (err: unknown) {
-      if (shouldFallbackOnError(err)) {
-        const staleData = await contributionsCache.get(key);
-        if (staleData) {
-          console.warn(
-            `[GitHub API] Fetch failed or timed out for "${username}", falling back to stale cache:`,
-            err
-          );
-          return {
-            ...staleData,
-            isOfflineFallback: true,
-          };
-        }
-        return getMockContributions();
+    })();
+  };
+
+  if (!options.bypassCache && !options.forceRefresh) {
+    const cached = await contributionsCache.get(key);
+    if (cached) {
+      const age = Date.now() - cached.fetchedAt;
+      if (age < 60000) {
+        return cached.data;
       }
-      throw err;
+      if (age < 3600000) {
+        revalidateInBackground(username, key);
+        return cached.data;
+      }
     }
   }
 
   try {
-    return await contributionsCache.getOrSet(key, coalescedLoad, LONG_CACHE_TTL, shouldFetch);
+    const result = await coalescedLoad();
+    if (!options.bypassCache || options.forceRefresh) {
+      await contributionsCache.set(key, { data: result, fetchedAt: Date.now() }, LONG_CACHE_TTL);
+    }
+    return result;
   } catch (err: unknown) {
     if (shouldFallbackOnError(err)) {
       const staleData = await contributionsCache.get(key);
@@ -1005,7 +1014,7 @@ export async function fetchGitHubContributions(
           error: err,
         });
         return {
-          ...staleData,
+          ...staleData.data,
           isOfflineFallback: true,
         };
       }
@@ -1503,7 +1512,10 @@ export async function getOrgDashboardData(
     throw new Error('This endpoint is strictly for organizations.');
   if (membersOrError instanceof Error) throw membersOrError;
 
-  const members = membersOrError;
+  let members = membersOrError;
+  if (options.excludeBots) {
+    members = members.filter((member) => !isBotAuthor(member));
+  }
 
   // Limit active members to protect shared token rate limit and improve response times
   const activeMembers = members.slice(0, ORG_MEMBER_LIMIT);
@@ -1959,6 +1971,7 @@ export interface PopularRepo {
   forkCount: number;
   url: string;
   createdAt: string;
+  updatedAt?: string;
   primaryLanguage: { name: string; color: string } | null;
 }
 
@@ -1975,6 +1988,7 @@ export async function fetchPinnedRepos(username: string, token?: string): Promis
               forkCount
               url
               createdAt
+              updatedAt
               primaryLanguage {
                 name
                 color
@@ -2018,6 +2032,7 @@ async function fetchPopularRepos(username: string, token?: string): Promise<Popu
             forkCount
             url
             createdAt
+            updatedAt
             primaryLanguage {
               name
               color
@@ -2060,6 +2075,7 @@ async function fetchStarredRepos(username: string, token?: string): Promise<Popu
             forkCount
             url
             createdAt
+            updatedAt
             primaryLanguage {
               name
               color
@@ -2846,6 +2862,140 @@ export async function fetchCommitHourDistribution(
   });
 
   return hourCounts;
+}
+
+export async function fetchCommitPunchCard(
+  username: string,
+  token?: string,
+  timezone: string = 'UTC'
+): Promise<number[][]> {
+  // 7 days (Mon-Sun), 24 hours
+  const punchCard: number[][] = Array.from({ length: 7 }, () => new Array(24).fill(0));
+
+  const getDayAndHourInTimezone = (isoDate: string, tz: string): { day: number; hour: number } => {
+    try {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
+        weekday: 'short',
+        hour: 'numeric',
+        hour12: false,
+        hourCycle: 'h23',
+      }).formatToParts(new Date(isoDate));
+
+      const hourPart = parts.find((p) => p.type === 'hour')?.value;
+      const hour = hourPart ? parseInt(hourPart, 10) % 24 : new Date(isoDate).getUTCHours();
+
+      const weekdayPart = parts.find((p) => p.type === 'weekday')?.value;
+      // Map to 0-6 where 0 = Monday, 6 = Sunday
+      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      let day = days.indexOf(weekdayPart ?? 'Mon');
+      if (day === -1) {
+        const utcDay = new Date(isoDate).getUTCDay();
+        day = utcDay === 0 ? 6 : utcDay - 1;
+      }
+
+      return { day, hour };
+    } catch {
+      const d = new Date(isoDate);
+      const utcDay = d.getUTCDay();
+      return {
+        day: utcDay === 0 ? 6 : utcDay - 1,
+        hour: d.getUTCHours(),
+      };
+    }
+  };
+
+  const query = `
+    query($login: String!) {
+      user(login: $login) {
+        contributionsCollection {
+          commitContributionsByRepository(maxRepositories: 5) {
+            repository {
+              name
+              owner { login }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  let topRepos: { owner: string; name: string }[] = [];
+  try {
+    const res = await fetchGraphQLWithRetry(
+      GITHUB_GRAPHQL_URL,
+      {
+        method: 'POST',
+        headers: getHeaders(token),
+        body: JSON.stringify({ query, variables: { login: username } }),
+        cache: 'no-store',
+      },
+      0,
+      undefined,
+      token
+    );
+    if (res.ok) {
+      const data = await res.json();
+      const repos =
+        data?.data?.user?.contributionsCollection?.commitContributionsByRepository ?? [];
+      topRepos = repos.map((r: { repository: { owner: { login: string }; name: string } }) => ({
+        owner: r.repository.owner.login,
+        name: r.repository.name,
+      }));
+    }
+  } catch {
+    // silent
+  }
+
+  if (topRepos.length === 0) return punchCard;
+
+  const commitQuery = `
+    query($owner: String!, $name: String!) {
+      repository(owner: $owner, name: $name) {
+        defaultBranchRef {
+          target {
+            ... on Commit {
+              history(first: 100) {
+                nodes {
+                  committedDate
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  await runCappedConcurrency(topRepos, 3, async ({ owner, name }) => {
+    try {
+      const res = await fetchGraphQLWithRetry(
+        GITHUB_GRAPHQL_URL,
+        {
+          method: 'POST',
+          headers: getHeaders(token),
+          body: JSON.stringify({ query: commitQuery, variables: { owner, name } }),
+          cache: 'no-store',
+        },
+        0,
+        undefined,
+        token
+      );
+      if (!res.ok) return null;
+      const data = await res.json();
+      const nodes: { committedDate: string }[] =
+        data?.data?.repository?.defaultBranchRef?.target?.history?.nodes ?? [];
+      for (const node of nodes) {
+        const { day, hour } = getDayAndHourInTimezone(node.committedDate, timezone);
+        punchCard[day][hour]++;
+      }
+    } catch {
+      // skip
+    }
+    return null;
+  });
+
+  return punchCard;
 }
 
 export async function runCappedConcurrency<T, R>(

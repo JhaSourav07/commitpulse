@@ -76,7 +76,7 @@ describe('isTrustedProxy and Helpers', () => {
 });
 
 describe('trustedProxy — Performance Benchmarks with Cached Subnet Masks', () => {
-  it('isTrustedProxy lookup completes under 1ms for 1000-entry proxy list', () => {
+  it('isTrustedProxy lookup completes under 5ms for 1000-entry proxy list', () => {
     const trustedProxies = Array.from(
       { length: 1000 },
       (_, i) => `10.0.${Math.floor(i / 255)}.${i % 255}`

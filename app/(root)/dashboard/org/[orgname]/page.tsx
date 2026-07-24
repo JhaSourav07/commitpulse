@@ -11,6 +11,7 @@ import CommitClock from '@/components/dashboard/CommitClock';
 import Heatmap from '@/components/dashboard/Heatmap';
 import AIInsights from '@/components/dashboard/AIInsights';
 import Achievements from '@/components/dashboard/Achievements';
+import BotFilterToggle from '@/components/dashboard/BotFilterToggle';
 import { getOrgDashboardData, buildCommitClock, generateAchievements } from '@/lib/github';
 import logger from '@/lib/logger';
 import { getUserGitHubToken } from '@/lib/githubtoken';
@@ -50,17 +51,18 @@ export default async function OrgDashboardPage({
   searchParams,
 }: {
   params: Promise<{ orgname: string }>;
-  searchParams: Promise<{ refresh?: string }>;
+  searchParams: Promise<{ refresh?: string; excludeBots?: string }>;
 }) {
   const { orgname } = await params;
   const refreshParams = await searchParams;
   const bypassCache = refreshParams?.refresh === 'true';
+  const excludeBots = refreshParams?.excludeBots === 'true';
   const userToken = await getUserGitHubToken();
 
   let data;
 
   try {
-    data = await getOrgDashboardData(orgname, { bypassCache, token: userToken });
+    data = await getOrgDashboardData(orgname, { bypassCache, token: userToken, excludeBots });
   } catch (error) {
     logger.error('Failed to load organization page', {
       error,
@@ -144,6 +146,7 @@ export default async function OrgDashboardPage({
               languages: [], // Orgs skip language donut chart for now
             }}
           />
+          <BotFilterToggle />
           <Achievements achievements={achievements} />
         </aside>
 

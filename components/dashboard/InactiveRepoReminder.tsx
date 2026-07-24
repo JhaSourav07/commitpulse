@@ -1,5 +1,6 @@
 'use client';
 
+import { copyToClipboard } from '@/utils/clipboard';
 import { useState, useMemo, useCallback } from 'react';
 import { RefreshCw, ArrowUpRight, Copy, Check } from 'lucide-react';
 import type { RepoActivityInfo } from '@/types/dashboard';
@@ -42,7 +43,7 @@ export default function InactiveRepoReminder({ repos }: InactiveRepoReminderProp
 
   const handleCopy = useCallback(async (repo: RepoActivityInfo) => {
     try {
-      await navigator.clipboard.writeText(repo.url);
+      await copyToClipboard(repo.url);
       setCopiedRepo(repo.name);
 
       setTimeout(() => {
