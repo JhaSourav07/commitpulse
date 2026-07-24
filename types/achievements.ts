@@ -3,7 +3,11 @@ export type AchievementTier = 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamo
 export type AchievementRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'mythic';
 
 export type AchievementCategory =
-  'contribution' | 'pull-request' | 'repository' | 'collaboration' | 'technology';
+  | 'contribution'
+  | 'pull-request'
+  | 'repository'
+  | 'collaboration'
+  | 'technology';
 
 export interface AchievementLevelDef {
   tier: AchievementTier;
