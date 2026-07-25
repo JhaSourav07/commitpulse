@@ -1,11 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { EditorPanel } from './EditorPanel';
 import type { GeneratorState } from '../types';
-
-vi.mock('@/hooks/useGitHubUserExists', () => ({
-  useGitHubUserExists: vi.fn().mockReturnValue({ status: 'idle', avatarUrl: null }),
-}));
 
 const mockState: GeneratorState = {
   name: 'Original Name',
@@ -29,6 +25,16 @@ const mockState: GeneratorState = {
 describe('EditorPanel Section Reset & Profile Presets', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        json: async () => ({ exists: false, reason: 'unverifiable' }),
+      }))
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('renders Profile Presets section and options', () => {
