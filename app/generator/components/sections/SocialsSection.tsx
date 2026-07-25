@@ -12,6 +12,7 @@ interface SocialsSectionProps {
   socialLinks: Record<string, string>;
   onSelectedChange: (ids: string[]) => void;
   onLinkChange: (id: string, url: string) => void;
+  onReset?: () => void;
 }
 
 function SocialIcon({ social, isDark }: { social: Social; isDark: boolean }) {
@@ -33,6 +34,7 @@ export function SocialsSection({
   socialLinks,
   onSelectedChange,
   onLinkChange,
+  onReset,
 }: SocialsSectionProps) {
   const safeSelected = Array.isArray(selected) ? selected : [];
   const safeSocialLinks = socialLinks || {};
@@ -75,6 +77,7 @@ export function SocialsSection({
         description="Add links to your profiles"
         badge={safeSelected.length}
         defaultOpen
+        onReset={onReset}
       >
         <div
           role="tablist"
@@ -111,6 +114,7 @@ export function SocialsSection({
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-white/30 pointer-events-none"
               />
               <input
+                aria-label="Search platforms..."
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -305,7 +309,11 @@ export function SocialsSection({
                         {hasLink && (
                           <a
                             href={
-                              social.id === 'email' ? `mailto:${val.replace(/^mailto:/, '')}` : val
+                              social.id === 'email'
+                                ? `mailto:${val.replace(/^mailto:/i, '')}`
+                                : val.startsWith('http')
+                                  ? val
+                                  : `${social.baseUrl}${val}`
                             }
                             target="_blank"
                             rel="noopener noreferrer"

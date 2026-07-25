@@ -133,7 +133,7 @@ describe('GET /api/streak?view=weekday', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe(
-      'public, max-age=60, s-maxage=3600, stale-while-revalidate=59'
+      'public, max-age=300, stale-while-revalidate=3600'
     );
     expect(response.headers.get('X-Cache-Status')).toBe('HIT');
   });

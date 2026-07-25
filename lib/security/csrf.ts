@@ -9,8 +9,13 @@ export function validateCSRF(request: Request): Response | null {
 
   const allowedOrigin = process.env.NEXT_PUBLIC_SITE_URL || 'https://commitpulse.vercel.app';
 
-  // Allow server-to-server / tests
-  if (!origin && !referer) return null;
+  // Require either Origin or Referer header for CSRF protection
+  if (!origin && !referer) {
+    return new Response(JSON.stringify({ error: 'Missing Origin or Referer header' }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
   const isValidOrigin = (value: string | null) => {
     if (!value) return false;

@@ -4,7 +4,12 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { PreviewPanel } from './PreviewPanel';
 
 vi.mock('@/utils/clipboard', () => ({
-  fallbackCopyToClipboard: vi.fn(() => true),
+  fallbackCopyToClipboard: vi.fn().mockReturnValue(true),
+  copyToClipboard: vi.fn().mockImplementation(async (text) => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      await navigator.clipboard.writeText(text);
+    }
+  }),
 }));
 
 const mockState: GeneratorState = {

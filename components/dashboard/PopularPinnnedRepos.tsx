@@ -13,6 +13,35 @@ interface Repository {
     name: string;
     color: string;
   } | null;
+  updatedAt?: string;
+}
+
+function formatRelativeTime(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+
+  const days = Math.floor(diffInSeconds / 86400);
+  if (days > 0) {
+    if (days >= 30) {
+      const months = Math.floor(days / 30);
+      if (months >= 12) {
+        return rtf.format(-Math.floor(months / 12), 'year');
+      }
+      return rtf.format(-months, 'month');
+    }
+    return rtf.format(-days, 'day');
+  }
+
+  const hours = Math.floor(diffInSeconds / 3600);
+  if (hours > 0) return rtf.format(-hours, 'hour');
+
+  const minutes = Math.floor(diffInSeconds / 60);
+  if (minutes > 0) return rtf.format(-minutes, 'minute');
+
+  return rtf.format(-diffInSeconds, 'second');
 }
 
 interface UniversalReposProps {
@@ -186,6 +215,13 @@ export function PopularRepos({
                       </svg>
                       <span>{repo.stargazerCount}</span>
                     </div>
+                    {repo.updatedAt && (
+                      <div className="flex items-center text-zinc-500 dark:text-zinc-400 ml-auto">
+                        <time dateTime={repo.updatedAt}>
+                          Last updated {formatRelativeTime(repo.updatedAt)}
+                        </time>
+                      </div>
+                    )}
                   </div>
                 </div>
               </a>

@@ -471,6 +471,27 @@ function FloatingOrb({
   );
 }
 
+/* ─── DB Review to Testimonial mapper ─── */
+interface DBReview {
+  _id: string;
+  name: string;
+  handle: string;
+  platform: 'twitter' | 'github';
+  message: string;
+  accentColor: string;
+}
+
+function dbReviewToTestimonial(r: DBReview): Testimonial {
+  return {
+    name: r.name,
+    handle: r.handle,
+    avatar: `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(r.name)}&backgroundColor=c0aede`,
+    message: r.message,
+    platform: r.platform,
+    accentColor: r.accentColor,
+  };
+}
+
 /* ─── Main Wall of Love Section ─── */
 export function WallOfLove() {
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -480,6 +501,23 @@ export function WallOfLove() {
   const row1Ref = useRef<HTMLDivElement>(null);
   const row2Ref = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
+  const [dbTestimonials, setDbTestimonials] = useState<Testimonial[]>([]);
+
+  useEffect(() => {
+    fetch('/api/reviews/approved')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.reviews)) {
+          setDbTestimonials(data.reviews.map(dbReviewToTestimonial));
+        }
+      })
+      .catch(() => {
+        // Silently fail — hardcoded testimonials will still render
+      });
+  }, []);
+
+  const row1 = [...TESTIMONIALS_ROW_1, ...dbTestimonials.filter((_, i) => i % 2 === 0)];
+  const row2 = [...TESTIMONIALS_ROW_2, ...dbTestimonials.filter((_, i) => i % 2 === 1)];
 
   /* ── GSAP scroll-triggered entrance animations ── */
   useEffect(() => {
@@ -614,10 +652,10 @@ export function WallOfLove() {
       {/* ── Marquee Rows ── */}
       <div className="space-y-5">
         <div ref={row1Ref} style={{ opacity: 0 }}>
-          <MarqueeRow testimonials={TESTIMONIALS_ROW_1} direction="left" speed={40} />
+          <MarqueeRow testimonials={row1} direction="left" speed={40} />
         </div>
         <div ref={row2Ref} style={{ opacity: 0 }}>
-          <MarqueeRow testimonials={TESTIMONIALS_ROW_2} direction="right" speed={45} />
+          <MarqueeRow testimonials={row2} direction="right" speed={45} />
         </div>
       </div>
 

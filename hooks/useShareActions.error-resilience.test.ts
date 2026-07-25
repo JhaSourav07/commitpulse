@@ -3,7 +3,11 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { useShareActions } from './useShareActions';
 import { toPng } from 'html-to-image';
 import type { DashboardExportData } from '@/types/dashboard';
+import { copyToClipboard } from '@/utils/clipboard';
 
+vi.mock('@/utils/clipboard', () => ({
+  copyToClipboard: vi.fn(),
+}));
 vi.mock('html-to-image', () => ({
   toPng: vi.fn(),
   toCanvas: vi.fn(),
@@ -32,20 +36,15 @@ describe('useShareActions - Hydration Stability, Exception Safety & Error Fallba
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
+
     vi.spyOn(console, 'error').mockImplementation(() => {});
     vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-    // Mock browser globals
+    vi.mocked(copyToClipboard).mockResolvedValue(undefined);
+
     globalThis.Worker = MockWorker as unknown as typeof Worker;
     globalThis.URL.createObjectURL = vi.fn().mockReturnValue('blob:http://localhost:3000/mock');
     globalThis.URL.revokeObjectURL = vi.fn();
-
-    vi.stubGlobal('navigator', {
-      clipboard: {
-        writeText: vi.fn().mockResolvedValue(undefined),
-        write: vi.fn().mockResolvedValue(undefined),
-      },
-    });
 
     vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => cb(0));
 
@@ -74,19 +73,21 @@ describe('useShareActions - Hydration Stability, Exception Safety & Error Fallba
   });
 
   it('Case 2: verifies clipboard exception safety', async () => {
-    // Force writeText to reject
     const clipboardError = new Error('Clipboard access denied');
-    vi.mocked(navigator.clipboard.writeText).mockRejectedValueOnce(clipboardError);
+
+    vi.mocked(copyToClipboard).mockRejectedValueOnce(clipboardError);
 
     const { result } = renderHook(() => useShareActions(username, exportData, onClose));
 
     let success: boolean | undefined;
+
     await act(async () => {
       success = await result.current.handleCopyLink();
     });
 
     expect(success).toBe(false);
     expect(result.current.states.copy).toBe('error');
+
     expect(console.error).toHaveBeenCalledWith(
       '[useShareActions] copy link failed:',
       clipboardError
@@ -94,7 +95,7 @@ describe('useShareActions - Hydration Stability, Exception Safety & Error Fallba
   });
 
   it('Case 3: verifies state resets to idle after failures (recovery paths)', async () => {
-    vi.mocked(navigator.clipboard.writeText).mockRejectedValueOnce(new Error('Failed'));
+    vi.mocked(copyToClipboard).mockRejectedValueOnce(new Error('Failed'));
 
     const { result } = renderHook(() => useShareActions(username, exportData, onClose));
 

@@ -117,10 +117,10 @@ describe('SectionCard Error Resilience', () => {
     );
 
     expect(telemetrySpy).toHaveBeenCalledTimes(1);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
     const [errorArg] = telemetrySpy.mock.calls[0];
     expect(errorArg).toBeInstanceOf(Error);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+
     expect((errorArg as Error).message).toBe('Standard runtime exception');
 
     consoleErrorSpy.mockRestore();

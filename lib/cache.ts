@@ -56,16 +56,6 @@ export class TTLCache<T> {
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
   private readonly maxSize?: number;
 
-  private static assertValidKey(key: unknown): asserts key is string {
-    if (typeof key !== 'string') {
-      throw new TypeError('Cache key must be a string');
-    }
-
-    if (key.trim().length === 0) {
-      throw new TypeError('Cache key cannot be empty');
-    }
-  }
-
   /**
    * Creates a new TTL cache instance.
    *
@@ -210,10 +200,11 @@ export class TTLCache<T> {
    * cache.delete("user:1");
    */
   delete(key: string): boolean {
-    if (typeof key !== 'string') {
-      throw new TypeError('Cache key must be a string');
-    }
-    if (key.trim().length === 0) {
+    // Treat an invalid/empty key the same way get()/has() do: there's
+    // nothing to delete, so return false rather than throwing. An empty
+    // key could never have been successfully set() in the first place
+    // (set() rejects it), so this can never silently "miss" a real entry.
+    if (typeof key !== 'string' || key.trim().length === 0) {
       return false;
     }
 

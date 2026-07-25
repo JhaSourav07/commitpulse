@@ -74,7 +74,7 @@ describe('ThemeSelector (ThemeQuickPresets)', () => {
 
     rerender(<ThemeQuickPresets theme="neon" onThemeChange={mockOnThemeChange} />);
 
-    const buttons = screen.getAllByRole('button');
+    const buttons = screen.getAllByRole('radio');
 
     expect(buttons.length).toBeGreaterThanOrEqual(2);
 
@@ -92,7 +92,7 @@ describe('ThemeSelector (ThemeQuickPresets)', () => {
   it('renders all preset buttons as visible elements', () => {
     renderComponent();
 
-    const buttons = screen.getAllByRole('button');
+    const buttons = screen.getAllByRole('radio');
 
     expect(buttons.length).toBeGreaterThanOrEqual(2);
     buttons.forEach((btn) => {
@@ -135,7 +135,7 @@ describe('ThemeSelector (ThemeQuickPresets)', () => {
   it('each button has a valid accessible name', () => {
     renderComponent();
 
-    const buttons = screen.getAllByRole('button');
+    const buttons = screen.getAllByRole('radio');
     buttons.forEach((btn) => {
       expect(btn.getAttribute('aria-label')).toBeTruthy();
     });

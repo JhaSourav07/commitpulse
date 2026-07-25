@@ -188,12 +188,17 @@ export default function ResumePreviewForm({
                 className="flex items-center gap-1 rounded-lg border border-black/10 bg-gray-50 px-2.5 py-1.5 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#111]"
               >
                 <input
+                  aria-label="Skill name"
                   type="text"
                   value={skill}
                   onChange={(e) => updateSkill(i, e.target.value)}
                   className="w-24 bg-transparent text-sm text-gray-900 outline-none dark:text-white"
                 />
-                <button onClick={() => removeSkill(i)} className="text-red-400 hover:text-red-500">
+                <button
+                  aria-label="Remove skill"
+                  onClick={() => removeSkill(i)}
+                  className="text-red-400 hover:text-red-500"
+                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="12"
@@ -235,6 +240,7 @@ export default function ResumePreviewForm({
               >
                 <div className="mb-2 flex justify-end">
                   <button
+                    aria-label="Remove education"
                     onClick={() => removeEducation(i)}
                     className="text-red-400 hover:text-red-500"
                   >
@@ -260,6 +266,7 @@ export default function ResumePreviewForm({
                 </div>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <input
+                    aria-label="Institution"
                     type="text"
                     placeholder="Institution"
                     value={edu.institution}
@@ -267,6 +274,7 @@ export default function ResumePreviewForm({
                     className="rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#1a1a1a] dark:text-white"
                   />
                   <input
+                    aria-label="Degree"
                     type="text"
                     placeholder="Degree"
                     value={edu.degree}
@@ -274,6 +282,7 @@ export default function ResumePreviewForm({
                     className="rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#1a1a1a] dark:text-white"
                   />
                   <input
+                    aria-label="Field of Study"
                     type="text"
                     placeholder="Field of Study"
                     value={edu.field}
@@ -282,6 +291,7 @@ export default function ResumePreviewForm({
                   />
                   <div className="grid grid-cols-2 gap-2">
                     <input
+                      aria-label="Start Year"
                       type="text"
                       placeholder="Start Year"
                       value={edu.startDate}
@@ -289,6 +299,7 @@ export default function ResumePreviewForm({
                       className="rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#1a1a1a] dark:text-white"
                     />
                     <input
+                      aria-label="End Year"
                       type="text"
                       placeholder="End Year"
                       value={edu.endDate}
@@ -322,6 +333,7 @@ export default function ResumePreviewForm({
               >
                 <div className="mb-2 flex justify-end">
                   <button
+                    aria-label="Remove experience"
                     onClick={() => removeExperience(i)}
                     className="text-red-400 hover:text-red-500"
                   >
@@ -347,6 +359,7 @@ export default function ResumePreviewForm({
                 </div>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <input
+                    aria-label="Company"
                     type="text"
                     placeholder="Company"
                     value={exp.company}
@@ -354,6 +367,7 @@ export default function ResumePreviewForm({
                     className="rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#1a1a1a] dark:text-white"
                   />
                   <input
+                    aria-label="Role"
                     type="text"
                     placeholder="Role"
                     value={exp.role}
@@ -362,6 +376,7 @@ export default function ResumePreviewForm({
                   />
                   <div className="grid grid-cols-2 gap-2">
                     <input
+                      aria-label="Start Year"
                       type="text"
                       placeholder="Start Year"
                       value={exp.startDate}
@@ -369,6 +384,7 @@ export default function ResumePreviewForm({
                       className="rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#1a1a1a] dark:text-white"
                     />
                     <input
+                      aria-label="End Year"
                       type="text"
                       placeholder="End Year"
                       value={exp.endDate}

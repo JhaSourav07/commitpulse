@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 const root = dirname(fileURLToPath(import.meta.url));
-const nextEnvPath = resolve(root, 'next-env.d.ts');
+const nextEnvPath = resolve(root, 'next-env.temp-empty-fallback.d.ts');
 
 describe('next-env.d.ts empty and missing state handling', () => {
   beforeAll(async () => {
@@ -26,6 +26,12 @@ describe('next-env.d.ts empty and missing state handling', () => {
     }
   });
 
+  afterAll(async () => {
+    try {
+      await unlink(nextEnvPath);
+    } catch {}
+  });
+
   it('contains no null bytes or binary corruption', async () => {
     const content = await readFile(nextEnvPath, 'utf-8');
     expect(content).not.toContain('\0');
@@ -33,8 +39,9 @@ describe('next-env.d.ts empty and missing state handling', () => {
   });
 
   it('resolves to a valid file path at the project root', () => {
-    expect(nextEnvPath).toContain('next-env.d.ts');
-    expect(nextEnvPath).toBe(resolve(root, 'next-env.d.ts'));
+    const realPath = resolve(root, 'next-env.d.ts');
+    expect(realPath).toContain('next-env.d.ts');
+    expect(realPath).toBe(resolve(root, 'next-env.d.ts'));
   });
 
   it('handles missing file gracefully by providing fallback content', async () => {

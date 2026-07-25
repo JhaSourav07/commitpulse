@@ -36,7 +36,7 @@ describe('ThemeQuickPresets Responsive Breakpoints', () => {
 
     render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
 
-    expect(screen.getAllByRole('button').length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('radio').length).toBeGreaterThan(0);
   });
 
   it('renders the same preset buttons across viewport sizes', () => {
@@ -44,19 +44,19 @@ describe('ThemeQuickPresets Responsive Breakpoints', () => {
 
     const { rerender } = render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
 
-    const mobileCount = screen.getAllByRole('button').length;
+    const mobileCount = screen.getAllByRole('radio').length;
 
     setViewport(1280);
 
     rerender(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
 
-    expect(screen.getAllByRole('button')).toHaveLength(mobileCount);
+    expect(screen.getAllByRole('radio')).toHaveLength(mobileCount);
   });
 
   it('does not introduce fixed-width layout issues on small screens', () => {
     render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
 
-    const container = screen.getAllByRole('button')[0].parentElement;
+    const container = screen.getAllByRole('radio')[0].parentElement;
 
     expect(container).toBeTruthy();
     expect(container?.className).toContain('theme-quick-presets');
@@ -76,7 +76,7 @@ describe('ThemeQuickPresets Responsive Breakpoints', () => {
     render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
 
     expect(
-      screen.getByRole('button', {
+      screen.getByRole('radio', {
         name: /apply dark theme/i,
       })
     ).toHaveAttribute('aria-pressed', 'true');

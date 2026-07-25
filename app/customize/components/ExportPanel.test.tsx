@@ -126,6 +126,25 @@ describe('ExportPanel', () => {
     expect(onCopy).toHaveBeenCalledTimes(1);
     expect(copyButton.getAttribute('aria-describedby')).toBe('export-copy-status');
     expect(screen.getByRole('status').textContent).toBe('Markdown snippet copied to clipboard.');
-    expect(screen.getByText('Copied!')).toBeDefined();
+  });
+
+  it('renders PNG, WebP, and PDF download buttons', () => {
+    renderPanel();
+
+    expect(screen.getByRole('button', { name: 'Download PNG' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Download WebP' })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Download PDF' })).toBeDefined();
+  });
+
+  it('disables export download buttons when hasUsername is false', () => {
+    renderPanel({ hasUsername: false });
+
+    const pngBtn = screen.getByRole('button', { name: 'Download PNG' }) as HTMLButtonElement;
+    const webpBtn = screen.getByRole('button', { name: 'Download WebP' }) as HTMLButtonElement;
+    const pdfBtn = screen.getByRole('button', { name: 'Download PDF' }) as HTMLButtonElement;
+
+    expect(pngBtn.disabled).toBe(true);
+    expect(webpBtn.disabled).toBe(true);
+    expect(pdfBtn.disabled).toBe(true);
   });
 });

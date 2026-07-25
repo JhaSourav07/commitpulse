@@ -1,4 +1,5 @@
 'use client';
+import { copyToClipboard } from '@/utils/clipboard';
 import { useState, useRef, useEffect } from 'react';
 import { toPng, toCanvas } from 'html-to-image';
 import type { DashboardExportData } from '@/types/dashboard';
@@ -143,7 +144,7 @@ export function useShareActions(
   const handleCopyLink = async (): Promise<boolean> => {
     setOptionState('copy', 'loading');
     try {
-      await navigator.clipboard.writeText(getDashboardUrl(username));
+      await copyToClipboard(getDashboardUrl(username));
       setOptionState('copy', 'success');
       setTimeout(() => onClose(), 800);
       return true;
@@ -328,7 +329,7 @@ export function useShareActions(
     setOptionState('markdown', 'loading');
     try {
       const markdown = buildMarkdownExport(username);
-      await navigator.clipboard.writeText(markdown);
+      await copyToClipboard(markdown);
       setOptionState('markdown', 'success');
       setTimeout(() => onClose(), 800);
     } catch (err) {
