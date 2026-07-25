@@ -34,7 +34,12 @@ interface BurnoutRiskTableProps {
 }
 
 type SortColumn =
-  'username' | 'commitShare' | 'highIntensityWeeks' | 'restWeeks' | 'burnoutScore' | 'totalCommits';
+  | 'username'
+  | 'commitShare'
+  | 'highIntensityWeeks'
+  | 'restWeeks'
+  | 'burnoutScore'
+  | 'totalCommits';
 type SortDirection = 'asc' | 'desc';
 
 // Custom Pure SVG Sparkline for visual performance
