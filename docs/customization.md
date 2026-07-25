@@ -33,6 +33,7 @@ URL Parameter > Theme Default > System Fallback
 | `custom_subtitle`   | `string`  | No         | —                              | Render a custom subtitle right below the title                                                                                                                                                                                                                                                     |
 | `hide_background`   | `boolean` | No         | `false`                        | Remove the background rect, letting the monolith float on the page                                                                                                                                                                                                                                 |
 | `hide_stats`        | `boolean` | No         | `false`                        | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`.                                                                                                                                                                                |
+| `badges`            | `boolean` | No         | `false`                        | Show milestone achievement pills below the main badge (see thresholds below)                                                                                                                                                                                                                       |
 | `tz`                | `string`  | No         | Omitted = UTC                  | IANA timezone (e.g. `Asia/Kolkata`, `America/New_York`) — aligns "today" with the user local midnight. Note: `?tz=UTC` is valid but cached separately from omitting `tz`.                                                                                                                          |
 | `lang`              | `string`  | No         | `en`                           | Language code for labels (`en`, `es`, `hi`, `fr`, `pt`, `ko`, `ja`, `de`, `zh`)                                                                                                                                                                                                                    |
 | `view`              | `string`  | No         | `default`                      | Rendering mode: `default` (3D Monolith), `monthly` (Compact monthly stats), `heatmap` (flat 2D heatmap), `pulse` (heartbeat pulse), `skyline` (city skyline), `languages` (top languages skyline), `constellation` (celestial star-map), or `weekday` (contribution totals grouped by day of week) |
@@ -56,10 +57,6 @@ URL Parameter > Theme Default > System Fallback
 | `gradient_stops`    | `string`  | No         | —                              | Comma-separated list of hex colors (e.g. `ff6b35,ff007f`) for custom floor gradient. Requires `gradient=true` and at least two valid colors. Hex prefix `#` is optional.                                                                                                                           |
 | `gradient_dir`      | `string`  | No         | `vertical`                     | Direction of the volumetric floor gradient: `vertical` (default), `horizontal`, or `diagonal`.                                                                                                                                                                                                     |
 | `minify`            | `boolean` | No         | `true`                         | Enable lightweight SVG minification to reduce payload size by 15–30%. Accepts `true`/`1` (enable) or `false`/`0` (disable).                                                                                                                                                                        |
-| `bgType`            | `string`  | No         | `solid`                        | Background fill type: `solid` (default), `linear`, or `radial` gradient                                                                                                                                                                                                                            |
-| `bgStart`           | `string`  | No         | —                              | Start color for the background gradient. Hex string **without** `#`. Requires `bgType=linear` or `bgType=radial`.                                                                                                                                                                                  |
-| `bgEnd`             | `string`  | No         | —                              | End color for the background gradient. Hex string **without** `#`. Requires `bgType=linear` or `bgType=radial`.                                                                                                                                                                                    |
-| `bgAngle`           | `number`  | No         | `90`                           | Angle in degrees (0–360) for a `linear` background gradient. Has no effect on `radial`.                                                                                                                                                                                                            |
 
 > All parameters below are optional except `user`. Append them to the base URL as query string key-value pairs (e.g. `?user=YOUR_USERNAME&theme=neon&size=large`). Boolean parameters accept `true` or `false`. Hex color values are provided **without** the `#` prefix.
 
@@ -102,6 +99,33 @@ URL Parameter > Theme Default > System Fallback
 | `opacity`         | Global opacity scalar for tower fill                                                            | `1.0`              | `0.1`–`1.0`                                                                     | `?opacity=0.8`             |
 | `gradient`        | Show volumetric gradients on the floor                                                          | `false`            | `true`, `false`                                                                 | `?gradient=true`           |
 | `minify`          | Enable SVG minification and payload optimization                                                | `true`             | `true`, `false`                                                                 | `?minify=false`            |
+
+#### 🏅 Milestone Badges (`?badges=true`)
+
+When enabled, up to one streak-based and one total-contributions-based
+achievement pill renders below the main badge:
+
+**Streak (longest streak, in days):**
+
+| Badge           | Threshold |
+| --------------- | --------- |
+| 🔥 Unstoppable  | 365+      |
+| 💯 Century Club | 100+      |
+
+**Total contributions:**
+
+| Badge           | Threshold |
+| --------------- | --------- |
+| 🌟 Elite        | 5,000+    |
+| 🚀 1K Club      | 1,000+    |
+| ⭐ 500+ Commits | 500+      |
+
+Only the single highest-tier badge in each category is shown — for
+example a 250-day longest streak (past the 100-day Century Club
+threshold, but under the 365-day Unstoppable one) shows 💯 Century Club,
+not both.
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&badges=true)
 
 ---
 
@@ -242,10 +266,6 @@ Explore some of the built-in CommitPulse themes and quickly copy the style you l
 <!-- Gradient + shading for extra depth -->
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&gradient=true&shading=true)
-
-<!--Background gradient (distinct from the floor gradient above) -->
-
-![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&bgType=linear&bgStart=0d1117&bgEnd=1a1a2e&bgAngle=45)
 
 <!-- Semi-transparent ghost city look -->
 
