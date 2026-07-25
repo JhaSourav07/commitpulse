@@ -182,7 +182,7 @@ async function extractTextFromBuffer(buffer: Buffer, mimeType: string): Promise<
         rawText = fixedText;
       }
     }
-  } catch (e) {
+  } catch (_e) {
     // Ignore encoding fix errors
   }
 
