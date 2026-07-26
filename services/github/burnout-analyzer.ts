@@ -451,7 +451,7 @@ async function generateRecommendationsWithGemini(
     headers: {
       'Content-Type': 'application/json',
       // Securely pass the API key via headers
-      'x-goog-api-key': process.env.GEMINI_API_KEY || '',
+      'x-goog-api-key': apiKey || '',
     },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
