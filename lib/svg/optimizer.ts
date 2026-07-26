@@ -44,6 +44,11 @@ export function optimizePathData(d: string): string {
 
 /**
  * Safely minifies CSS content inside <style> blocks.
+ * Removes comments, collapses whitespace, and removes unnecessary spaces
+ * around braces and semicolons.
+ *
+ * @param css - Raw CSS content (content of a `<style>` tag)
+ * @returns Minified CSS string
  */
 export function minifyCSS(css: string): string {
   // Remove CSS comments
@@ -78,6 +83,25 @@ export function stripComments(html: string): string {
 
 /**
  * Optimizes the SVG markup.
+ */
+/**
+ * Optimizes an SVG string for minimum file size.
+ *
+ * Uses a 5-step pipeline:
+ * 1. Isolate `<style>` blocks and minify them via `minifyCSS`
+ * 2. Isolate text/desc/title content (preserved as-is, never minified)
+ * 3. Apply markup optimizations: strip comments, round floats, optimize path data, compress whitespace
+ * 4. Re-inject minified style blocks
+ * 5. Re-inject preserved text blocks
+ *
+ * Placeholder-based isolation is used so that style content and text content are never
+ * accidentally modified by the whitespace/path-minification passes.
+ *
+ * @param svg - Raw SVG markup string
+ * @returns Optimized SVG markup string
+ * @see minifyCSS
+ * @see stripComments
+ * @see optimizePathData
  */
 export function optimizeSVG(svg: string): string {
   if (!svg) return '';
