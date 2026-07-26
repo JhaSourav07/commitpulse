@@ -117,11 +117,14 @@ describe('TechnologyGraph: Hydration Stability, Exception Safety & Error Fallbac
       </LocalErrorBoundary>
     );
 
-    // Assert that the mock telemetry logger was called with the error object
+    // Assert that the mock telemetry logger was called with the expected error
     expect(mockTelemetryLogger).toHaveBeenCalledTimes(1);
-    const [errorArg] = mockTelemetryLogger.mock.calls[0];
-    expect(errorArg).toBeInstanceOf(Error);
-    expect(errorArg.message).toBe('Unexpected runtime exception!');
+    expect(mockTelemetryLogger).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'Unexpected runtime exception!',
+      }),
+      expect.anything()
+    );
   });
 
   it('Test 4: Error Fallbacks - isolates and handles mocked database connectivity errors properly', () => {
