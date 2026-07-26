@@ -361,6 +361,8 @@ Themes live in `lib/svg/themes.ts`. A theme is three properties: `bg`, `text`, a
 - [ ] Has a meaningful, memorable name (e.g., `aurora`, `synthwave`, `obsidian`)
 - [ ] Added to the theme table in `README.md`
 
+For detailed theme development documentation, see [THEME_DEVELOPMENT.md](THEME_DEVELOPMENT.md).
+
 ### 📐 Pillar 2 — Geometric SVG Improvements
 
 The isometric renderer lives in `lib/svg/generator.ts`. This is where the 3D tower geometry, glow filters, and animations are built.

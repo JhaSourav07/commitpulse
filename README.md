@@ -262,7 +262,7 @@ For details on the project leads and roles, please see [MAINTAINER.md](MAINTAINE
 
 ## 🎨 Themes
 
-Browse all theme previews here: [Theme Gallery](THEMES.md).
+Browse all theme previews here: [Theme Gallery](THEMES.md). For detailed theme development guidelines, see [THEME_DEVELOPMENT.md](THEME_DEVELOPMENT.md).
 
 ---
 
