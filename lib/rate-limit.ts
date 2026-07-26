@@ -336,7 +336,7 @@ export const notifyRateLimiter = new RateLimiter(5, 60000);
  * all serverless instances via an atomic Lua script (EVAL).
  * Falls back to a local in-memory cache for development environments.
  */
-const trackers = new DistributedCache<{ count: number; resetAt: number }>(2000, 60000);
+const trackers = new DistributedCache<number>(2000, 60000);
 
 /**
  * Checks if a request from a given IP should be rate limited.

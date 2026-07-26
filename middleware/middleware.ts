@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { logger, setRequestId, clearRequestId } from '@/lib/logger';
+import { logger, setRequestId } from '@/lib/logger';
 
 export function middleware(request: NextRequest) {
   const requestId = crypto.randomUUID();
@@ -23,9 +23,6 @@ export function middleware(request: NextRequest) {
   });
 
   response.headers.set('X-Request-ID', requestId);
-
-  // Clear request ID after response is sent
-  clearRequestId();
 
   return response;
 }
