@@ -247,11 +247,6 @@ export async function GET(request: Request) {
           throw validationErr;
         }
         throw error;
-      } finally {
-        logger.info('Streak request completed', {
-          source: 'streak',
-        });
-        clearRequestId();
       }
     }
 
