@@ -4,6 +4,18 @@ This document addresses common questions and troubleshooting topics regarding Co
 
 ---
 
+## Table of Contents
+
+- [Why does my contribution count differ from GitHub?](#why-does-my-contribution-count-differ-from-github)
+- [Why are my latest commits not visible immediately?](#why-are-my-latest-commits-not-visible-immediately)
+- [Can I use my local timezone?](#can-i-use-my-local-timezone)
+- [Can I configure the grace period?](#can-i-configure-the-grace-period)
+- [Do private contributions count?](#do-private-contributions-count)
+- [Are there GitHub API rate limits?](#are-there-github-api-rate-limits)
+  - [Troubleshooting Rate Limit Errors](#troubleshooting-rate-limit-errors)
+
+---
+
 ### Why does my contribution count differ from GitHub?
 
 GitHub calculates contribution data using UTC timestamps. CommitPulse syncs cache invalidation with UTC midnight to ensure consistent results.
