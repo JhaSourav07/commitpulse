@@ -69,6 +69,30 @@ export function sanitizeSpeed(speed: string | undefined | null, fallback = '8s')
 }
 
 /**
+ * Type guard that narrows a string to a valid SpeedString (e.g. "8s", "12.5s").
+ * Valid SpeedStrings must match the pattern [number]s where the numeric value is between 2 and 20.
+ *
+ * Use this instead of unsafe casts when checking animation speed values:
+ *
+ * @example
+ * if (isValidSpeedString(rawSpeed)) {
+ *   // rawSpeed is now typed as SpeedString
+ *   return sanitizeSpeed(rawSpeed, '8s');
+ * }
+ *
+ * @param value - Any string value to check
+ * @returns true if value is a valid SpeedString, false otherwise
+ */
+export function isValidSpeedString(value?: string | null): value is SpeedString {
+  if (!value) return false;
+  const trimmed = value.trim();
+  const match = trimmed.match(/^(\d+(\.\d+)?)s$/);
+  if (!match) return false;
+  const numeric = parseFloat(match[1]);
+  return numeric >= 2 && numeric <= 20;
+}
+
+/**
  * Sanitizes the border radius parameter.
  * Ensures it's a valid number between 0 and 50.
  */

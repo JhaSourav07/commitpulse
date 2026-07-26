@@ -4,6 +4,7 @@ import {
   hexColor,
   sanitizeHexColor,
   sanitizeSpeed,
+  isValidSpeedString,
   sanitizeRadius,
   sanitizeDimension,
   sanitizeFont,
@@ -178,6 +179,37 @@ describe('SVG Sanitizer Utilities', () => {
     it('returns fallback for null or undefined speed', () => {
       expect(sanitizeSpeed(undefined, '8s')).toBe('8s');
       expect(sanitizeSpeed(null, '8s')).toBe('8s');
+    });
+  });
+
+  describe('isValidSpeedString', () => {
+    it('returns true for valid speed strings within 2s-20s range', () => {
+      expect(isValidSpeedString('8s')).toBe(true);
+      expect(isValidSpeedString('2s')).toBe(true);
+      expect(isValidSpeedString('20s')).toBe(true);
+      expect(isValidSpeedString('8.5s')).toBe(true);
+      expect(isValidSpeedString('2.0s')).toBe(true);
+      expect(isValidSpeedString('20.0s')).toBe(true);
+    });
+
+    it('returns false for speed strings outside the valid range', () => {
+      expect(isValidSpeedString('1s')).toBe(false);
+      expect(isValidSpeedString('21s')).toBe(false);
+      expect(isValidSpeedString('0s')).toBe(false);
+      expect(isValidSpeedString('100s')).toBe(false);
+    });
+
+    it('returns false for invalid format strings', () => {
+      expect(isValidSpeedString('fast')).toBe(false);
+      expect(isValidSpeedString('8')).toBe(false);
+      expect(isValidSpeedString('8ms')).toBe(false);
+      expect(isValidSpeedString('')).toBe(false);
+      expect(isValidSpeedString('  8s  ')).toBe(true); // trim whitespace
+    });
+
+    it('returns false for null, undefined, or non-string values', () => {
+      expect(isValidSpeedString(undefined)).toBe(false);
+      expect(isValidSpeedString(null)).toBe(false);
     });
   });
 
