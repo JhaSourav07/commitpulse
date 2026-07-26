@@ -1,6 +1,6 @@
 # CommitPulse Themes
 
-All 30 available themes for your CommitPulse badge. Use the `?theme=<slug>` query parameter to apply a theme.
+All 33 available themes for your CommitPulse badge. Use the `?theme=<slug>` query parameter to apply a theme.
 
 ```
 https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
@@ -12,6 +12,7 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 
 | Theme            | Background | Text      | Accent    |
 | ---------------- | ---------- | --------- | --------- |
+| default          | `#0d1117`  | `#ffffff` | `#2da44e` |
 | dark             | `#0d1117`  | `#c9d1d9` | `#58a6ff` |
 | light            | `#ffffff`  | `#24292f` | `#0969da` |
 | neon             | `#000000`  | `#00ffcc` | `#ff00ff` |
@@ -42,12 +43,26 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | retro-terminal   | `#000000`  | `#00ff41` | `#00ff41` |
 | midnight_ocean   | `#020c1b`  | `#ccd6f6` | `#0af5ff` |
 | ayu_mirage       | `#212733`  | `#D9D7CE` | `#FFCC66` |
+| enterprise        | `#1a1a2e`  | `#e2e8f0` | `#6366f1` |
+| india            | `#0a0a0a`  | `#ffffff` | `#FF9933` |
 
 ---
 
 ## Preview Gallery
 
-### Dark (default)
+### Default
+
+![default](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=default)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | 0d1117 |
+| `text`    | ffffff |
+| `accent`  | 2da44e |
+
+---
+
+### Dark
 
 ![dark](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=dark)
 
@@ -404,6 +419,30 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | `bg`      | 212733 |
 | `text`    | D9D7CE |
 | `accent`  | FFCC66 |
+
+---
+
+### Enterprise
+
+![enterprise](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=enterprise)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | 1a1a2e |
+| `text`    | e2e8f0 |
+| `accent`  | 6366f1 |
+
+---
+
+### India
+
+![india](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=india)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | 0a0a0a |
+| `text`    | ffffff |
+| `accent`  | FF9933 |
 
 ## Custom Theme
 
