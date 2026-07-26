@@ -1,10 +1,21 @@
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ShareButtons from './ShareButtons';
 
 const TEST_URL = 'https://commitpulse.vercel.app/dashboard/testuser';
 const TEST_TITLE = 'Check out my CommitPulse streak!';
+
+// Mock clipboard API
+const mockWriteText = vi.fn().mockResolvedValue(undefined);
+Object.defineProperty(globalThis, 'navigator', {
+  value: { clipboard: { writeText: mockWriteText } },
+  configurable: true,
+});
+
+beforeEach(() => {
+  mockWriteText.mockClear();
+});
 
 describe('ShareButtons', () => {
   it('renders LinkedIn and Twitter share buttons', () => {
@@ -53,5 +64,21 @@ describe('ShareButtons', () => {
       expect(link).toHaveAttribute('target', '_blank');
       expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     });
+  });
+
+  it('renders copy-link button', () => {
+    render(<ShareButtons url={TEST_URL} />);
+
+    expect(screen.getByRole('button', { name: /copy link to clipboard/i })).toBeInTheDocument();
+  });
+
+  it('copy-link button copies the correct URL to clipboard', async () => {
+    const { userEvent } = await import('@testing-library/user-event');
+    render(<ShareButtons url={TEST_URL} />);
+
+    const copyButton = screen.getByRole('button', { name: /copy link to clipboard/i });
+    await userEvent.click(copyButton);
+
+    expect(mockWriteText).toHaveBeenCalledWith(TEST_URL);
   });
 });
