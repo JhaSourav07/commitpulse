@@ -37,9 +37,12 @@ export interface LockConfig {
 
 /**
  * Represents a cached item with its expiration timestamp.
+ * The value field holds either a plain T or a brotli-compressed Buffer,
+ * so the type must reflect T | Buffer for internal storage.
  */
 type CacheItem<T> = {
-  value: T;
+  /** Cached value: plain T, or brotli-compressed Buffer. */
+  value: T | Buffer;
   expiresAt: number;
 };
 
@@ -52,7 +55,7 @@ type CacheItem<T> = {
  * @typeParam T - Type of values stored in the cache.
  */
 export class TTLCache<T> {
-  private store = new Map<string, CacheItem<T | Buffer>>();
+  private store = new Map<string, CacheItem<T>>();
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
   private readonly maxSize?: number;
 
