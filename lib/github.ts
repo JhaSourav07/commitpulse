@@ -79,9 +79,9 @@ interface GitHubUserProfile {
   plan?: { name?: string } | null;
 }
 
-const contributionsCache = new TTLCache<ContributionCalendar>();
-const profileCache = new TTLCache<GitHubUserProfile>();
-const reposCache = new TTLCache<GitHubRepo[]>();
+const contributionsCache = new TTLCache<ContributionCalendar>(500);
+const profileCache = new TTLCache<GitHubUserProfile>(500);
+const reposCache = new TTLCache<GitHubRepo[]>(500);
 
 function cacheKey(
   kind: 'contributions' | 'profile' | 'repos',
