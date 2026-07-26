@@ -1,0 +1,111 @@
+'use client';
+
+import { type ReactNode, useState, useId } from 'react';
+import { ChevronDown, RotateCcw } from 'lucide-react';
+
+interface SectionCardProps {
+  title: string;
+  icon?: string;
+  description?: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+  badge?: number;
+  onReset?: () => void;
+}
+
+export function SectionCard({
+  title,
+  icon,
+  description,
+  children,
+  defaultOpen = true,
+  badge,
+  onReset,
+}: SectionCardProps) {
+  const [open, setOpen] = useState(defaultOpen);
+  const contentId = useId();
+  const titleId = useId();
+  const descriptionId = useId();
+  const headerId = useId();
+
+  return (
+    <div className="rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#111111] overflow-hidden shadow-sm transition-shadow hover:shadow-md dark:shadow-none">
+      <button
+        type="button"
+        id={headerId}
+        aria-expanded={open}
+        aria-controls={contentId}
+        aria-describedby={description ? descriptionId : undefined}
+        onClick={() => setOpen((p) => !p)}
+        className="w-full flex items-center gap-3 px-5 py-4 text-left group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+      >
+        {icon && <span className="text-lg select-none">{icon}</span>}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <h3 id={titleId} className="text-sm font-semibold text-gray-900 dark:text-white">
+              {title}
+            </h3>
+            {badge !== undefined && badge > 0 && (
+              <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
+                {badge}
+              </span>
+            )}
+          </div>
+          {description && (
+            <p
+              id={descriptionId}
+              className="text-xs text-gray-500 dark:text-white/40 mt-0.5 truncate"
+            >
+              {description}
+            </p>
+          )}
+        </div>
+        {onReset && (
+          <span
+            role="button"
+            tabIndex={0}
+            aria-label={`Reset ${title} section`}
+            title={`Reset ${title} Section`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onReset();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.stopPropagation();
+                onReset();
+              }
+            }}
+            className="p-1 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 dark:hover:bg-rose-500/20 transition-colors flex-shrink-0 mr-1 cursor-pointer"
+          >
+            <RotateCcw size={13} />
+          </span>
+        )}
+        <ChevronDown
+          size={14}
+          className={`text-gray-400 dark:text-white/30 flex-shrink-0 transition-transform duration-200 ${
+            open ? 'rotate-180' : ''
+          }`}
+        />
+      </button>
+
+      {open && (
+        <div id={contentId} role="region" aria-labelledby={headerId} className="px-5 pb-5 pt-1">
+          <div className="h-px bg-gray-100 dark:bg-white/5 mb-4" />
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function FieldLabel({ children, htmlFor }: { children: ReactNode; htmlFor?: string }) {
+  return (
+    <label
+      htmlFor={htmlFor}
+      className="block text-[10px] font-bold uppercase tracking-[0.22em] text-gray-500 dark:text-white/50 mb-2 cursor-pointer"
+    >
+      {children}
+    </label>
+  );
+}

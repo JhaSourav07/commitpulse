@@ -1,0 +1,93 @@
+name: Update Open Pull Requests with Main
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-prs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch and update open PRs using Git
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          # Configure Git Identity
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          echo "Fetching open pull requests..."
+          # Retrieve numbers, head repos, and branch names of all open pull requests
+          prs=$(gh pr list --state open --limit 1000 --json number,title,headRepository,headRepositoryOwner,headRefName --jq '.[] | "\(.number)|\(.title)|\(.headRepositoryOwner.login // "null")|\(.headRepository.name // "null")|\(.headRefName)"')
+
+          if [ -z "$prs" ]; then
+            echo "No open pull requests found."
+            exit 0
+          fi
+
+          echo "Starting Git-based update process for open PRs..."
+
+          # Ensure local main branch is fully up-to-date and checkout
+          git checkout main --quiet
+
+          # Read each line
+          echo "$prs" | while IFS='|' read -r pr_number pr_title owner repo branch; do
+            if [ "$owner" = "null" ] || [ "$repo" = "null" ]; then
+              echo "Skipping PR #${pr_number} because head repository information is missing."
+              continue
+            fi
+
+            echo "=================================================="
+            echo "Processing PR #${pr_number}: \"${pr_title}\""
+            echo "From: ${owner}/${repo} on branch: ${branch}"
+            echo "=================================================="
+
+            remote_name="remote-${pr_number}"
+            remote_url="https://x-access-token:${GH_TOKEN}@github.com/${owner}/${repo}.git"
+
+            # Add remote to the fork repository
+            git remote add "$remote_name" "$remote_url"
+
+            # Fetch the PR branch
+            if ! git fetch "$remote_name" "$branch" --quiet; then
+              echo "⚠️ Failed to fetch branch \"${branch}\" from ${owner}/${repo}."
+              git remote remove "$remote_name"
+              continue
+            fi
+
+            # Checkout to a temporary local branch to avoid conflicts (e.g. if the PR branch is named 'main')
+            temp_branch="temp-${pr_number}"
+            git checkout -B "$temp_branch" "$remote_name/$branch" --quiet
+
+            # Merge origin/main
+            echo "Merging origin/main into local branch \"${temp_branch}\"..."
+            if git merge origin/main --no-edit; then
+              # Push the updated branch back to the fork
+              echo "Pushing changes to ${owner}/${repo} branch \"${branch}\"..."
+              if git push "$remote_name" HEAD:"$branch" --quiet; then
+                echo "✅ Successfully updated PR #${pr_number}."
+              else
+                echo "⚠️ Failed to push changes to ${owner}/${repo}."
+                echo "Please ensure:"
+                echo "  1. If it's a fork PR, the contributor enabled 'Allow edits from maintainers'."
+                echo "  2. The configured PAT_TOKEN has repository write/push permissions."
+              fi
+            else
+              echo "⚠️ Merge conflict detected. Skipping PR #${pr_number}."
+              git merge --abort
+            fi
+
+            # Switch back to main and clean up temporary branch/remote
+            git checkout main --quiet
+            git branch -D "$temp_branch" --quiet || true
+            git remote remove "$remote_name"
+            echo ""
+          done

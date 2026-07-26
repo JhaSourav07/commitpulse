@@ -12,6 +12,7 @@
 
 # testing
 /coverage
+/tests/visual/diffs/
 
 # next.js
 /.next/
@@ -23,6 +24,9 @@
 # misc
 .DS_Store
 *.pem
+*.swp
+*.swo
+*.swn
 
 # debug
 npm-debug.log*
@@ -33,10 +37,22 @@ yarn-error.log*
 # env files — ignore all local secrets but commit the example template
 .env*
 !.env.local.example
-
+.env.local
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Generated agent artifacts
+github_issues_proposals.md
+pr_details.md
+
+# Serwist / PWA build artifacts
+/public/sw.js
+/public/sw.js.map
+/public/workbox-*.js
+/public/workbox-*.js.map
+/public/swe-*.js
+/public/swe-*.js.map

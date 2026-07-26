@@ -3,7 +3,12 @@ import { Inter } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import Navbar from './components/navbar';
 import BrandParticles from '@/components/BrandParticles';
-import type { Metadata } from 'next';
+import ReturnToTop from '@/components/ReturnToTop';
+import type { Metadata, Viewport } from 'next';
+import ScrollRestoration from './components/ScrollRestoration';
+import { Providers } from './providers';
+import AnimatedCursor from '@/components/AnimatedCursor';
+import KonamiEasterEgg from '@/components/KonamiEasterEgg';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -24,17 +29,26 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: 'Sourav Jha', url: 'https://github.com/JhaSourav07' }],
   creator: 'Sourav Jha',
+  manifest: '/manifest.json',
+  icons: {
+    apple: '/icons/icon-192x192.png',
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'CommitPulse',
+  },
   openGraph: {
     type: 'website',
     locale: 'en_US',
     url: 'https://commitpulse.vercel.app/',
     title: 'CommitPulse | 3D Isometric GitHub Contribution Graph',
     description:
-      'Generate a cinematic, isometric 3D SVG of your GitHub contributions for your README. Stop being boring and visualize your grind.',
+      'Transform your GitHub contribution history into a cinematic, 3D isometric SVG monolith.',
     siteName: 'CommitPulse',
     images: [
       {
-        url: 'https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon',
+        url: 'https://commitpulse.vercel.app/api/og?user=jhasourav07', // Default to maintainer
         width: 1200,
         height: 630,
         alt: 'CommitPulse 3D GitHub Contribution Graph Preview',
@@ -46,8 +60,7 @@ export const metadata: Metadata = {
     title: 'CommitPulse | Elevate Your GitHub README',
     description:
       'Generate a cinematic, isometric 3D SVG of your GitHub contributions for your README.',
-    images: ['https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon'],
-    // creator: '@your_twitter_handle', // Uncomment and add your Twitter handle here
+    images: ['https://commitpulse.vercel.app/api/og?user=jhasourav07'], // Fixed
   },
   robots: {
     index: true,
@@ -62,14 +75,55 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0d0d0d' },
+  ],
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className={`${inter.className} bg-black`}>
-        <BrandParticles />
-        <Navbar />
-        <div className="pt-24 sm:pt-28 relative z-10">{children}</div>
-        <Analytics />
+    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                const storedTheme = window.localStorage.getItem('theme');
+                const isSystemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (storedTheme === 'dark' || (!storedTheme && isSystemDark)) {
+                  document.documentElement.classList.add('dark');
+                  document.documentElement.style.colorScheme = 'dark';
+                } else {
+                  document.documentElement.classList.remove('dark');
+                  document.documentElement.style.colorScheme = 'light';
+                }
+              } catch (_) {}
+            `,
+          }}
+        />
+      </head>
+      <body className={inter.className}>
+        {/* Skip link — first focusable element, lets keyboard users jump past the navbar */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-99999 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-md focus:outline-none focus:shadow-lg"
+        >
+          Skip to main content
+        </a>
+        <Providers>
+          <ScrollRestoration />
+          <AnimatedCursor />
+          <BrandParticles />
+          <Navbar />
+          <main id="main-content" className="relative z-10">
+            {children}
+          </main>
+          <ReturnToTop />
+          <KonamiEasterEgg />
+          <Analytics />
+        </Providers>
       </body>
     </html>
   );

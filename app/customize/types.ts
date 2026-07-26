@@ -1,15 +1,16 @@
 import { themes } from '../../lib/svg/themes';
 
-export type Scale = 'linear' | 'log';
+export type Scale = 'linear' | 'log' | 'sqrt';
 
-export type ExportFormat = 'markdown' | 'html';
+export type ExportFormat = 'markdown' | 'html' | 'action' | 'tsx';
 
 export type ThemeKey = Extract<keyof typeof themes, string>;
 
-// 'auto' is a virtual theme that uses CSS prefers-color-scheme to
-// switch between light and dark at runtime — it has no entry in the
-// themes record, so we prepend it manually.
-export const THEME_KEYS: (ThemeKey | 'auto')[] = ['auto', ...(Object.keys(themes) as ThemeKey[])];
+export type ThemeOption = ThemeKey | 'auto' | 'random';
+
+// 'auto' and 'random' are virtual themes with no entries in the
+// themes record, so they are added around the concrete presets.
+export const THEME_KEYS: ThemeOption[] = ['auto', ...(Object.keys(themes) as ThemeKey[]), 'random'];
 
 export const SPEEDS = [
   { value: '4s', label: 'Fast  (4s)' },
@@ -17,3 +18,92 @@ export const SPEEDS = [
   { value: '12s', label: 'Slow  (12s)' },
   { value: '20s', label: 'Ultra-slow (20s)' },
 ] as const;
+
+export type BadgeSize = 'small' | 'medium' | 'large';
+
+export const SIZES = [
+  { value: 'small', label: 'Small' },
+  { value: 'medium', label: 'Medium (Default)' },
+  { value: 'large', label: 'Large' },
+] as const;
+
+export const FONTS = [
+  { value: 'Inter', label: 'Default' },
+  { value: 'jetbrains', label: 'JetBrains Mono' },
+  { value: 'fira', label: 'Fira Code' },
+  { value: 'roboto', label: 'Roboto' },
+] as const satisfies readonly { value: string; label: string }[];
+
+export type Font = (typeof FONTS)[number]['value'] | string;
+
+export const VIEW_MODES = [
+  { value: 'default', label: 'Default' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'pulse', label: 'Heartbeat Pulse' },
+  { value: 'skyline', label: 'Skyline Horizon' },
+  { value: 'languages', label: 'Top Languages Skyline' },
+  { value: 'punchcard', label: 'Punch Card Heatmap' },
+] as const satisfies readonly { value: string; label: string }[];
+
+export type ViewMode = (typeof VIEW_MODES)[number]['value'];
+
+export const DELTA_FORMATS = [
+  { value: 'percent', label: 'Percent' },
+  { value: 'absolute', label: 'Absolute' },
+  { value: 'both', label: 'Both' },
+] as const satisfies readonly { value: string; label: string }[];
+
+export type DeltaFormat = (typeof DELTA_FORMATS)[number]['value'];
+
+export const LANGUAGES = [
+  { value: 'en', label: 'English' },
+  { value: 'es', label: 'Spanish' },
+  { value: 'hi', label: 'Hindi' },
+  { value: 'pt', label: 'Portuguese' },
+  { value: 'ko', label: 'Korean' },
+  { value: 'fr', label: 'French' },
+  { value: 'ja', label: 'Japanese' },
+  { value: 'de', label: 'German' },
+] as const satisfies readonly { value: string; label: string }[];
+
+export type Language = (typeof LANGUAGES)[number]['value'];
+
+export interface CustomizeOptions {
+  username: string;
+  theme: string;
+  bgHex: string;
+  bgType: 'solid' | 'linear' | 'radial';
+  bgStart: string;
+  bgEnd: string;
+  bgAngle: number;
+  accentHex: string;
+  textHex: string;
+  scale: Scale;
+  speed: string;
+  font: Font;
+  year: string;
+  radius: number;
+  size: BadgeSize;
+  hideTitle: boolean;
+  hideBackground: boolean;
+  hideStats: boolean;
+  viewMode: ViewMode;
+  deltaFormat: DeltaFormat;
+  badgeWidth: number | '';
+  badgeHeight: number | '';
+  grace: number;
+  language: Language;
+  timezone: Timezone;
+}
+export const TIMEZONES = [
+  { value: 'UTC', label: 'UTC (Default)' },
+  { value: 'America/New_York', label: 'New York' },
+  { value: 'America/Los_Angeles', label: 'Los Angeles' },
+  { value: 'Europe/London', label: 'London' },
+  { value: 'Europe/Berlin', label: 'Berlin' },
+  { value: 'Asia/Kolkata', label: 'Kolkata' },
+  { value: 'Asia/Tokyo', label: 'Tokyo' },
+  { value: 'Australia/Sydney', label: 'Sydney' },
+] as const satisfies readonly { value: string; label: string }[];
+
+export type Timezone = (typeof TIMEZONES)[number]['value'];

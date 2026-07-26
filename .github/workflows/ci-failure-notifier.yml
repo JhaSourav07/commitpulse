@@ -73,6 +73,26 @@ jobs:
             const author = fullPR.user.login;
             const currentLabels = fullPR.labels.map(l => l.name);
 
+            // Get previous completed runs of this workflow on this branch
+            const { data: runs } = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: run.workflow_id,
+              branch: run.head_branch,
+              per_page: 10,
+            });
+
+            const completedRuns = runs.workflow_runs.filter(
+              r => r.id !== run.id && r.status === 'completed'
+            );
+            const previousConclusion = completedRuns.length > 0 ? completedRuns[0].conclusion : null;
+            core.info(`Current run conclusion: ${conclusion}, Previous completed run conclusion: ${previousConclusion}`);
+
+            if (conclusion === previousConclusion) {
+              core.info(`Conclusion '${conclusion}' matches previous completed run. Skipping notification/action.`);
+              return;
+            }
+
             if (conclusion === 'failure') {
               core.info(`PR #${prNumber}: CI failed. Ensuring label '${label}' and comment are present.`);
               // Ensure the label exists in the repo
@@ -158,6 +178,28 @@ jobs:
                   name: label,
                 });
                 core.info(`Removed '${label}' from PR #${prNumber} — CI is now passing.`);
+              }
+
+              // Delete any stale failure comments to keep the PR clean
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                per_page: 100,
+              });
+
+              const failureComment = comments.find(c =>
+                c.user?.login === 'github-actions[bot]' &&
+                c.body?.includes('CI Pipeline is failing')
+              );
+
+              if (failureComment) {
+                await github.rest.issues.deleteComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: failureComment.id,
+                });
+                core.info(`Deleted stale failure comment ${failureComment.id} from PR #${prNumber}.`);
               }
             }
 
@@ -277,14 +319,38 @@ jobs:
             Once you push a fix and the CI passes, the \`status:blocked\` label will be removed automatically. 💪`,
                   });
                 }
-              } else if (ciRun.conclusion === 'success' && hasBlockedLabel) {
-                // CI is now passing — remove the stale blocked label
-                await github.rest.issues.removeLabel({
+              } else if (ciRun.conclusion === 'success') {
+                if (hasBlockedLabel) {
+                  // CI is now passing — remove the stale blocked label
+                  await github.rest.issues.removeLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: pr.number,
+                    name: label,
+                  });
+                  core.info(`PR #${pr.number}: CI passing — removed '${label}'.`);
+                }
+
+                // Delete any stale failure comments to keep the PR clean
+                const { data: comments } = await github.rest.issues.listComments({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: pr.number,
-                  name: label,
+                  per_page: 100,
                 });
-                core.info(`PR #${pr.number}: CI passing — removed '${label}'.`);
+
+                const failureComment = comments.find(c =>
+                  c.user?.login === 'github-actions[bot]' &&
+                  c.body?.includes('CI Pipeline is failing')
+                );
+
+                if (failureComment) {
+                  await github.rest.issues.deleteComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    comment_id: failureComment.id,
+                  });
+                  core.info(`PR #${pr.number}: Deleted stale failure comment ${failureComment.id}.`);
+                }
               }
             }

@@ -1,0 +1,92 @@
+import { NextResponse } from 'next/server';
+import {
+  parseResume,
+  ALLOWED_MIME_TYPES,
+  MAX_FILE_SIZE,
+  hasValidFileSignature,
+} from '@/lib/resume-parser';
+import { getRateLimitHeaders, RateLimiter } from '@/lib/rate-limit';
+import { getClientIp } from '@/utils/getClientIp';
+import logger from '@/lib/logger';
+import { validateCSRF } from '@/lib/security/csrf';
+
+const uploadLimiter = new RateLimiter(10, 60000);
+
+export async function POST(req: Request) {
+  const csrfError = validateCSRF(req);
+  if (csrfError) return csrfError;
+  const ip = getClientIp(req);
+
+  const rateLimitResult = await uploadLimiter.checkWithResult(ip);
+  if (!rateLimitResult.success) {
+    return NextResponse.json(
+      { success: false, error: 'Too many requests, please try again later.' },
+      { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
+    );
+  }
+
+  let formData: FormData;
+
+  try {
+    formData = await req.formData();
+  } catch {
+    return NextResponse.json({ success: false, error: 'Invalid form data' }, { status: 400 });
+  }
+
+  const file = formData.get('resume') as File | null;
+
+  if (!file) {
+    return NextResponse.json({ success: false, error: 'No resume file provided' }, { status: 400 });
+  }
+
+  if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Invalid file type. Only PDF and DOCX files are accepted.',
+      },
+      { status: 400 }
+    );
+  }
+
+  if (file.size > MAX_FILE_SIZE) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'File size exceeds the 5MB limit.',
+      },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const buffer = Buffer.from(await file.arrayBuffer());
+
+    if (!hasValidFileSignature(buffer, file.type)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'File content does not match its type. Only genuine PDF or DOCX files are accepted.',
+        },
+        { status: 400 }
+      );
+    }
+
+    const parsed = await parseResume(buffer, file.type);
+
+    return NextResponse.json({
+      success: true,
+      data: parsed,
+      fileName: file.name,
+    });
+  } catch (error) {
+    logger.error('Failed to parse resume', {
+      error,
+    });
+    return NextResponse.json(
+      { success: false, error: 'Failed to parse resume. Please enter your details manually.' },
+      { status: 422 }
+    );
+  }
+}

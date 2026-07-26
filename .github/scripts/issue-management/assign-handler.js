@@ -1,4 +1,4 @@
-async function findExistingAssignment(github, owner, repo, username, currentIssueNumber) {
+async function findExistingAssignments(github, owner, repo, username, currentIssueNumber) {
   const { data: issues } = await github.rest.issues.listForRepo({
     owner,
     repo,
@@ -7,12 +7,10 @@ async function findExistingAssignment(github, owner, repo, username, currentIssu
     per_page: 100,
   });
 
-  const assignedIssues = issues.filter(
-    (issue) => !issue.pull_request && issue.number !== currentIssueNumber
-  );
-
-  return assignedIssues.length > 0 ? assignedIssues[0] : null;
+  return issues.filter((issue) => !issue.pull_request && issue.number !== currentIssueNumber);
 }
+
+const MAX_ASSIGNED_ISSUES = 5;
 
 async function handleAssign({ github, context, username, hasWriteAccess }) {
   const { owner, repo } = context.repo;
@@ -66,7 +64,13 @@ async function handleAssign({ github, context, username, hasWriteAccess }) {
     throw error;
   }
 
-  const currentAssignees = context.payload.issue.assignees.map((a) => a.login.toLowerCase());
+  // Re-fetch to avoid stale assignee data from the webhook payload
+  const { data: freshIssue } = await github.rest.issues.get({
+    owner,
+    repo,
+    issue_number: issueNumber,
+  });
+  const currentAssignees = freshIssue.assignees.map((a) => a.login.toLowerCase());
   if (currentAssignees.includes(username.toLowerCase())) {
     await github.rest.issues.createComment({
       owner,
@@ -77,13 +81,16 @@ async function handleAssign({ github, context, username, hasWriteAccess }) {
     return;
   }
 
-  const existingIssue = await findExistingAssignment(github, owner, repo, username, issueNumber);
-  if (existingIssue) {
+  const existingIssues = await findExistingAssignments(github, owner, repo, username, issueNumber);
+  if (existingIssues.length >= MAX_ASSIGNED_ISSUES) {
+    const issueList = existingIssues
+      .map((i) => `> 📋 [#${i.number} — ${i.title}](${i.html_url})`)
+      .join('\n');
     await github.rest.issues.createComment({
       owner,
       repo,
       issue_number: issueNumber,
-      body: `❌ @${username} already has an active assigned issue.\nPlease complete or unassign the current issue first.\n\n> 📋 Active issue: [#${existingIssue.number} — ${existingIssue.title}](${existingIssue.html_url})`,
+      body: `❌ @${username} already has **${existingIssues.length}/${MAX_ASSIGNED_ISSUES}** active assigned issues (the maximum allowed).\nPlease complete or unassign one of their current issues first.\n\n${issueList}`,
     });
     return;
   }

@@ -1,8 +1,15 @@
 'use client';
 
-import { CSSProperties, useEffect, useRef, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { Menu, X, Activity } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { Menu, X, Activity, Moon, Sun, Globe, ChevronDown, Check, Keyboard } from 'lucide-react';
+import { useGlowEffect } from '@/hooks/useGlowEffect';
+import KeyboardShortcutsModal from '@/components/KeyboardShortcutsModal';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useThemeToggle } from './theme-switch';
+import { useTranslation, LANGUAGE_LABELS, type Language } from '@/context/TranslationContext';
+import NavbarSearch from '@/components/NavbarSearch';
 
 function GithubMark() {
   return (
@@ -12,104 +19,182 @@ function GithubMark() {
   );
 }
 
-const NAV_LINKS = [
+export interface NavLink {
+  label: string;
+  href: string;
+  isExternal: boolean;
+  isPrimary: boolean;
+}
+
+const NAV_LINKS: NavLink[] = [
+  {
+    label: 'Customization Studio',
+    href: '/#customization-studio',
+    isExternal: false,
+    isPrimary: false,
+  },
+  {
+    label: 'Generator',
+    href: '/generator',
+    isExternal: false,
+    isPrimary: false,
+  },
+  {
+    label: 'Compare',
+    href: '/compare',
+    isExternal: false,
+    isPrimary: false,
+  },
+  {
+    label: 'Burnout Radar',
+    href: '/burnout-analyzer',
+    isExternal: false,
+    isPrimary: false,
+  },
   {
     label: 'GitHub Repo',
     href: 'https://github.com/JhaSourav07/commitpulse',
+    isExternal: true,
+    isPrimary: true,
   },
 ];
 
-export default function Navbar() {
-  const [open, setOpen] = useState(false);
-  const shellRef = useRef<HTMLDivElement>(null);
-  const rectRef = useRef<DOMRect | null>(null);
-  const animationRef = useRef<number | null>(null);
-  const targetRef = useRef({ x: 50, y: 50 });
-  const currentRef = useRef({ x: 50, y: 50 });
-  const activeRef = useRef(false);
+function LanguageSelector() {
+  const { language, changeLanguage, isPending } = useTranslation();
 
-  const shellVars = {
-    // Defaults keep the glow centered before pointer interaction.
-    ['--mx' as string]: '50%',
-    ['--my' as string]: '50%',
-    ['--glow-opacity' as string]: '0',
-    ['--border-opacity' as string]: '0',
-  } as CSSProperties & Record<string, string>;
-
-  const updateRect = () => {
-    const shell = shellRef.current;
-    rectRef.current = shell ? shell.getBoundingClientRect() : null;
-  };
-
-  const animateGlow = () => {
-    const shell = shellRef.current;
-
-    if (!shell) {
-      animationRef.current = null;
-      return;
-    }
-
-    const smoothing = 0.16;
-    currentRef.current.x += (targetRef.current.x - currentRef.current.x) * smoothing;
-    currentRef.current.y += (targetRef.current.y - currentRef.current.y) * smoothing;
-
-    shell.style.setProperty('--mx', `${currentRef.current.x}%`);
-    shell.style.setProperty('--my', `${currentRef.current.y}%`);
-    shell.style.setProperty('--glow-opacity', activeRef.current ? '1' : '0');
-    shell.style.setProperty('--border-opacity', activeRef.current ? '1' : '0');
-
-    const settled =
-      Math.abs(targetRef.current.x - currentRef.current.x) < 0.08 &&
-      Math.abs(targetRef.current.y - currentRef.current.y) < 0.08;
-
-    if (!activeRef.current && settled) {
-      animationRef.current = null;
-      return;
-    }
-
-    animationRef.current = requestAnimationFrame(animateGlow);
-  };
-
-  const startAnimation = () => {
-    if (animationRef.current !== null) return;
-    animationRef.current = requestAnimationFrame(animateGlow);
-  };
-
+  const [mounted, setMounted] = useState(false);
   useEffect(() => {
-    updateRect();
-
-    const handleViewportChange = () => {
-      updateRect();
-    };
-
-    window.addEventListener('resize', handleViewportChange);
-    window.addEventListener('scroll', handleViewportChange, true);
-
-    let resizeObserver: ResizeObserver | null = null;
-
-    if (shellRef.current && 'ResizeObserver' in window) {
-      resizeObserver = new ResizeObserver(handleViewportChange);
-      resizeObserver.observe(shellRef.current);
-    }
-
-    return () => {
-      if (animationRef.current !== null) {
-        cancelAnimationFrame(animationRef.current);
-      }
-
-      window.removeEventListener('resize', handleViewportChange);
-      window.removeEventListener('scroll', handleViewportChange, true);
-      resizeObserver?.disconnect();
-    };
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
   }, []);
 
-  const handleLogoClick = () => {
-    setOpen(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(min-width: 768px)');
+    if (!isOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
+
+  if (!mounted) {
+    return (
+      <div className="inline-flex items-center gap-1.5 rounded-xl border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 px-2.5 py-1.5 text-xs font-semibold text-black/90 dark:text-white/90 opacity-50 select-none">
+        <Globe size={14} className="text-zinc-500 dark:text-white/40" />
+        <span>English</span>
+        <ChevronDown size={12} className="text-zinc-500 dark:text-white/40" />
+      </div>
+    );
+  }
+
+  const currentLabel = LANGUAGE_LABELS[language];
+  const isLongLang = currentLabel.length > 6;
+
+  return (
+    <div
+      ref={containerRef}
+      className={`relative inline-flex ${isPending ? 'opacity-50 pointer-events-none' : ''}`}
+    >
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`inline-flex items-center rounded-xl border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 py-1.5 font-semibold text-black/90 dark:text-white/90 hover:bg-black/10 dark:hover:bg-white/10 transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:focus-visible:ring-gray-300 ${
+          isLongLang ? 'gap-1 px-2 text-[11px]' : 'gap-1.5 px-2.5 text-xs'
+        }`}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-label="Select Language"
+      >
+        <Globe size={14} className="text-zinc-500 dark:text-white/40 animate-none" />
+        <span>{currentLabel}</span>
+        <ChevronDown
+          size={12}
+          className={`text-zinc-500 dark:text-white/40 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      {isOpen && (
+        <ul
+          role="listbox"
+          aria-label="Language options"
+          className="absolute right-0 top-full mt-1.5 z-50 min-w-[130px] rounded-xl border border-black/10 dark:border-white/10 bg-white/95 dark:bg-[#0c0c0c]/90 backdrop-blur-md p-1 shadow-lg dark:shadow-[0_8px_30px_rgba(0,0,0,0.5)] focus:outline-none animate-in fade-in slide-in-from-top-1 duration-100"
+        >
+          {Object.entries(LANGUAGE_LABELS).map(([code, label]) => {
+            const isSelected = language === code;
+            return (
+              <li key={code} role="presentation">
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={isSelected}
+                  onClick={() => {
+                    changeLanguage(code as Language);
+                    setIsOpen(false);
+                  }}
+                  className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs font-semibold transition-colors cursor-pointer focus:outline-none ${
+                    isSelected
+                      ? 'bg-black/5 dark:bg-white/10 text-black dark:text-white'
+                      : 'text-black/70 dark:text-white/70 hover:bg-black/5 dark:hover:bg-white/5 hover:text-black dark:hover:text-white'
+                  }`}
+                >
+                  <span>{label}</span>
+                  {isSelected && (
+                    <Check size={12} className="text-black dark:text-white ml-2 shrink-0" />
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+export default function Navbar() {
+  const [open, setOpen] = useState(false);
+
+  const [isHidden, setIsHidden] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+
+  const pathname = usePathname();
+
+  const { t } = useTranslation();
+  const lastScrollYRef = useRef(0);
+  // Ref so the scroll handler (stale closure) can always read the current open state.
+  const openRef = useRef(false);
+
+  // Keep openRef in sync with open state.
+  useEffect(() => {
+    openRef.current = open;
+  }, [open]);
+
+  const handleOpenShortcuts = () => setShortcutsOpen(true);
+  useKeyboardShortcuts({ onOpenShortcuts: handleOpenShortcuts });
+
+  const { shellRef, shellVars, handleMouseEnter, handleMouseMove, handleMouseLeave } =
+    useGlowEffect();
+  const { isDark, mounted, toggleTheme } = useThemeToggle({
+    variant: 'circle',
+    start: 'top-right',
+  });
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(min-width: 1024px)');
 
     const handleBreakpointChange = (event: MediaQueryListEvent) => {
       if (event.matches) {
@@ -117,8 +202,6 @@ export default function Navbar() {
       }
     };
 
-    // Defer the initial check so it doesn't cause a synchronous setState
-    // inside the effect body (which would trigger cascading re-renders).
     const initialCheckTimer = setTimeout(() => {
       if (mediaQuery.matches) {
         setOpen(false);
@@ -133,119 +216,322 @@ export default function Navbar() {
     };
   }, []);
 
+  useEffect(() => {
+    const threshold = 8;
+    const currentScrollY = window.scrollY;
+    lastScrollYRef.current = currentScrollY;
+
+    const handleScroll = () => {
+      const nextScrollY = window.scrollY;
+      const delta = nextScrollY - lastScrollYRef.current;
+
+      if (nextScrollY <= 0) {
+        setIsHidden(false);
+      } else if (delta > threshold && nextScrollY > 72) {
+        // Do not hide the navbar while the mobile menu is open — the menu
+        // is a child of the header, so hiding it would yank the open dropdown
+        // off-screen and confuse the user.
+        if (!openRef.current) {
+          setIsHidden(true);
+        }
+      } else if (delta < -threshold) {
+        setIsHidden(false);
+      }
+
+      lastScrollYRef.current = nextScrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  const handleLogoClick = () => {
+    setOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const getTranslatedLabel = (label: string) => {
+    if (label === 'GitHub Repo') return t('navbar.repo');
+    if (label === 'Compare') return t('navbar.compare');
+    if (label === 'Burnout Radar') return t('navbar.burnout_radar');
+    if (label === 'Customization Studio') return t('navbar.customization_studio');
+    if (label === 'Generator') return t('navbar.generator');
+    return label;
+  };
+
   return (
-    <header className="fixed inset-x-0 top-0 z-50 px-4 pt-4 sm:px-6">
-      <div className="mx-auto max-w-6xl">
-        <div
-          ref={shellRef}
-          className="relative overflow-hidden rounded-2xl border border-white/25 bg-black/45 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.45)]"
-          style={shellVars}
-          onMouseEnter={updateRect}
-          onMouseMove={(event) => {
-            if (!rectRef.current) {
-              rectRef.current = event.currentTarget.getBoundingClientRect();
-            }
-
-            const rect = rectRef.current;
-
-            if (!rect) return;
-
-            const x = ((event.clientX - rect.left) / rect.width) * 100;
-            const y = ((event.clientY - rect.top) / rect.height) * 100;
-
-            targetRef.current = { x, y };
-            activeRef.current = true;
-            startAnimation();
-          }}
-          onMouseLeave={() => {
-            activeRef.current = false;
-            rectRef.current = null;
-            startAnimation();
-          }}
-        >
+    <>
+      <header
+        className={`sticky top-0 z-50 px-4 pt-4 sm:px-6 w-full transform-gpu transition-[transform,opacity] duration-300 ease-out ${
+          isHidden ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'
+        }`}
+      >
+        <div className="mx-auto max-w-6xl">
           <div
-            className="pointer-events-none absolute inset-0 transition-opacity duration-300 ease-out"
-            style={{
-              opacity: 'var(--glow-opacity)',
-              background:
-                'radial-gradient(180px 105px at var(--mx) var(--my), rgba(255,255,255,0.26), rgba(191,219,254,0.18) 30%, rgba(244,114,182,0.1) 48%, rgba(0,0,0,0) 68%)',
-            }}
-          />
-          <div className="pointer-events-none absolute inset-0 rounded-2xl border border-white/20" />
-          <div
-            className="pointer-events-none absolute inset-0 rounded-2xl p-px transition-opacity duration-300 ease-out"
-            style={{
-              opacity: 'var(--border-opacity)',
-              background:
-                'radial-gradient(150px 90px at var(--mx) var(--my), rgba(255,255,255,0.98), rgba(186,230,253,0.64) 32%, rgba(196,181,253,0.34) 50%, rgba(0,0,0,0) 68%)',
-              WebkitMask: 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
-              WebkitMaskComposite: 'xor',
-              maskComposite: 'exclude',
-            }}
-          />
-          <nav className="relative flex items-center justify-between px-4 py-3 sm:px-6">
-            <Link
-              href="/"
-              aria-label="Go to home"
-              className="group inline-flex items-center gap-3"
-              onClick={handleLogoClick}
-            >
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/35 bg-white/10 text-white shadow-[0_0_25px_rgba(255,255,255,0.22)] transition-transform duration-300 group-hover:scale-105">
-                <Activity size={19} />
-              </span>
-              <span className="text-base font-semibold tracking-[0.08em] text-white sm:text-lg">
-                CommitPulse
-              </span>
-            </Link>
+            ref={shellRef}
+            className="relative overflow-visible rounded-2xl border border-gray-200/80 bg-white/80 dark:border-white/20 dark:bg-[#0a0a0a]/60 backdrop-blur-xl shadow-sm dark:shadow-[0_8px_30px_rgba(0,0,0,0.8)] transition-all duration-300"
+            style={shellVars}
+            onMouseEnter={handleMouseEnter}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+          >
+            {/* Glow effects remain untouched */}
+            <div
+              className="pointer-events-none absolute inset-0 transition-opacity duration-300 ease-out hidden dark:block rounded-2xl overflow-hidden"
+              style={{
+                opacity: 'var(--glow-opacity)',
+                background:
+                  'radial-gradient(180px 105px at var(--mx) var(--my), rgba(255,255,255,0.20), rgba(191,219,254,0.12) 30%, rgba(244,114,182,0.08) 48%, rgba(0,0,0,0) 68%)',
+              }}
+            />
+            <div className="pointer-events-none absolute inset-0 rounded-2xl border border-black/5 dark:border-white/10" />
+            <div
+              className="pointer-events-none absolute inset-0 rounded-2xl p-px transition-opacity duration-300 ease-out hidden dark:block"
+              style={{
+                opacity: 'var(--border-opacity)',
+                background:
+                  'radial-gradient(150px 90px at var(--mx) var(--my), rgba(255,255,255,0.8), rgba(186,230,253,0.5) 32%, rgba(196,181,253,0.2) 50%, rgba(0,0,0,0) 68%)',
+                WebkitMask: 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
+                WebkitMaskComposite: 'xor',
+                maskComposite: 'exclude',
+              }}
+            />
 
-            <div className="hidden items-center gap-3 md:flex">
-              {NAV_LINKS.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:border-white/45 hover:bg-white/10"
-                >
-                  <GithubMark />
-                  {link.label}
-                </a>
-              ))}
-            </div>
+            <nav className="relative flex items-center justify-between px-4 py-3 sm:px-6">
+              <Link
+                href="/"
+                aria-label={t('navbar.home')}
+                className="group inline-flex items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 rounded-xl dark:focus-visible:ring-gray-300 dark:focus-visible:ring-offset-[#0a0a0a]"
+                onClick={handleLogoClick}
+              >
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 border border-gray-300 text-gray-800 shadow-sm dark:border-white/20 dark:from-white/10 dark:to-white/5 dark:text-white transition-transform duration-300 group-hover:scale-105 group-hover:shadow-md">
+                  <Activity
+                    size={19}
+                    className="transition-transform duration-300 group-hover:rotate-6"
+                  />
+                </span>
+                {/* Added Text Gradient here */}
+                <span className="text-base font-bold tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 sm:text-lg">
+                  CommitPulse
+                </span>
+              </Link>
 
-            <button
-              type="button"
-              className="inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/5 p-2 text-white/90 transition hover:bg-white/10 md:hidden"
-              aria-label={open ? 'Close menu' : 'Open menu'}
-              aria-expanded={open}
-              onClick={() => setOpen((prev) => !prev)}
-            >
-              {open ? <X size={20} /> : <Menu size={20} />}
-            </button>
-          </nav>
-
-          {open ? (
-            <div className="border-t border-white/10 px-4 py-3 md:hidden">
-              <ul className="space-y-2">
-                {NAV_LINKS.map((link) => (
-                  <li key={link.href}>
-                    <a
+              <div className="hidden items-center gap-2 lg:flex">
+                <NavbarSearch />
+                <LanguageSelector />
+                {NAV_LINKS.map((link) => {
+                  const LinkComponent = link.isExternal ? 'a' : Link;
+                  const isActive =
+                    pathname === link.href || (link.href.startsWith('/#') && pathname === '/');
+                  const translatedLabel = getTranslatedLabel(link.label);
+                  const isLong = translatedLabel.length > 12;
+                  return (
+                    <LinkComponent
+                      key={link.href}
                       href={link.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => setOpen(false)}
-                      className="inline-flex w-full items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:border-white/45 hover:bg-white/10"
+                      target={link.isExternal ? '_blank' : undefined}
+                      rel={link.isExternal ? 'noopener noreferrer' : undefined}
+                      className={`relative group inline-flex items-center gap-1.5 py-2 font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0a0a0a] whitespace-nowrap shrink-0 ${
+                        link.isPrimary
+                          ? `rounded-xl bg-gray-900 text-white shadow-md hover:bg-gray-800 hover:-translate-y-0.5 hover:shadow-lg dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 dark:hover:shadow-[0_4px_20px_rgba(255,255,255,0.2)] focus-visible:ring-gray-950 dark:focus-visible:ring-white ml-2 ${
+                              isLong ? 'px-3 text-xs' : 'px-4 text-sm'
+                            }`
+                          : `rounded-lg focus-visible:ring-gray-400 dark:focus-visible:ring-gray-500 ${
+                              isLong ? 'px-2 text-[11px] lg:text-xs' : 'px-3 text-xs lg:text-sm'
+                            } ${
+                              isActive
+                                ? 'text-gray-900 dark:text-white font-semibold'
+                                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 dark:text-gray-300 dark:hover:text-white dark:hover:bg-white/10'
+                            }`
+                      }`}
                     >
-                      <GithubMark />
-                      {link.label}
-                    </a>
+                      {link.isExternal && <GithubMark />}
+                      {link.label === 'GitHub Repo' ? (
+                        <span className="hidden lg:inline">{translatedLabel}</span>
+                      ) : (
+                        <span>{translatedLabel}</span>
+                      )}
+                      {!link.isPrimary && (
+                        <span
+                          className={`absolute bottom-0 h-0.5 bg-gray-900 dark:bg-white rounded-full transform origin-left transition-transform duration-300 ${
+                            isLong ? 'left-2 right-2' : 'left-3 right-3'
+                          } ${isActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'}`}
+                        />
+                      )}
+                    </LinkComponent>
+                  );
+                })}
+
+                {/* Separator line between links and theme toggle */}
+                <div className="mx-2 h-6 w-px bg-gray-200 dark:bg-white/15" />
+
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="group inline-flex h-10 w-10 items-center justify-center rounded-xl text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-gray-400 dark:focus-visible:ring-offset-[#0a0a0a] cursor-pointer"
+                  aria-label={t('navbar.theme_toggle')}
+                  suppressHydrationWarning
+                >
+                  {mounted ? (
+                    isDark ? (
+                      <Moon
+                        size={18}
+                        className="transition-transform duration-300 group-hover:-rotate-12"
+                      />
+                    ) : (
+                      <Sun
+                        size={18}
+                        className="transition-transform duration-300 group-hover:rotate-45"
+                      />
+                    )
+                  ) : (
+                    <span className="w-[18px] h-[18px]" />
+                  )}
+                </button>
+              </div>
+
+              {/* Mobile Menu Buttons */}
+              <div className="lg:hidden inline-flex items-center justify-center gap-1">
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="group hidden sm:inline-flex h-10 w-10 items-center justify-center rounded-xl text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white cursor-pointer"
+                  aria-label={t('navbar.theme_toggle')}
+                >
+                  {mounted ? (
+                    isDark ? (
+                      <Moon
+                        size={18}
+                        className="transition-transform duration-300 group-hover:-rotate-12"
+                      />
+                    ) : (
+                      <Sun
+                        size={18}
+                        className="transition-transform duration-300 group-hover:rotate-45"
+                      />
+                    )
+                  ) : (
+                    <span className="w-[18px] h-[18px]" />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="lg:hidden inline-flex items-center justify-center rounded-xl p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white cursor-pointer"
+                  aria-label={open ? t('navbar.menu_close') : t('navbar.menu_open')}
+                  aria-expanded={open}
+                  onClick={() => {
+                    const opening = !open;
+                    if (opening) {
+                      // Snap the navbar into view so the dropdown is immediately
+                      // visible and stays visible while the menu is open.
+                      setIsHidden(false);
+                    }
+                    setOpen(opening);
+                  }}
+                >
+                  {open ? (
+                    <X
+                      size={20}
+                      className="transition-transform duration-300 rotate-90 scale-110"
+                    />
+                  ) : (
+                    <Menu size={20} className="transition-transform duration-300 hover:scale-110" />
+                  )}
+                </button>
+
+                <div className="mx-2 h-6 w-px bg-gray-200 dark:bg-white/15" />
+
+                <button
+                  type="button"
+                  onClick={() => setShortcutsOpen(true)}
+                  aria-label="Show keyboard shortcuts"
+                  className="group inline-flex h-10 w-10 items-center justify-center rounded-xl text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-gray-400 dark:focus-visible:ring-offset-[#0a0a0a]"
+                >
+                  <Keyboard
+                    size={18}
+                    className="transition-transform duration-300 group-hover:scale-110"
+                  />
+                </button>
+              </div>
+            </nav>
+
+            {/* Mobile Dropdown Menu */}
+            {open ? (
+              <div className="border-t border-gray-100 dark:border-white/10 px-4 py-4 lg:hidden">
+                <ul className="space-y-1">
+                  <li className="mb-2">
+                    <NavbarSearch variant="mobile" onNavigate={() => setOpen(false)} />
                   </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
+                  <li className="flex items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-white/10 mb-2">
+                    <span className="text-sm font-medium text-black/60 dark:text-white/60">
+                      Language / Bhasha
+                    </span>
+                    <LanguageSelector />
+                  </li>
+                  {NAV_LINKS.map((link) => {
+                    const LinkComponent = link.isExternal ? 'a' : Link;
+                    const isActive =
+                      pathname === link.href || (link.href.startsWith('/#') && pathname === '/');
+                    return (
+                      <li key={link.href}>
+                        <LinkComponent
+                          href={link.href}
+                          target={link.isExternal ? '_blank' : undefined}
+                          rel={link.isExternal ? 'noopener noreferrer' : undefined}
+                          onClick={() => setOpen(false)}
+                          className={`relative inline-flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 dark:focus-visible:ring-offset-[#0a0a0a] ${
+                            link.isPrimary
+                              ? 'mt-2 bg-gray-900 text-white shadow-md hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 focus-visible:ring-gray-900 dark:focus-visible:ring-white justify-center'
+                              : `focus-visible:ring-gray-400 dark:focus-visible:ring-gray-500 ${
+                                  isActive
+                                    ? 'text-gray-950 dark:text-white bg-black/5 dark:bg-white/10 font-semibold'
+                                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 dark:text-gray-300 dark:hover:text-white dark:hover:bg-white/10'
+                                }`
+                          }`}
+                        >
+                          {link.isExternal && <GithubMark />}
+                          {getTranslatedLabel(link.label)}
+                          {isActive && !link.isPrimary && (
+                            <span className="absolute left-2 top-3 bottom-3 w-1 bg-gray-950 dark:bg-white rounded-full animate-in fade-in duration-200" />
+                          )}
+                        </LinkComponent>
+                      </li>
+                    );
+                  })}
+
+                  <li className="sm:hidden pt-3 mt-3 border-t border-gray-100 dark:border-white/10">
+                    <button
+                      type="button"
+                      onClick={toggleTheme}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-gray-500"
+                      aria-label={t('navbar.theme_toggle')}
+                    >
+                      {mounted ? (
+                        isDark ? (
+                          <Moon size={18} />
+                        ) : (
+                          <Sun size={18} />
+                        )
+                      ) : (
+                        <span className="w-[18px] h-[18px]" />
+                      )}
+                      {mounted
+                        ? isDark
+                          ? 'Switch to Light Mode'
+                          : 'Switch to Dark Mode'
+                        : 'Theme'}
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            ) : null}
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+      <KeyboardShortcutsModal isOpen={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+    </>
   );
 }

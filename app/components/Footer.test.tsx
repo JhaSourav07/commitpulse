@@ -1,0 +1,185 @@
+import '@testing-library/jest-dom/vitest';
+import { render, screen } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
+import { Footer } from './Footer';
+
+describe('Footer Component', () => {
+  it('renders community text', () => {
+    render(<Footer />);
+
+    expect(screen.getByText(/Designed for the elite builder community/i)).toBeInTheDocument();
+  });
+
+  it('renders Documentation link with the correct destination', () => {
+    render(<Footer />);
+
+    const documentationLink = screen.getByRole('link', {
+      name: /Documentation/i,
+    });
+
+    expect(documentationLink).toHaveAttribute(
+      'href',
+      'https://github.com/JhaSourav07/commitpulse/blob/main/README.md'
+    );
+  });
+
+  it('opens Documentation link in a new tab securely', () => {
+    render(<Footer />);
+
+    const documentationLink = screen.getByRole('link', {
+      name: /Documentation/i,
+    });
+
+    expect(documentationLink).toHaveAttribute('target', '_blank');
+    expect(documentationLink).toHaveAttribute('rel', expect.stringContaining('noopener'));
+    expect(documentationLink).toHaveAttribute('rel', expect.stringContaining('noreferrer'));
+  });
+
+  it('renders Contributors link', () => {
+    render(<Footer />);
+
+    expect(
+      screen.getByRole('link', {
+        name: /Contributors/i,
+      })
+    ).toBeInTheDocument();
+  });
+
+  it('renders Creator link to creator GitHub profile', () => {
+    render(<Footer />);
+
+    const creatorLink = screen.getByRole('link', {
+      name: /Creator Sourav Jha on GitHub/i,
+    });
+
+    expect(creatorLink).toHaveAttribute('href', 'https://github.com/jhasourav07');
+  });
+
+  it('renders Discord community link', () => {
+    render(<Footer />);
+
+    // Discord now appears twice: once in the Connect column (text + icon) and once in the bottom bar icon strip.
+    const discordLinks = screen.getAllByRole('link', {
+      name: /Join CommitPulse on Discord/i,
+    });
+
+    expect(discordLinks.length).toBeGreaterThanOrEqual(1);
+    expect(discordLinks[0]).toHaveAttribute('href', 'https://discord.gg/f84SDraEBH');
+  });
+
+  it('exposes the footer as a semantic contentinfo landmark for screen readers', () => {
+    render(<Footer />);
+
+    // A semantic <footer> is exposed to assistive technology as the contentinfo landmark.
+    const footer = screen.getByRole('contentinfo');
+
+    expect(footer).toBeInTheDocument();
+    expect(footer.tagName).toBe('FOOTER');
+  });
+
+  it('includes Navigation section with all navigation links', () => {
+    render(<Footer />);
+
+    const navigationHeading = screen.getByRole('heading', { name: /Navigation/i });
+    expect(navigationHeading).toBeInTheDocument();
+
+    // Check that navigation links are present
+    expect(screen.getByRole('link', { name: /Home/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Compare/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Customization/i })).toBeInTheDocument();
+  });
+
+  it('includes Resources section with documentation and repository links', () => {
+    render(<Footer />);
+
+    const resourcesHeading = screen.getByRole('heading', { name: /Resources/i });
+    expect(resourcesHeading).toBeInTheDocument();
+
+    expect(screen.getByRole('link', { name: /GitHub Repository/i })).toBeInTheDocument();
+  });
+
+  it('renders readable footer labels instead of exposing localization keys', () => {
+    render(<Footer />);
+
+    expect(screen.getByRole('link', { name: /^Guidelines$/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^Support$/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^FAQ$/i })).toBeInTheDocument();
+
+    expect(screen.queryByText('footer.guidelines')).not.toBeInTheDocument();
+    expect(screen.queryByText('footer.support')).not.toBeInTheDocument();
+    expect(screen.queryByText('footer.faq')).not.toBeInTheDocument();
+  });
+
+  it('includes Connect section with social media links', () => {
+    render(<Footer />);
+
+    const connectHeading = screen.getByRole('heading', { name: /Connect/i });
+    expect(connectHeading).toBeInTheDocument();
+
+    // Social links now appear twice (Connect column + bottom bar icon strip); use getAllByRole.
+    expect(screen.getAllByRole('link', { name: /Creator on X/i }).length).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getAllByRole('link', { name: /Creator on LinkedIn/i }).length
+    ).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getAllByRole('link', { name: /Join CommitPulse on Discord/i }).length
+    ).toBeGreaterThanOrEqual(1);
+  });
+
+  it('has proper responsive layout classes', () => {
+    render(<Footer />);
+
+    const footer = screen.getByRole('contentinfo');
+    const mainContent = footer.querySelector('.grid.grid-cols-2.md\\:grid-cols-2.lg\\:grid-cols-4');
+    expect(mainContent).toBeInTheDocument();
+  });
+
+  it('includes copyright year in the footer', () => {
+    render(<Footer />);
+
+    const currentYear = new Date().getFullYear();
+    expect(screen.getByText(new RegExp(`© ${currentYear} CommitPulse`)));
+  });
+
+  it('renders all external links with proper security attributes', () => {
+    render(<Footer />);
+
+    const externalLinks = screen.getAllByRole('link').filter((link) => {
+      return link.getAttribute('target') === '_blank';
+    });
+
+    externalLinks.forEach((link) => {
+      expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'));
+      expect(link).toHaveAttribute('rel', expect.stringContaining('noreferrer'));
+    });
+  });
+
+  it('includes focus visible states for keyboard accessibility', () => {
+    render(<Footer />);
+
+    const footer = screen.getByRole('contentinfo');
+    const links = footer.querySelectorAll('a');
+
+    links.forEach((link) => {
+      expect(link.className).toContain('focus:outline-none');
+      expect(link.className).toContain('focus:ring');
+    });
+  });
+
+  it('renders social icon strip in the bottom bar with correct links and no duplicate creator icon', () => {
+    render(<Footer />);
+
+    // Project GitHub, Discord, X, LinkedIn each appear twice:
+    // once in the Connect column (with text label) and once in the bottom bar icon strip.
+    expect(screen.getAllByRole('link', { name: 'CommitPulse on GitHub' })).toHaveLength(2);
+    expect(screen.getAllByRole('link', { name: 'Join CommitPulse on Discord' })).toHaveLength(2);
+    expect(screen.getAllByRole('link', { name: 'Creator on X' })).toHaveLength(2);
+    expect(screen.getAllByRole('link', { name: 'Creator on LinkedIn' })).toHaveLength(2);
+
+    // The creator's personal GitHub link must appear only once (Connect column only, not in bottom bar).
+    expect(screen.getAllByRole('link', { name: 'Creator Sourav Jha on GitHub' })).toHaveLength(1);
+
+    // The bottom bar nav landmark must be present with an accessible label.
+    expect(screen.getByRole('navigation', { name: 'Social media links' })).toBeInTheDocument();
+  });
+});

@@ -5,6 +5,11 @@ on:
     branches: [main, dev]
   pull_request:
     branches: [main, dev]
+  merge_group: # Run CI on the merged commit before it lands on main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   quality:
@@ -24,8 +29,14 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      - name: Run NPM Audit Security Check
+        run: npm audit --audit-level=high || true
+
       - name: Check Prettier Formatting
         run: npm run format:check
+
+      - name: Run Stylelint
+        run: npm run lint:css
 
       - name: Run ESLint
         run: npm run lint
@@ -34,7 +45,15 @@ jobs:
         run: npm run typecheck
 
       - name: Run Unit Tests (Vitest)
-        run: npm run test
+        run: npm run test:coverage
+
+      - name: Upload Visual Regression Diffs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-test-diffs
+          path: tests/visual/diffs/
+          if-no-files-found: ignore
 
   build:
     name: Production Build
@@ -57,3 +76,15 @@ jobs:
         run: npm run build
         env:
           CI: false
+
+      - name: Measure Bundle Size
+        run: node scripts/measure-bundle-size.js bundle-sizes.json
+
+      - name: Upload Bundle Sizes
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-sizes
+          path: |
+            bundle-sizes.json
+            scripts/measure-bundle-size.js
+            scripts/compare-bundle-sizes.js

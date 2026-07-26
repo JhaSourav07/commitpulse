@@ -1,27 +1,32 @@
 import { performance } from 'perf_hooks';
 import { generateSVG } from '../lib/svg/generator';
+import { hexColor, sanitizeSpeed } from '../lib/svg/sanitizer';
 
 const stats = {
   currentStreak: 12,
   longestStreak: 48,
   totalContributions: 1240,
+  todayDate: '2024-01-07',
 };
 
 const baseParams = {
   user: 'benchmark-user',
-  bg: '0d1117',
-  accent: '00ffaa',
-  text: 'ffffff',
+  bg: hexColor('0d1117'),
+  accent: hexColor('00ffaa'),
+  text: hexColor('ffffff'),
   scale: 'linear' as const,
-  speed: '8s',
+  speed: sanitizeSpeed('8s'),
 };
+const startDate = new Date('2026-05-01');
 
 const calendar = {
   totalContributions: 1240,
   weeks: Array.from({ length: 14 }, (_, weekIndex) => ({
     contributionDays: Array.from({ length: 7 }, (_, dayIndex) => ({
       contributionCount: Math.floor(Math.random() * 20),
-      date: `2026-05-${String(weekIndex * 7 + dayIndex + 1).padStart(2, '0')}`,
+      date: new Date(startDate.getTime() + (weekIndex * 7 + dayIndex) * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split('T')[0],
     })),
   })),
 };
@@ -29,25 +34,52 @@ const calendar = {
 const themes = [
   {
     name: 'dark',
-    bg: '0d1117',
-    accent: '00ffaa',
-    text: 'ffffff',
+    bg: hexColor('0d1117'),
+    accent: hexColor('00ffaa'),
+    text: hexColor('ffffff'),
   },
   {
     name: 'light',
-    bg: 'ffffff',
-    accent: 'ff00aa',
-    text: '111111',
+    bg: hexColor('ffffff'),
+    accent: hexColor('ff00aa'),
+    text: hexColor('111111'),
   },
   {
     name: 'purple',
-    bg: '1a1025',
-    accent: '9b5cff',
-    text: 'f5f5f5',
+    bg: hexColor('1a1025'),
+    accent: hexColor('9b5cff'),
+    text: hexColor('f5f5f5'),
   },
 ];
 
+function percentile(values: number[], p: number): number {
+  if (values.length === 0) return 0;
+
+  const sorted = [...values].sort((a, b) => a - b);
+
+  const index = (p / 100) * (sorted.length - 1);
+  const lower = Math.floor(index);
+  const upper = Math.ceil(index);
+
+  if (lower === upper) {
+    return sorted[lower];
+  }
+
+  const weight = index - lower;
+  return sorted[lower] * (1 - weight) + sorted[upper] * weight;
+}
+
 function benchmark(): void {
+  let iterations = 20;
+  const iterationsArg = process.argv.find((arg) => arg.startsWith('--iterations='));
+  if (iterationsArg) {
+    const valStr = iterationsArg.split('=')[1];
+    const num = Number(valStr);
+    if (Number.isInteger(num) && num > 0) {
+      iterations = num;
+    }
+  }
+
   console.log('\nSVG Benchmark Results\n');
 
   for (const theme of themes) {
@@ -65,7 +97,7 @@ function benchmark(): void {
       calendar
     );
 
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < iterations; i++) {
       const start = performance.now();
 
       generateSVG(
@@ -85,12 +117,18 @@ function benchmark(): void {
     }
 
     const avg = times.reduce((a, b) => a + b, 0) / times.length;
-
     const min = Math.min(...times);
     const max = Math.max(...times);
 
+    const p50 = percentile(times, 50);
+    const p95 = percentile(times, 95);
+    const p99 = percentile(times, 99);
+
     console.log(`Theme: ${theme.name}`);
     console.log(`Average: ${avg.toFixed(2)}ms`);
+    console.log(`P50: ${p50.toFixed(2)}ms`);
+    console.log(`P95: ${p95.toFixed(2)}ms`);
+    console.log(`P99: ${p99.toFixed(2)}ms`);
     console.log(`Min: ${min.toFixed(2)}ms`);
     console.log(`Max: ${max.toFixed(2)}ms`);
     console.log('--------------------------');

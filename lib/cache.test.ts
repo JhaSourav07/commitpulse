@@ -1,0 +1,1080 @@
+// lib/cache.test.ts
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { TTLCache } from './cache';
+
+describe('TTLCache', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  describe('basic get/set', () => {
+    it('returns null for a missing key', () => {
+      const cache = new TTLCache<string>();
+      expect(cache.get('missing')).toBeNull();
+      cache.destroy();
+    });
+
+    it('returns the value for a live key', () => {
+      const cache = new TTLCache<string>();
+      cache.set('user', 'octocat', 60_000);
+      expect(cache.get('user')).toBe('octocat');
+      cache.destroy();
+    });
+
+    it('returns null and evicts a key whose TTL has expired', () => {
+      vi.useFakeTimers();
+      const cache = new TTLCache<string>();
+      cache.set('user', 'octocat', 1_000);
+      vi.advanceTimersByTime(2_000);
+      expect(cache.get('user')).toBeNull();
+      cache.destroy();
+    });
+
+    it('verifies TTLCache behavior for deeply nested object values (Variation 2)', () => {
+      const cache = new TTLCache<{
+        level1: {
+          level2: {
+            level3: string;
+          };
+        };
+      }>();
+
+      const nested = {
+        level1: {
+          level2: {
+            level3: 'value',
+          },
+        },
+      };
+
+      expect(() => {
+        cache.set('deeply-nested-object', nested, 60_000);
+      }).not.toThrow();
+
+      expect(cache.get('deeply-nested-object')).toEqual(nested);
+
+      cache.destroy();
+    });
+  });
+
+  describe('clear()', () => {
+    it('removes all entries', () => {
+      const cache = new TTLCache<number>();
+      cache.set('a', 1, 60_000);
+      cache.set('b', 2, 60_000);
+      cache.clear();
+      expect(cache.get('a')).toBeNull();
+      expect(cache.get('b')).toBeNull();
+      cache.destroy();
+    });
+  });
+
+  describe('capacity eviction (maxSize)', () => {
+    it('keeps entries unlimited when maxSize is not provided', () => {
+      const cache = new TTLCache<number>();
+      for (let i = 0; i < 1001; i++) {
+        cache.set(`key-${i}`, i, 60_000);
+      }
+      expect(cache.get('key-0')).toBe(0);
+      expect(cache.get('key-1000')).toBe(1000);
+      cache.destroy();
+    });
+
+    it('does not exceed maxSize — evicts the oldest key on overflow', () => {
+      const cache = new TTLCache<number>(3);
+      cache.set('a', 1, 60_000);
+      cache.set('b', 2, 60_000);
+      cache.set('c', 3, 60_000);
+      // Adding a 4th key should evict the oldest ('a')
+      cache.set('d', 4, 60_000);
+      expect(cache.get('a')).toBeNull(); // evicted
+      expect(cache.get('b')).toBe(2);
+      expect(cache.get('c')).toBe(3);
+      expect(cache.get('d')).toBe(4);
+      cache.destroy();
+    });
+
+    it('updating an existing key does not trigger eviction', () => {
+      const cache = new TTLCache<number>(2);
+      cache.set('a', 1, 60_000);
+      cache.set('b', 2, 60_000);
+      // Updating 'a' should NOT evict 'b' since size stays <= maxSize
+      cache.set('a', 99, 60_000);
+      expect(cache.get('a')).toBe(99);
+      expect(cache.get('b')).toBe(2);
+      cache.destroy();
+    });
+  });
+
+  describe('sweep() — active garbage collection', () => {
+    it('proactively removes expired keys on the next sweep interval', () => {
+      vi.useFakeTimers();
+      // 60s sweep interval (default)
+      const cache = new TTLCache<string>(1000, 60_000);
+      cache.set('stale', 'data', 1_000); // expires in 1s
+      // Advance past TTL but before sweep
+      vi.advanceTimersByTime(5_000);
+      // Advance past the sweep interval
+      vi.advanceTimersByTime(60_000);
+      // The key is gone even without a get() call
+      expect(cache.get('stale')).toBeNull();
+      cache.destroy();
+    });
+  });
+
+  describe('size()', () => {
+    it('returns 0 for an empty cache', () => {
+      const cache = new TTLCache<number>();
+      expect(cache.size()).toBe(0);
+      cache.destroy();
+    });
+
+    it('counts only entries before expiry', () => {
+      vi.useFakeTimers();
+      const cache = new TTLCache<number>();
+      cache.set('a', 1, 10_000);
+      cache.set('b', 2, 20_000);
+      expect(cache.size()).toBe(2);
+
+      vi.advanceTimersByTime(15_000);
+      expect(cache.size()).toBe(1);
+      cache.destroy();
+    });
+
+    it('returns 0 when all entries have expired (after TTL expiry)', () => {
+      vi.useFakeTimers();
+      const cache = new TTLCache<number>();
+      cache.set('a', 1, 10_000);
+      vi.advanceTimersByTime(15_000);
+      expect(cache.size()).toBe(0);
+      cache.destroy();
+    });
+
+    it('returns 0 after clear() is called', () => {
+      const cache = new TTLCache<number>();
+      cache.set('a', 1, 10_000);
+      expect(cache.size()).toBe(1);
+      cache.clear();
+      expect(cache.size()).toBe(0);
+      cache.destroy();
+    });
+  });
+
+  describe('destroy()', () => {
+    it('clears the store and stops the interval', () => {
+      vi.useFakeTimers();
+      const clearIntervalSpy = vi.spyOn(globalThis, 'clearInterval');
+      const cache = new TTLCache<string>();
+      cache.set('x', 'y', 60_000);
+      cache.destroy();
+      expect(cache.get('x')).toBeNull();
+      expect(clearIntervalSpy).toHaveBeenCalled();
+      clearIntervalSpy.mockRestore();
+    });
+  });
+
+  describe('has()', () => {
+    it('returns true for a valid key', () => {
+      const cache = new TTLCache<string>();
+      cache.set('user', 'octocat', 60_000);
+      expect(cache.has('user')).toBe(true);
+      cache.destroy();
+    });
+
+    it('returns false for a missing key', () => {
+      const cache = new TTLCache<string>();
+      expect(cache.has('missing')).toBe(false);
+      cache.destroy();
+    });
+
+    it('returns false for an expired key', () => {
+      vi.useFakeTimers();
+      const cache = new TTLCache<string>();
+      cache.set('user', 'octocat', 1_000);
+      vi.advanceTimersByTime(2_000);
+      expect(cache.has('user')).toBe(false);
+      cache.destroy();
+    });
+  });
+
+  describe('delete()', () => {
+    it('removes an existing key and returns true', () => {
+      const cache = new TTLCache<string>();
+      cache.set('user', 'octocat', 60_000);
+      expect(cache.delete('user')).toBe(true);
+      expect(cache.get('user')).toBeNull();
+      cache.destroy();
+    });
+
+    it('returns false when deleting a missing key', () => {
+      const cache = new TTLCache<string>();
+      expect(cache.delete('missing')).toBe(false);
+      cache.destroy();
+    });
+
+    it('still removes an expired key from store but returns true (key exists)', () => {
+      vi.useFakeTimers();
+      const cache = new TTLCache<string>();
+      cache.set('user', 'octocat', 1_000);
+      vi.advanceTimersByTime(2_000);
+      // Key still exists in store even though expired, so delete returns true
+      expect(cache.delete('user')).toBe(true);
+      cache.destroy();
+    });
+  });
+
+  describe('TTL expiry behavior', () => {
+    it('returns value before TTL expiry', () => {
+      vi.useFakeTimers();
+      const cache = new TTLCache<string>();
+      cache.set('user', 'octocat', 5_000);
+
+      // Check at 1 second (before expiry at 5 seconds)
+      vi.advanceTimersByTime(1_000);
+      expect(cache.get('user')).toBe('octocat');
+
+      // Check at 4 seconds (still before expiry)
+      vi.advanceTimersByTime(3_000);
+      expect(cache.get('user')).toBe('octocat');
+
+      cache.destroy();
+    });
+
+    it('returns value at exactly TTL time (not yet expired)', () => {
+      vi.useFakeTimers();
+      const cache = new TTLCache<string>();
+      cache.set('user', 'octocat', 5_000);
+
+      // Advance exactly to TTL expiry time
+      // At this point Date.now() === expiresAt, so > check fails and value is returned
+      vi.advanceTimersByTime(5_000);
+      expect(cache.get('user')).toBe('octocat');
+
+      cache.destroy();
+    });
+
+    it('rejects NaN TTL values', () => {
+      vi.useFakeTimers();
+
+      const cache = new TTLCache<string>();
+
+      expect(() => cache.set('nan-key', 'value', Number.NaN)).toThrow(RangeError);
+      expect(cache.get('nan-key')).toBeNull();
+
+      vi.advanceTimersByTime(1_000);
+      expect(cache.get('nan-key')).toBeNull();
+
+      cache.destroy();
+    });
+    it('returns correct values around the exact TTL boundary', () => {
+      vi.useFakeTimers();
+
+      const cache = new TTLCache<string>();
+      cache.set('key', 'value', 1000);
+
+      // 999ms -> still valid
+      vi.advanceTimersByTime(999);
+      expect(cache.get('key')).toBe('value');
+
+      // 1000ms exact boundary -> still valid
+      vi.advanceTimersByTime(1);
+      expect(cache.get('key')).toBe('value');
+
+      // 1001ms -> expired
+      vi.advanceTimersByTime(1);
+      expect(cache.get('key')).toBeNull();
+
+      cache.destroy();
+    });
+
+    it('returns null after passing TTL expiry', () => {
+      vi.useFakeTimers();
+      const cache = new TTLCache<string>();
+      cache.set('user', 'octocat', 5_000);
+
+      // Advance just past TTL expiry time
+      vi.advanceTimersByTime(5_001);
+      expect(cache.get('user')).toBeNull();
+
+      cache.destroy();
+    });
+  });
+
+  describe('update()', () => {
+    it('updates the value without resetting TTL', () => {
+      vi.useFakeTimers();
+      const cache = new TTLCache<number>();
+      cache.set('count', 1, 5_000);
+
+      vi.advanceTimersByTime(3_000);
+      cache.update('count', 2);
+
+      // Another 3s: total 6s from set — would be expired if TTL had been reset
+      vi.advanceTimersByTime(3_000);
+      expect(cache.get('count')).toBeNull();
+
+      cache.destroy();
+    });
+
+    it('returns true when the key exists and is not expired', () => {
+      const cache = new TTLCache<number>();
+      cache.set('count', 1, 60_000);
+      expect(cache.update('count', 2)).toBe(true);
+      expect(cache.get('count')).toBe(2);
+      cache.destroy();
+    });
+
+    it('returns false for a missing key', () => {
+      const cache = new TTLCache<number>();
+      expect(cache.update('missing', 99)).toBe(false);
+      cache.destroy();
+    });
+
+    it('returns false for an expired key', () => {
+      vi.useFakeTimers();
+      const cache = new TTLCache<number>();
+      cache.set('count', 1, 1_000);
+      vi.advanceTimersByTime(2_000);
+      expect(cache.update('count', 2)).toBe(false);
+      cache.destroy();
+    });
+  });
+
+  describe('overwriting keys resets TTL', () => {
+    it('resets TTL when overwriting an existing key', () => {
+      vi.useFakeTimers();
+      const cache = new TTLCache<string>();
+      cache.set('user', 'octocat', 5_000);
+
+      // Advance to 3 seconds (before expiry)
+      vi.advanceTimersByTime(3_000);
+
+      // Overwrite the key with a new 5-second TTL
+      cache.set('user', 'new-octocat', 5_000);
+
+      // Advance another 3 seconds (total 6 seconds, but only 3 since last set)
+      vi.advanceTimersByTime(3_000);
+
+      // Should still be available because TTL was reset
+      expect(cache.get('user')).toBe('new-octocat');
+
+      cache.destroy();
+    });
+
+    it('expires after new TTL when overwritten', () => {
+      vi.useFakeTimers();
+      const cache = new TTLCache<string>();
+      cache.set('user', 'octocat', 5_000);
+
+      // Advance to 3 seconds
+      vi.advanceTimersByTime(3_000);
+
+      // Overwrite with new 2-second TTL
+      cache.set('user', 'new-octocat', 2_000);
+
+      // Advance another 3 seconds (total 6 from start, 3 from new set)
+      vi.advanceTimersByTime(3_000);
+
+      // Should be expired because new TTL (2s) has passed
+      expect(cache.get('user')).toBeNull();
+
+      cache.destroy();
+    });
+  });
+
+  describe('storing different data types', () => {
+    it('stores and retrieves string values', () => {
+      const cache = new TTLCache<string>();
+      cache.set('msg', 'hello world', 60_000);
+      expect(cache.get('msg')).toBe('hello world');
+      cache.destroy();
+    });
+
+    it('stores and retrieves number values', () => {
+      const cache = new TTLCache<number>();
+      cache.set('count', 42, 60_000);
+      expect(cache.get('count')).toBe(42);
+      cache.destroy();
+    });
+
+    it('stores and retrieves boolean values', () => {
+      const cache = new TTLCache<boolean>();
+      cache.set('flag', true, 60_000);
+      expect(cache.get('flag')).toBe(true);
+      cache.destroy();
+    });
+
+    it('stores and retrieves object values', () => {
+      const cache = new TTLCache<{ name: string; age: number }>();
+      const user = { name: 'Alice', age: 30 };
+      cache.set('user', user, 60_000);
+      expect(cache.get('user')).toEqual(user);
+      cache.destroy();
+    });
+
+    it('stores and retrieves array values', () => {
+      const cache = new TTLCache<string[]>();
+      const tags = ['javascript', 'typescript', 'vitest'];
+      cache.set('tags', tags, 60_000);
+      expect(cache.get('tags')).toEqual(tags);
+      cache.destroy();
+    });
+
+    it('stores and retrieves multidimensional array values', () => {
+      const cache = new TTLCache<number[][]>();
+
+      const matrix = [
+        [1, 2],
+        [3, 4],
+        [5, 6],
+      ];
+
+      cache.set('matrix', matrix, 60_000);
+
+      const cached = cache.get('matrix');
+
+      expect(cached).toEqual(matrix);
+      expect(cached?.[2]?.[1]).toBe(6);
+
+      cache.destroy();
+    });
+
+    it('stores and retrieves values using unicode cache keys', () => {
+      const cache = new TTLCache<string>();
+
+      cache.set('cache_🔥_key', 'octocat', 60_000);
+
+      expect(cache.get('cache_🔥_key')).toBe('octocat');
+
+      cache.destroy();
+    });
+
+    it('preserves Date instance values in TTLCache', () => {
+      const cache = new TTLCache<Date>();
+
+      const date = new Date('2026-05-31T00:00:00.000Z');
+
+      cache.set('created-at', date, 60_000);
+
+      const cached = cache.get('created-at');
+
+      expect(cached).toBeInstanceOf(Date);
+      expect(cached?.toISOString()).toBe(date.toISOString());
+
+      cache.destroy();
+    });
+
+    it('preserves Date instance with current timestamp (new Date())', () => {
+      const cache = new TTLCache<Date>();
+
+      const now = new Date();
+
+      cache.set('current-date', now, 60_000);
+
+      const cached = cache.get('current-date');
+
+      expect(cached).toBeInstanceOf(Date);
+      expect(cached?.getTime()).toBe(now.getTime());
+      expect(cached?.toISOString()).toBe(now.toISOString());
+
+      cache.destroy();
+    });
+
+    it('preserves Date instance nested in object with mixed types', () => {
+      const cache = new TTLCache<{
+        id: number;
+        name: string;
+        created: Date;
+        isActive: boolean;
+      }>();
+
+      const created = new Date('2024-03-15T10:30:45.123Z');
+      const data = {
+        id: 42,
+        name: 'Test Event',
+        created: created,
+        isActive: true,
+      };
+
+      cache.set('event', data, 60_000);
+
+      const cached = cache.get('event');
+
+      expect(cached?.id).toBe(42);
+      expect(cached?.name).toBe('Test Event');
+      expect(cached?.isActive).toBe(true);
+      expect(cached?.created).toBeInstanceOf(Date);
+      expect(cached?.created.toISOString()).toBe(created.toISOString());
+
+      cache.destroy();
+    });
+
+    it('stores and retrieves nested object values', () => {
+      const cache = new TTLCache<{
+        user: { id: number; name: string };
+        metadata: { created: string };
+      }>();
+      const data = {
+        user: { id: 1, name: 'Bob' },
+        metadata: { created: '2024-01-01' },
+      };
+      cache.set('data', data, 60_000);
+      expect(cache.get('data')).toEqual(data);
+      cache.destroy();
+    });
+
+    it('stores null values in different type context', () => {
+      const cache = new TTLCache<string | null>();
+      cache.set('nullable', null, 60_000);
+      expect(cache.get('nullable')).toBeNull();
+      cache.destroy();
+    });
+  });
+
+  describe('edge cases and error handling', () => {
+    // FIX: New test explicitly targeting the -5000 boundary for Issue #1398
+    it('throws RangeError when setting a value with -5000 TTL', () => {
+      const cache = new TTLCache<string>();
+      expect(() => cache.set('key', 'value', -5000)).toThrow(RangeError);
+      cache.destroy();
+    });
+
+    it('throws TypeError when setting a null key', () => {
+      const cache = new TTLCache<string>();
+
+      expect(() => {
+        cache.set(null as unknown as string, 'value', 60_000);
+      }).toThrow(TypeError);
+      expect(cache.size()).toBe(0);
+
+      cache.destroy();
+    });
+
+    it('throws RangeError when ttlMs is 0 or negative', () => {
+      const cache = new TTLCache<string>();
+      expect(() => cache.set('key', 'value', 0)).toThrow(RangeError);
+      expect(() => cache.set('key', 'value', -1)).toThrow(RangeError);
+      cache.destroy();
+    });
+
+    it('rejects an empty string cache key', () => {
+      const cache = new TTLCache<string>();
+
+      expect(() => cache.set('', 'value', 60_000)).toThrow('Cache key cannot be empty');
+      expect(cache.has('')).toBe(false);
+
+      cache.destroy();
+    });
+
+    it('verify TTLCache behavior for empty string keys (Variation 2)', () => {
+      const cache = new TTLCache<string>();
+
+      // Assert that setting a value with empty string key throws error
+      expect(() => {
+        cache.set('', 'test-value', 60_000);
+      }).toThrow(Error);
+
+      // Verify the error message is correct
+      expect(() => {
+        cache.set('', 'test-value', 60_000);
+      }).toThrow('Cache key cannot be empty');
+
+      // Verify that cache remains empty (no entry for empty key)
+      expect(cache.has('')).toBe(false);
+      expect(cache.get('')).toBeNull();
+
+      // Verify cache size is still 0
+      expect(cache.size()).toBe(0);
+
+      // Verify that normal operations still work after failed attempt
+      cache.set('valid-key', 'value', 60_000);
+      expect(cache.get('valid-key')).toBe('value');
+      expect(cache.size()).toBe(1);
+
+      cache.destroy();
+    });
+
+    describe('[Bug fix] delete() empty-key consistency with get()/has()', () => {
+      it('delete("") returns false instead of throwing, consistent with has("") and get("")', () => {
+        const cache = new TTLCache<string>();
+
+        expect(() => cache.delete('')).not.toThrow();
+        expect(cache.delete('')).toBe(false);
+
+        // Cross-check: matches the already-tested has()/get() behavior for the same input
+        expect(cache.has('')).toBe(false);
+        expect(cache.get('')).toBeNull();
+
+        cache.destroy();
+      });
+
+      it("delete() on a whitespace-only key returns false, matching set()'s rejection of the same input", () => {
+        const cache = new TTLCache<string>();
+
+        expect(() => cache.set('   ', 'value', 60_000)).toThrow('Cache key cannot be empty');
+        expect(() => cache.delete('   ')).not.toThrow();
+        expect(cache.delete('   ')).toBe(false);
+
+        cache.destroy();
+      });
+
+      it('delete() still correctly removes a real, previously-set entry', () => {
+        const cache = new TTLCache<string>();
+        cache.set('real-key', 'value', 60_000);
+
+        expect(cache.delete('real-key')).toBe(true);
+        expect(cache.get('real-key')).toBeNull();
+        expect(cache.delete('real-key')).toBe(false); // already gone — no error, just false
+
+        cache.destroy();
+      });
+    });
+
+    it('handles rapid get/set/delete cycles', () => {
+      const cache = new TTLCache<number>();
+      for (let i = 0; i < 100; i++) {
+        cache.set(`key-${i}`, i, 60_000);
+      }
+      for (let i = 0; i < 100; i++) {
+        expect(cache.get(`key-${i}`)).toBe(i);
+      }
+      for (let i = 0; i < 100; i++) {
+        cache.delete(`key-${i}`);
+      }
+      for (let i = 0; i < 100; i++) {
+        expect(cache.get(`key-${i}`)).toBeNull();
+      }
+      cache.destroy();
+    });
+
+    it('handles very short TTL values (1ms)', () => {
+      vi.useFakeTimers();
+      const cache = new TTLCache<string>();
+      cache.set('short', 'lived', 1);
+      // Immediately at creation time, should exist
+      expect(cache.get('short')).toBe('lived');
+      // Advance 1ms
+      vi.advanceTimersByTime(1);
+      // Now it should be expired or at boundary
+      // (depends on exact timing, but get() should handle it gracefully)
+      const result = cache.get('short');
+      expect([null, 'lived']).toContain(result);
+      cache.destroy();
+    });
+
+    it('does not throw when ttlMs is Number.EPSILON', () => {
+      const cache = new TTLCache<string>();
+
+      expect(() => {
+        cache.set('key', 'value', Number.EPSILON);
+      }).not.toThrow();
+
+      cache.destroy();
+    });
+
+    it('does not throw when ttlMs is a very small positive number', () => {
+      const cache = new TTLCache<string>();
+
+      expect(() => {
+        cache.set('key', 'value', 0.0001);
+      }).not.toThrow();
+
+      cache.destroy();
+    });
+
+    it('multiple clear operations work correctly', () => {
+      const cache = new TTLCache<string>();
+      cache.set('a', 'x', 60_000);
+      cache.clear();
+      expect(cache.size()).toBe(0);
+
+      cache.set('b', 'y', 60_000);
+      cache.clear();
+      expect(cache.size()).toBe(0);
+
+      cache.destroy();
+    });
+    // FIX: New test targeting the NaN boundary for Issue #1399
+    it('rejects NaN TTL values instead of falling back', () => {
+      vi.useFakeTimers();
+      const cache = new TTLCache<string>();
+
+      expect(() => cache.set('nan-key', 'value', NaN)).toThrow(RangeError);
+      expect(cache.get('nan-key')).toBeNull();
+
+      vi.advanceTimersByTime(1000);
+      expect(cache.get('nan-key')).toBeNull();
+
+      cache.destroy();
+    });
+
+    it('rejects infinite TTL values', () => {
+      const cache = new TTLCache<string>();
+
+      expect(() => {
+        cache.set('infinite-key', 'boundary-value', Infinity);
+      }).toThrow(RangeError);
+
+      expect(cache.get('infinite-key')).toBeNull();
+      expect(cache.has('infinite-key')).toBe(false);
+
+      cache.destroy();
+    });
+
+    // FIX: New test targeting oversized cache keys for Issue #1403
+    it('rejects oversized cache keys to prevent memory bloat (Variation 2)', () => {
+      const cache = new TTLCache<string>();
+      const oversizedKey = 'a'.repeat(20000);
+
+      // Assert that setting a massive key throws an error to prevent memory bloat
+      expect(() => {
+        cache.set(oversizedKey, 'large-key-value', 60_000);
+      }).toThrow();
+
+      // Verify the key was not saved
+      expect(cache.has(oversizedKey)).toBe(false);
+
+      cache.destroy();
+    });
+    it('verify TTLCache behavior for null keys (Variation 2)', () => {
+      const cache = new TTLCache<string>();
+
+      // Null key should be rejected
+      expect(() => {
+        cache.set(null as unknown as string, 'boundary-value', 60_000);
+      }).toThrow(TypeError);
+
+      // Cache should remain empty
+      expect(cache.size()).toBe(0);
+
+      // Null key should not exist
+      // has() should reject null keys
+      expect(() => {
+        cache.has(null as unknown as string);
+      }).toThrow(TypeError);
+
+      // get() should reject null keys
+      expect(() => {
+        cache.get(null as unknown as string);
+      }).toThrow(TypeError);
+
+      // Normal cache operations must still work afterwards
+      cache.set('valid-key', 'valid-value', 60_000);
+
+      expect(cache.get('valid-key')).toBe('valid-value');
+      expect(cache.has('valid-key')).toBe(true);
+      expect(cache.size()).toBe(1);
+
+      cache.destroy();
+    });
+  });
+
+  it('stores and retrieves values with unicode and emoji cache keys', () => {
+    const cache = new TTLCache<string>();
+
+    const unicodeKey = 'cache_🔥_key';
+    const emojiKey = '🚀_rocket_🚀';
+    const mixedKey = 'user_👤_data_🔐';
+
+    cache.set(unicodeKey, 'fire-value', 60_000);
+    cache.set(emojiKey, 'rocket-value', 60_000);
+    cache.set(mixedKey, 'secure-data', 60_000);
+
+    expect(cache.get(unicodeKey)).toBe('fire-value');
+    expect(cache.get(emojiKey)).toBe('rocket-value');
+    expect(cache.get(mixedKey)).toBe('secure-data');
+
+    expect(cache.has(unicodeKey)).toBe(true);
+    expect(cache.has(emojiKey)).toBe(true);
+    expect(cache.has(mixedKey)).toBe(true);
+
+    cache.destroy();
+  });
+});
+
+import { DistributedCache } from './cache';
+
+describe('DistributedCache', () => {
+  const originalEnv = { ...process.env };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal('fetch', vi.fn());
+    process.env = { ...originalEnv };
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+    vi.restoreAllMocks();
+  });
+
+  it('acts as a local fallback cache when Redis env vars are missing', async () => {
+    delete process.env.KV_REST_API_URL;
+    delete process.env.KV_REST_API_TOKEN;
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+
+    const cache = new DistributedCache<string>();
+    await cache.set('mykey', 'myvalue', 60000);
+
+    expect(await cache.get('mykey')).toBe('myvalue');
+    expect(fetch).not.toHaveBeenCalled();
+    cache.destroy();
+  });
+
+  it('rejects a negative TTL before issuing any Redis write, then stays usable (Issue #1388)', async () => {
+    process.env.KV_REST_API_URL = 'https://mock-redis.upstash.io';
+    process.env.KV_REST_API_TOKEN = 'mock-token';
+
+    const cache = new DistributedCache<string>();
+
+    // A negative TTL reaches set() in production whenever a caller derives it
+    // from `deadline - Date.now()` and the deadline has already elapsed.
+    await expect(cache.set('streak:42', 'value', -5000)).rejects.toThrow(
+      new RangeError('ttlMs must be positive, got -5000')
+    );
+
+    // The guard must short-circuit before the REST call: otherwise an invalid
+    // TTL would leave an orphaned entry in the shared Redis store while the
+    // local L1 cache stayed empty, silently desynchronising the two layers.
+    expect(fetch).not.toHaveBeenCalled();
+
+    // The instance must remain fully usable after the rejected call, and a
+    // subsequent valid set should issue exactly one Redis write.
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ result: 'OK' }),
+    } as Response);
+
+    await expect(cache.set('streak:42', 'value', 60_000)).resolves.toBeUndefined();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch).toHaveBeenCalledWith(
+      'https://mock-redis.upstash.io/',
+      expect.objectContaining({ body: expect.stringContaining('"SET"') })
+    );
+
+    cache.destroy();
+  });
+
+  it('queries Redis REST API when env vars are defined', async () => {
+    process.env.KV_REST_API_URL = 'https://mock-redis.upstash.io';
+    process.env.KV_REST_API_TOKEN = 'mock-token';
+
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ result: JSON.stringify('redis-value') }),
+    } as Response);
+
+    const cache = new DistributedCache<string>();
+    const result = await cache.get('redis-key');
+
+    expect(result).toBe('redis-value');
+    expect(fetch).toHaveBeenCalledWith(
+      'https://mock-redis.upstash.io/',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          Authorization: 'Bearer mock-token',
+        }),
+        body: expect.stringContaining('"GET"'),
+      })
+    );
+    cache.destroy();
+  });
+
+  it('updates Redis REST API with calculated TTL in seconds on set', async () => {
+    process.env.KV_REST_API_URL = 'https://mock-redis.upstash.io';
+    process.env.KV_REST_API_TOKEN = 'mock-token';
+
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ result: 'OK' }),
+    } as Response);
+
+    const cache = new DistributedCache<string>();
+    await cache.set('redis-key', 'redis-val', 60000); // 60000ms = 60s
+
+    expect(fetch).toHaveBeenCalledWith(
+      'https://mock-redis.upstash.io/',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          Authorization: 'Bearer mock-token',
+        }),
+        body: expect.stringContaining('"EX"'),
+      })
+    );
+    cache.destroy();
+  });
+
+  it('fails closed on incr() when Redis errors, instead of using an unsynced local counter', async () => {
+    process.env.KV_REST_API_URL = 'https://mock-redis.upstash.io';
+    process.env.KV_REST_API_TOKEN = 'mock-token';
+
+    vi.mocked(fetch).mockRejectedValue(new Error('Redis network failure'));
+
+    const cacheA = new DistributedCache<number>();
+    const cacheB = new DistributedCache<number>();
+
+    // Simulate two separate serverless instances incrementing the same
+    // distributed counter while Redis is down.
+    const resultA = await cacheA.incr('ratelimit:1.2.3.4', 60_000);
+    const resultB = await cacheB.incr('ratelimit:1.2.3.4', 60_000);
+
+    // Both must fail closed (a value that exceeds any realistic rate limit)
+    // rather than each silently starting its own local counter at 1.
+    expect(resultA).toBe(Number.MAX_SAFE_INTEGER);
+    expect(resultB).toBe(Number.MAX_SAFE_INTEGER);
+
+    cacheA.destroy();
+    cacheB.destroy();
+  });
+
+  it('evicts stale local state when a Redis update loses an expiry race', async () => {
+    process.env.KV_REST_API_URL = 'https://mock-redis.upstash.io';
+    process.env.KV_REST_API_TOKEN = 'mock-token';
+
+    vi.mocked(fetch)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ result: 'OK' }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ result: null }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ result: null }),
+      } as Response);
+
+    const cache = new DistributedCache<string>();
+    await cache.set('redis-key', 'old-value', 60000);
+
+    expect(await cache.update('redis-key', 'new-value')).toBe(false);
+    expect(await cache.get('redis-key')).toBeNull();
+    expect(fetch).toHaveBeenCalledTimes(3);
+
+    cache.destroy();
+  });
+
+  describe('localLocks memory leak prevention', () => {
+    it('Behavior 1: Immediate Cleanup on Success/Failure', async () => {
+      const cache = new DistributedCache<string>();
+
+      let resolvePromise: (val: string) => void;
+      const loadFn = vi.fn().mockImplementation(
+        () =>
+          new Promise<string>((r) => {
+            resolvePromise = r;
+          })
+      );
+
+      const p = cache.getOrSet('test-key', loadFn, 60000);
+
+      // Wait for the internal await this.get() to complete
+      await new Promise((r) => setImmediate(r));
+
+      // While pending, localLocks should have it
+      expect(cache['localLocks'].has('test-key')).toBe(true);
+
+      resolvePromise!('success');
+      await p;
+
+      // After resolution, it should be deleted
+      expect(cache['localLocks'].has('test-key')).toBe(false);
+      cache.destroy();
+    });
+
+    it('Behavior 2: Lock Persistence During Normal Execution', async () => {
+      const cache = new DistributedCache<string>();
+
+      let resolvePromise: (val: string) => void;
+      const loadFn = vi.fn().mockImplementation(
+        () =>
+          new Promise<string>((r) => {
+            resolvePromise = r;
+          })
+      );
+
+      const p1 = cache.getOrSet('test-key', loadFn, 60000);
+      const p2 = cache.getOrSet('test-key', loadFn, 60000);
+
+      // Wait for internal awaits
+      await new Promise((r) => setImmediate(r));
+
+      expect(loadFn).toHaveBeenCalledTimes(1);
+
+      resolvePromise!('success');
+      await Promise.all([p1, p2]);
+      cache.destroy();
+    });
+
+    it('Behavior 3: Safety Eviction (Fixes #6177)', async () => {
+      vi.useFakeTimers();
+      const cache = new DistributedCache<string>();
+
+      // A promise that hangs indefinitely
+      const hangingLoadFn = vi.fn().mockImplementation(() => new Promise<string>(() => {}));
+
+      const p1 = cache.getOrSet('hang-key', hangingLoadFn, 60000);
+      expect(p1).toBeDefined(); // Use p1 to fix eslint warning
+
+      // Wait for microtasks so lock is established
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      // While pending, localLocks should have it
+      expect(cache['localLocks'].has('hang-key')).toBe(true);
+
+      // Advance by 30 seconds - should still be locked
+      vi.advanceTimersByTime(30000);
+      expect(cache['localLocks'].has('hang-key')).toBe(true);
+
+      // Advance past 60 seconds
+      vi.advanceTimersByTime(31000);
+
+      // Lock should have been forcefully evicted
+      expect(cache['localLocks'].has('hang-key')).toBe(false);
+
+      // A new call should trigger loadFn again because lock was evicted
+      const newLoadFn = vi.fn().mockResolvedValue('recovered');
+      const p2 = cache.getOrSet('hang-key', newLoadFn, 60000);
+
+      await expect(p2).resolves.toBe('recovered');
+      expect(newLoadFn).toHaveBeenCalledTimes(1);
+
+      cache.destroy();
+    });
+  });
+});
+
+describe('TTLCache with infinite TTL', () => {
+  it('should reject Infinity TTL values', () => {
+    const cache = new TTLCache<string>();
+
+    expect(() => cache.set('test-key', 'test-value', Infinity)).toThrow(RangeError);
+    expect(cache.get('test-key')).toBeNull();
+    expect(cache.size()).toBe(0);
+  });
+
+  it('should reject multiple Infinity TTL writes', () => {
+    const cache = new TTLCache<string>();
+
+    expect(() => cache.set('key1', 'value1', Infinity)).toThrow(RangeError);
+    expect(() => cache.set('key2', 'value2', Infinity)).toThrow(RangeError);
+    expect(() => cache.set('key3', 'value3', Infinity)).toThrow(RangeError);
+
+    expect(cache.get('key1')).toBeNull();
+    expect(cache.get('key2')).toBeNull();
+    expect(cache.get('key3')).toBeNull();
+    expect(cache.size()).toBe(0);
+  });
+});
