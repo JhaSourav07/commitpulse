@@ -37,6 +37,22 @@ export function coerceQueryParams(
   return coerced;
 }
 
+/**
+ * Converts a URL query parameter string value to a boolean flag.
+ *
+ * Accepts `undefined`, `'true'`, `'false'`, `'1'`, `'0'`.
+ * Returns `true` for `'true'` or `'1'`, and `false` for all other values (including `undefined`).
+ *
+ * @param val - The URL parameter value (e.g. from `searchParams.get('cache')`)
+ * @returns `true` if val is `'true'` or `'1'`; `false` otherwise
+ *
+ * @example
+ * toBooleanFlag('true')  // true
+ * toBooleanFlag('1')    // true
+ * toBooleanFlag('0')    // false
+ * toBooleanFlag('false')// false
+ * toBooleanFlag()       // false
+ */
 export function toBooleanFlag(val?: string): boolean {
   return val === 'true' || val === '1';
 }
