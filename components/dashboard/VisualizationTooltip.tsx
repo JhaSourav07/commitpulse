@@ -10,7 +10,19 @@ interface VisualizationTooltipProps {
   y: number;
 }
 
+/**
+ * Clamps a pixel value to stay within the viewport with a given margin.
+ * Prevents the tooltip from rendering off-screen on small or edge positions.
+ */
+function clampPosition(value: number, margin = 8): number {
+  if (typeof window === 'undefined') return value;
+  return Math.max(margin, Math.min(value, window.innerWidth - margin));
+}
+
 export default function VisualizationTooltip({ title, children, x, y }: VisualizationTooltipProps) {
+  // Clamp x to prevent horizontal overflow on small viewports
+  const clampedX = clampPosition(x);
+
   return (
     <motion.div
       role="tooltip"
@@ -20,7 +32,7 @@ export default function VisualizationTooltip({ title, children, x, y }: Visualiz
       transition={{ duration: 0.15, ease: 'easeOut' }}
       className="pointer-events-none fixed z-[9999] min-w-max max-w-xs -translate-x-1/2 -translate-y-full rounded-xl border border-black/10 bg-white/95 px-3 py-2 text-xs text-gray-800 shadow-2xl shadow-black/20 backdrop-blur-md dark:border-white/10 dark:bg-[#111]/95 dark:text-white"
       style={{
-        left: x,
+        left: clampedX,
         top: y,
       }}
     >
