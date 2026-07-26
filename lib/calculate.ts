@@ -41,6 +41,10 @@ export function calculateSafePercentage(part: number, total: number): number {
  * STREAK & CALENDAR CALCULATIONS
  * ========================================================================== */
 
+/**
+ * Converts a local date-time in a given timezone to a UTC ISO string.
+ * Uses Intl.DateTimeFormat for accurate timezone-aware conversion.
+ */
 export function convertLocalToUtc(
   year: number,
   month: number,
@@ -85,6 +89,10 @@ export function convertLocalToUtc(
   }
 }
 
+/**
+ * Returns today's date as a YYYY-MM-DD string in the given timezone.
+ * Uses the UTC date of `now` as a starting point and shifts it to find the correct local date.
+ */
 export function getLocalTodayStr(now: Date, timezone: string): string {
   // Candidate dates are around the UTC date of now
   const utcYear = now.getUTCFullYear();
@@ -122,6 +130,11 @@ export function getLocalTodayStr(now: Date, timezone: string): string {
   }
 }
 
+/**
+ * Determines whether a streak is currently alive based on today's and yesterday's contributions.
+ * A streak is alive if either today or yesterday had at least one contribution.
+ * Used by the streak calculation logic to determine streak continuity.
+ */
 export function isStreakAlive(
   today?: { contributionCount: number } | null,
   yesterday?: { contributionCount: number } | null
@@ -132,6 +145,10 @@ export function isStreakAlive(
   return today.contributionCount > 0 || (yesterday?.contributionCount ?? 0) > 0;
 }
 
+/**
+ * Finds the index of today's date within the contribution days array, respecting the given timezone.
+ * Returns -1 if today is not found in the array.
+ */
 export function findTodayIndex(
   days?: ContributionDay[] | null,
   timezone?: string | null,
@@ -494,10 +511,6 @@ export function aggregateCalendars(
  * renderers keep their week (column) and weekday (row) grid instead of collapsing
  * every day into a single week.
  */
-/**
- * Chunks contribution days into weekly arrays, with the option to hide weekends.
- */
-
 export function chunkDaysIntoWeeks(
   days?: ContributionDay[] | null,
   hideWeekend: boolean = false
