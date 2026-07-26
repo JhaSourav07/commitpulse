@@ -1018,6 +1018,11 @@ export async function fetchGitHubContributions(
           isOfflineFallback: true,
         };
       }
+      logger.warn('GitHub API fetch failed, no stale cache available, returning zero-contribution fallback', {
+        component: 'GitHub API',
+        username,
+        error: err instanceof Error ? err.message : String(err),
+      });
       return getMockContributions();
     }
     throw err;
