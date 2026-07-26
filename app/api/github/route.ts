@@ -8,6 +8,7 @@ import { quotaMonitor } from '@/services/github/quota-monitor';
 import { refreshPolicy } from '@/services/github/refresh-policy';
 import { getRateLimitHeaders } from '@/lib/rate-limit';
 import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
+import { logger } from '@/lib/logger';
 import { backgroundRefresh } from '@/services/github/background-refresh';
 import { logger } from '@/lib/logger';
 import { RateLimiter } from '@/lib/rate-limit';
@@ -244,13 +245,18 @@ export async function GET(request: Request) {
     // 504 - Upstream request timeout or AbortController abort
     if (isAbortError(rootCause || error)) {
       return NextResponse.json(
-        { error: 'Upstream request timed out after 10 seconds.' },
+        { error: `Upstream request timed out after 10 seconds for user: ${username}.` },
         { status: 504 }
       );
     }
 
     // Default fallback
     const errMessage = getSafeErrorMessage(error);
+    logger.error('GitHub API route unhandled error', {
+      username,
+      error: errMessage,
+      component: 'GitHub API',
+    });
 
     return NextResponse.json({ error: errMessage }, { status: 500 });
   } finally {
