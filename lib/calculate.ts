@@ -23,6 +23,7 @@ export function isLeapYear(year: number): boolean {
 
 /**
  * Returns the number of days in a given year (365 or 366).
+ * Exported for use in API routes and test utilities.
  */
 export function daysInYear(year: number): number {
   return isLeapYear(year) ? 366 : 365;
