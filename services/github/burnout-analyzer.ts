@@ -25,29 +25,63 @@ interface InactivityAlert {
 
 const GITHUB_REST_URL = 'https://api.github.com';
 
+/**
+ * Contributor-level burnout and workload metrics for a single GitHub user.
+ *
+ * The `burnoutScore` is a composite 0-100 index derived from consecutive
+ * high-intensity weeks, total high-intensity weeks, rest weeks, workload
+ * spikes, and the user's share of total repository commits.
+ */
 export interface ContributorMetric {
+  /** GitHub username of the contributor. */
   username: string;
+  /** URL to the contributor's avatar image. */
   avatarUrl: string;
+  /** Total commits authored in the observation window. */
   totalCommits: number;
-  commitShare: number; // percentage
-  burnoutScore: number; // 0 - 100
+  /** Percentage of total repository commits authored by this user. */
+  commitShare: number;
+  /** Composite burnout risk index from 0 (healthy) to 100 (critical). */
+  burnoutScore: number;
+  /** Risk classification derived from the burnout score. */
   riskLevel: 'Low' | 'Medium' | 'High';
+  /** Number of weeks with at least one commit in the last 12 weeks. */
   activeWeeks: number;
+  /** Number of high-intensity weeks (>8 commits or >750 additions) in the last 12 weeks. */
   highIntensityWeeks: number;
+  /** Longest streak of consecutive high-intensity weeks. */
   consecutiveHighWeeks: number;
-  restWeeks: number; // last 12 weeks with 0 commits
-  recentTrend: number[]; // commits per week for last 12 weeks
-  recentAdditionsTrend: number[]; // additions per week for last 12 weeks
+  /** Number of weeks with zero commits in the last 12 weeks. */
+  restWeeks: number;
+  /** Commits per week for the last 12 weeks (oldest to newest). */
+  recentTrend: number[];
+  /** Additions per week for the last 12 weeks (oldest to newest). */
+  recentAdditionsTrend: number[];
 }
 
+/**
+ * Full burnout and team sustainability analysis for a GitHub repository.
+ *
+ * Includes per-contributor burnout metrics, bus-factor analysis, inactivity
+ * alerts, and actionable recommendations. Results can be enhanced with
+ * Gemini AI when the `GEMINI_API_KEY` environment variable is set.
+ */
 export interface BurnoutReport {
+  /** Full `owner/repo` identifier. */
   repoName: string;
+  /** Total commits across all contributors in the observation window. */
   totalCommits: number;
+  /** Number of unique contributors detected. */
   totalContributors: number;
+  /** Number of top contributors needed to account for 70% of commits (bus factor). */
   busFactor: number;
+  /** Dependency risk based on bus factor: High=1 person, Medium=2-3, Low=4+. */
   dependencyRisk: 'Low' | 'Medium' | 'High';
-  sustainabilityScore: number; // 0 - 100
+  /** Overall team sustainability score from 0 (critical) to 100 (healthy). */
+  sustainabilityScore: number;
+  /** Per-contributor burnout and workload metrics. */
   contributors: ContributorMetric[];
+  /** Contributors who were recently active but have gone silent in the last 3 weeks. */
   inactivityAlerts: {
     username: string;
     avatarUrl: string;
@@ -55,6 +89,7 @@ export interface BurnoutReport {
     weeksSilent: number;
     severity: 'Medium' | 'High';
   }[];
+  /** Rules-based (and optionally AI-generated) actionable recommendations. */
   recommendations: string[];
 }
 
@@ -80,6 +115,22 @@ function getHeaders(userToken?: string) {
   return headers;
 }
 
+/**
+ * Fetches a burnout and team sustainability analysis for a GitHub repository.
+ *
+ * The analysis covers the last 12 weeks of contribution data, computing per-contributor
+ * burnout scores, bus-factor risk, inactivity alerts, and recommendations. Results
+ * are cached for 1 hour by default.
+ *
+ * @param owner   - Repository owner (user or organization).
+ * @param repo    - Repository name.
+ * @param options - Optional settings:
+ *   - `bypassCache` - Skip the cache and fetch fresh data.
+ *   - `token`        - GitHub PAT for authentication.
+ *   - `excludeBots` - Filter out known bot accounts from the analysis.
+ * @returns Resolves to the full `BurnoutReport`.
+ * @throws Error if the repository is not found or GitHub stats are unavailable.
+ */
 export async function fetchBurnoutAnalysis(
   owner: string,
   repo: string,
