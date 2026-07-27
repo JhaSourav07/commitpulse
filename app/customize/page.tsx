@@ -102,7 +102,7 @@ function CustomizePageInner(): ReactElement {
   // the full editor state. Each setter corresponds to a single URL param and
   // they all run synchronously in a single effect pass, so React batches them
   // into one re-render. No stale-dependency risk: deps are intentionally [].
-  /* eslint-disable react-hooks/set-state-in-effect */
+
   useEffect(() => {
     const u = searchParams.get('user') ?? '';
     const t = searchParams.get('theme') ?? 'dark';
@@ -133,7 +133,6 @@ function CustomizePageInner(): ReactElement {
     setTimezone((searchParams.get('tz') as Timezone) ?? 'UTC');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     return () => {
@@ -261,7 +260,7 @@ function CustomizePageInner(): ReactElement {
     // Safe: resets error state as the first synchronous step when any preview
     // dependency changes. The reset always precedes any async fetch or early
     // return so there is no intermediate render with stale error text.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+
     setErrorMessage(null);
     if (!hasUsername) {
       setSvgContent('');

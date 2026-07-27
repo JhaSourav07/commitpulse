@@ -76,7 +76,6 @@ export default function PRStatusDistribution({
 
   useEffect(() => {
     if (username) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       loadData();
     }
   }, [loadData, username]);

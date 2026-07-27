@@ -15,7 +15,6 @@ export function useLocalStorage<T>(key: string, initialValue: T): readonly [T, (
   const [storedValue, setStoredValue] = useState<T>(initialValue);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStoredValue(readFromStorage(key, initialValue));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);

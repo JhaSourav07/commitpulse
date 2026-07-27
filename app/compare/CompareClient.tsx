@@ -1209,7 +1209,7 @@ export default function CompareClient() {
     const u2 = searchParams.get('user2');
 
     if (u1 && u2) {
-      setUser1(u1); // eslint-disable-line react-hooks/set-state-in-effect -- syncing URL params to input state
+      setUser1(u1);
       setUser2(u2);
 
       const requestKey = `${u1.trim().toLowerCase()}|${u2.trim().toLowerCase()}`;

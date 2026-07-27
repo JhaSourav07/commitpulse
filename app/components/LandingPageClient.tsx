@@ -333,7 +333,6 @@ export default function LandingPageClient() {
   // setting mounted=true so client-only UI (form button, validation hints)
   // becomes interactive without a flash of mismatched content.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
@@ -436,7 +435,7 @@ export default function LandingPageClient() {
       // Safe: synchronous reset of derived UI state when the input is cleared.
       // These three setters always run together so there is no intermediate
       // render with inconsistent state, and no async work is in flight.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+
       setUserDetails(null);
       setUserDetailsError(null);
       setUserDetailsLoading(false);

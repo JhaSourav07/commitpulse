@@ -100,7 +100,6 @@ export function CommitPulseSection({
 
   useEffect(() => {
     if (!debouncedUsername) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setUserDetails(null);
       setFetchError(null);
       setLoading(false);
@@ -158,7 +157,7 @@ export function CommitPulseSection({
   useEffect(() => {
     if (timeLapseMode && !fullActivityData && debouncedUsername && userDetails && !fetchError) {
       let cancelled = false;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+
       setLoadingFullData(true);
       fetch(`/api/github?username=${encodeURIComponent(debouncedUsername)}`)
         .then((res) => {

@@ -42,7 +42,6 @@ export default function AdminReviewsPage() {
   useEffect(() => {
     const saved = typeof window !== 'undefined' ? localStorage.getItem('review_admin_token') : null;
     if (saved) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrating from localStorage on mount
       setToken(saved);
       setIsAuthed(true);
     }
