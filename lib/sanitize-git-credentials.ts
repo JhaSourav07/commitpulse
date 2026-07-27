@@ -20,7 +20,16 @@ export function sanitizeErrorForLogging(err: unknown): string {
 }
 
 /**
- * Returns a log-safe repository reference without embedded URL credentials.
+ * Formats an `owner/repo` reference string for safe logging.
+ *
+ * This utility exists as a shorthand for consistent log formatting and
+ * to make the intent explicit: the returned string must never contain
+ * embedded credentials (tokens, usernames, or passwords) since it is
+ * intended for console/error output.
+ *
+ * @param owner - The repository owner (user or organization) login.
+ * @param repo  - The repository name.
+ * @returns A string in the form `"owner/repo"`, safe for logging.
  */
 export function formatRepoRefForLogging(owner: string, repo: string): string {
   return `${owner}/${repo}`;
