@@ -29,31 +29,63 @@ interface PRNode {
 const GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql';
 const MAX_PAGES = 3;
 
+/**
+ * Breakdown of pull requests by the total number of lines changed.
+ *
+ * - `atomic`   - Fewer than 100 lines changed (micro PRs).
+ * - `standard` - Between 100 and 500 lines (typical feature PRs).
+ * - `massive`  - Over 500 lines changed (large refactors or additions).
+ */
 export interface PRSizeDistribution {
+  /** Number of PRs with fewer than 100 lines changed. */
   atomic: number;
+  /** Number of PRs with 100-500 lines changed. */
   standard: number;
+  /** Number of PRs with more than 500 lines changed. */
   massive: number;
 }
 
+/**
+ * Aggregated PR activity and review insights for a GitHub user.
+ *
+ * Covers authored PRs from the past year, including cycle times, review
+ * response times, per-repo performance, and highlight metrics.
+ */
 export interface PRInsightData {
+  /** Total authored PRs in the observation window. */
   totalPRs: number;
+  /** PRs currently in the OPEN state. */
   openPRs: number;
+  /** PRs that have been MERGED. */
   mergedPRs: number;
+  /** PRs in the CLOSED state without a merge. */
   closedPRs: number;
-  mergeRate: number; // percentage
-  avgReviewTime: number; // in hours
-  avgTimeToFirstReview: number; // in hours
-  avgCycleTime: number; // in hours (from creation to merge)
+  /** Percentage of total PRs that were merged. */
+  mergeRate: number;
+  /** Average time to receive any review, in hours. */
+  avgReviewTime: number;
+  /** Average time to receive the first review, in hours. */
+  avgTimeToFirstReview: number;
+  /** Average time from PR creation to merge, in hours. */
+  avgCycleTime: number;
 
+  /** Weekly PR counts for the last 12 weeks (ISO week keys). */
   weeklyActivity: { name: string; prs: number }[];
+  /** Monthly PR counts for the last 12 months. */
   monthlyActivity: { name: string; prs: number }[];
 
+  /** Count of PRs reviewed by the user (as a reviewer, not author). */
   reviewsGiven: number;
+  /** Total reviews received across all authored PRs. */
   reviewsReceived: number;
+  /** Average response time for reviews received, in hours. */
   avgReviewResponseTime: number;
-  fastestReview: number; // in hours
-  slowestReview: number; // in hours
+  /** Fastest review received, in hours. */
+  fastestReview: number;
+  /** Slowest review received, in hours. */
+  slowestReview: number;
 
+  /** Per-repository aggregated metrics, sorted by total PR count descending. */
   repoPerformance: {
     name: string;
     totalPRs: number;
@@ -62,12 +94,17 @@ export interface PRInsightData {
     avgReviewTime: number;
   }[];
 
+  /** Notable PRs: most commented, fastest merged, largest by diff size. */
   highlights: {
     mostDiscussed?: { title: string; url: string; comments: number };
-    fastestMerged?: { title: string; url: string; time: number }; // time in hours
+    fastestMerged?: { title: string; url: string; time: number };
     largest?: { title: string; url: string; additions: number; deletions: number };
   };
+
+  /** Flat list of all authored PRs with their current state. */
   prs: { title: string; url: string; state: string; createdAt: string; repo: string }[];
+
+  /** Distribution of PRs by size (atomic / standard / massive). */
   sizeDistribution?: PRSizeDistribution;
 }
 
@@ -88,6 +125,18 @@ function getHeaders(userToken?: string) {
   };
 }
 
+/**
+ * Fetches aggregated PR activity and review insights for a GitHub user.
+ *
+ * Results are cached for 15 minutes. Use `{ bypassCache: true }` in the
+ * options to force a fresh fetch.
+ *
+ * @param username  - The GitHub username to analyze.
+ * @param userToken - Optional GitHub personal access token. Falls back to server-side rotation.
+ * @param signal    - Optional AbortSignal for request cancellation.
+ * @returns Resolves to the full `PRInsightData` object.
+ * @throws Error if the GitHub API request fails or returns a GraphQL error.
+ */
 export async function fetchPRInsights(
   username: string,
   userToken?: string,
