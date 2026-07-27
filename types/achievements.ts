@@ -137,4 +137,3 @@ export const CATEGORY_META: Record<AchievementCategory, { label: string; icon: s
   collaboration: { label: 'Collaboration', icon: '🤝' },
   technology: { label: 'Technology', icon: '🧠' },
 };
-// force prettier check
