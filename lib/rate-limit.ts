@@ -284,8 +284,7 @@ export class RateLimiter {
    *          or the full limit if the IP has no recorded requests.
    *
    * @example
-   * const left = await rateLimiter.remaining("192.168.1.1");
-   * console.log(`You have ${left} requests left.`);
+    * const left = await rateLimiter.remaining("192.168.1.1");
    */
   async remaining(ip: string): Promise<number> {
     const url = process.env.KV_REST_API_URL;

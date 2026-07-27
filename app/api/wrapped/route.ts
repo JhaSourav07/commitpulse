@@ -127,7 +127,7 @@ export async function GET(request: Request) {
       if (!refreshPolicy.isRefreshAllowed(user)) {
         shouldBypassCache = false;
       } else {
-        console.log('recordRefresh executed');
+        logger.info('recordRefresh executed');
         refreshPolicy.recordRefresh(user);
       }
     }
