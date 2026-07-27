@@ -398,6 +398,20 @@ function buildInsights(runs: CIWorkflowRun[]): CIInsights {
   };
 }
 
+/**
+ * Fetches GitHub Actions CI analytics for all repositories owned by a user.
+ *
+ * Results are cached for 10 minutes. The function analyzes workflow runs across
+ * the user's owned and forked repositories (up to 5 targets) and computes
+ * success rates, build durations, per-repo health, and activity trends.
+ *
+ * @param username  - The GitHub username whose repositories to analyze.
+ * @param userToken  - Optional GitHub PAT. Falls back to server-side token rotation.
+ * @param signal     - Optional `AbortSignal` for request cancellation.
+ * @returns Resolves to a `CIAnalyticsData` object with workflow statistics,
+ *   per-repo health, daily/weekly/monthly trends, and top-level insights.
+ * @throws Error if no GitHub token is available or the user has no accessible repos.
+ */
 export async function fetchCIAnalytics(
   username: string,
   userToken?: string,
