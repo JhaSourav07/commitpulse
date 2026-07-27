@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Loader2, BarChart3 } from 'lucide-react';
+import { BarChart3 } from 'lucide-react';
+import { Spinner } from '@/components/ui/Spinner';
 import type { CIAnalyticsData, CIAnalyticsFilters } from '@/types/ci-analytics';
 import CIMetricsRow from './CIMetricsRow';
 import CIWorkflowChart from './CIWorkflowChart';
@@ -68,8 +69,7 @@ export default function CIAnalyticsClient({ username }: { username: string }) {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-gray-500">
-        <Loader2 className="w-8 h-8 animate-spin mb-4 text-cyan-500" />
-        <p className="font-medium">Fetching CI workflow analytics...</p>
+        <Spinner label="Fetching CI workflow analytics..." />
       </div>
     );
   }

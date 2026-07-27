@@ -9,7 +9,7 @@ import PRSizeDistribution from './PRSizeDistribution';
 import ReviewAnalytics from './ReviewAnalytics';
 import RepoPerformanceTable from './RepoPerformanceTable';
 import Highlights from './Highlights';
-import { Loader2 } from 'lucide-react';
+import { Spinner } from '@/components/ui/Spinner';
 import { useTranslation } from '@/context/TranslationContext';
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
 import { logger } from '@/lib/logger';
@@ -84,8 +84,7 @@ export default function PRInsightsClient({ username }: { username: string }) {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-gray-500">
-        <Loader2 className="w-8 h-8 animate-spin mb-4 text-cyan-500" />
-        <p className="font-medium">{t('dashboard.prInsights.loader')}</p>
+        <Spinner label={t('dashboard.prInsights.loader')} />
       </div>
     );
   }
