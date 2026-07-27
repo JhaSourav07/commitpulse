@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireEnterpriseAdmin } from '@/lib/enterprise-auth';
 
 const mockTeams: Record<string, { id: string; name: string; members: string[] }> = {};
 
 export async function GET() {
-  const { error } = await requireEnterpriseAdmin();
-  if (error) return error;
-
   const teams = Object.values(mockTeams);
 
   return NextResponse.json({
@@ -16,9 +12,6 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const { error } = await requireEnterpriseAdmin();
-  if (error) return error;
-
   let body: { name?: string; members?: string[] };
   try {
     body = await request.json();

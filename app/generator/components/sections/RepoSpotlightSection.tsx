@@ -20,6 +20,7 @@ export interface RepoSpotlightSectionProps {
   commitPulseAccent: string;
   onShowRepoSpotlightChange: (v: boolean) => void;
   onSpotlightRepoChange: (v: string) => void;
+  onReset?: () => void;
 }
 
 export function RepoSpotlightSection({
@@ -29,6 +30,7 @@ export function RepoSpotlightSection({
   commitPulseAccent,
   onShowRepoSpotlightChange,
   onSpotlightRepoChange,
+  onReset,
 }: RepoSpotlightSectionProps) {
   const safeUsername = githubUsername || '';
   const trimmed = safeUsername.trim();

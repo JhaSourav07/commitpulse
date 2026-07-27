@@ -160,7 +160,10 @@
       "footer_tip": "The badge renders server-side, no script required.",
       "tsx": "React TSX",
       "download_svg": "Download SVG",
-      "download_png": "Download PNG"
+      "download_png": "Download PNG",
+      "download_webp": "Download WebP",
+      "download_pdf": "Download PDF",
+      "export_as": "Export As"
     }
   },
   "dashboard": {

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Flame } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -34,47 +35,82 @@ interface BurnoutReport {
   recommendations: string[];
 }
 
-export default function BurnoutAnalyzerPage() {
+function BurnoutAnalyzerContent() {
+  const searchParams = useSearchParams();
   const [query, setQuery] = useState('');
   const [report, setReport] = useState<BurnoutReport | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [excludeBots, setExcludeBots] = useState(false);
+  const initialFetchAttempted = useRef(false);
 
-  const handleSearch = async (e?: React.FormEvent, targetRepo?: string) => {
-    if (e) e.preventDefault();
-    const repoPath = (targetRepo || query).trim();
-    const segments = repoPath.split('/');
-    if (segments.length !== 2 || !segments[0].trim() || !segments[1].trim()) {
-      setError('Please enter a valid repository path in "owner/repo" format.');
-      return;
-    }
-    const owner = segments[0].trim();
-    const repo = segments[1].trim();
-
-    setIsLoading(true);
-    setError(null);
-    setReport(null);
-
-    try {
-      const res = await fetch(
-        `/api/repo-burnout?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}&excludeBots=${excludeBots}`
-      );
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to analyze repository.');
+  const executeSearch = useCallback(
+    async (rawPath: string) => {
+      const repoPath = rawPath.trim();
+      const segments = repoPath.split('/');
+      if (segments.length !== 2 || !segments[0].trim() || !segments[1].trim()) {
+        setError('Please enter a valid repository path in "owner/repo" format.');
+        return;
       }
+      const owner = segments[0].trim();
+      const repo = segments[1].trim();
 
-      setReport(data);
-      setQuery(repoPath);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
-    } finally {
-      setIsLoading(false);
-    }
+      setIsLoading(true);
+      setError(null);
+      setReport(null);
+
+      try {
+        const res = await fetch(
+          `/api/repo-burnout?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}&excludeBots=${excludeBots}`
+        );
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to analyze repository.');
+        }
+
+        setReport(data);
+        setQuery(repoPath);
+
+        if (typeof window !== 'undefined' && window.history) {
+          const newUrl = `${window.location.pathname}?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`;
+          window.history.pushState(null, '', newUrl);
+        }
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'An unexpected error occurred.');
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [excludeBots]
+  );
+
+  const handleSearch = (e?: React.FormEvent, targetRepo?: string) => {
+    if (e) e.preventDefault();
+    executeSearch(targetRepo || query);
   };
+
+  useEffect(() => {
+    if (initialFetchAttempted.current) return;
+
+    const ownerParam = searchParams.get('owner');
+    const repoParam = searchParams.get('repo');
+
+    let initialRepo = '';
+    if (ownerParam && repoParam) {
+      initialRepo = `${ownerParam.trim()}/${repoParam.trim()}`;
+    } else if (repoParam && repoParam.includes('/')) {
+      initialRepo = repoParam.trim();
+    }
+
+    if (initialRepo) {
+      initialFetchAttempted.current = true;
+      setTimeout(() => {
+        executeSearch(initialRepo);
+      }, 0);
+    }
+  }, [searchParams, executeSearch]);
 
   const handleRefresh = async () => {
     if (!report) return;
@@ -328,5 +364,20 @@ export default function BurnoutAnalyzerPage() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+export default function BurnoutAnalyzerPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-12 min-h-[80vh] flex flex-col gap-6">
+          <div className="h-32 w-full rounded-2xl shimmer" />
+          <div className="h-96 w-full rounded-2xl shimmer" />
+        </div>
+      }
+    >
+      <BurnoutAnalyzerContent />
+    </Suspense>
   );
 }

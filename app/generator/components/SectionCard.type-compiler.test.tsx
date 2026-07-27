@@ -26,6 +26,7 @@ describe('SectionCard Type Compiler Validation', () => {
       children: React.ReactNode;
       defaultOpen?: boolean;
       badge?: number;
+      onReset?: () => void;
     }>();
   });
 

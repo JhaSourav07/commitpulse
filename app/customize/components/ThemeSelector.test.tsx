@@ -101,7 +101,7 @@ describe('ThemeSelector - Custom Variations (Variation 4)', () => {
     render(<ThemeSelector theme="dark" onThemeChange={onThemeChange} />);
 
     // Select Dracula preset via accessibility query
-    const draculaBtn = screen.getByRole('button', { name: /apply dracula theme/i });
+    const draculaBtn = screen.getByRole('radio', { name: /apply dracula theme/i });
     expect(draculaBtn).toBeTruthy();
 
     // Click it
@@ -116,7 +116,7 @@ describe('ThemeSelector - Custom Variations (Variation 4)', () => {
     render(<ThemeSelector theme="dark" onThemeChange={onThemeChange} />);
 
     // Select Neon preset via accessibility query
-    const neonBtn = screen.getByRole('button', { name: /apply neon theme/i });
+    const neonBtn = screen.getByRole('radio', { name: /apply neon theme/i });
     expect(neonBtn).toBeTruthy();
 
     // Click it
@@ -159,16 +159,16 @@ describe('ThemeSelector responsive rendering', () => {
     const { rerender } = render(<ThemeSelector theme="dracula" onThemeChange={onThemeChange} />);
 
     expect(
-      screen.getByRole('button', { name: /apply dracula theme/i }).getAttribute('aria-pressed')
+      screen.getByRole('radio', { name: /apply dracula theme/i }).getAttribute('aria-pressed')
     ).toBe('true');
 
     rerender(<ThemeSelector theme="neon" onThemeChange={onThemeChange} />);
 
     expect(
-      screen.getByRole('button', { name: /apply neon theme/i }).getAttribute('aria-pressed')
+      screen.getByRole('radio', { name: /apply neon theme/i }).getAttribute('aria-pressed')
     ).toBe('true');
     expect(
-      screen.getByRole('button', { name: /apply dracula theme/i }).getAttribute('aria-pressed')
+      screen.getByRole('radio', { name: /apply dracula theme/i }).getAttribute('aria-pressed')
     ).toBe('false');
   });
 

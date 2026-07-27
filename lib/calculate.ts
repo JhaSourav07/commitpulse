@@ -494,31 +494,105 @@ export function aggregateCalendars(
  * renderers keep their week (column) and weekday (row) grid instead of collapsing
  * every day into a single week.
  */
-export function chunkDaysIntoWeeks(days?: ContributionDay[] | null): ContributionCalendar['weeks'] {
-  if (!days || !Array.isArray(days)) {
+/**
+ * Chunks contribution days into weekly arrays, with the option to hide weekends.
+ */
+
+export function chunkDaysIntoWeeks(
+  days?: ContributionDay[] | null,
+  hideWeekend: boolean = false
+): ContributionCalendar['weeks'] {
+  if (!days || !Array.isArray(days) || days.length === 0) {
     return [];
   }
+
+  // Filter out null/undefined days, empty dates, and invalid date formats
+  const validDays = days.filter((day): day is ContributionDay => {
+    if (day === null || day === undefined) return false;
+    if (!day.date || typeof day.date !== 'string' || day.date.trim() === '') return false;
+    // Validate YYYY-MM-DD format
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day.date)) return false;
+    // Ensure it's a valid date
+    const dateObj = new Date(day.date);
+    return !isNaN(dateObj.getTime());
+  });
+
+  if (validDays.length === 0) {
+    return [];
+  }
+
+  // Sort days chronologically
+  const sorted = [...validDays].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+
+  // Filter out weekends if hideWeekend is true
+  let filteredDays = sorted;
+  if (hideWeekend) {
+    filteredDays = sorted.filter((day) => {
+      const date = new Date(day.date);
+      const dayOfWeek = date.getDay();
+      return dayOfWeek !== 0 && dayOfWeek !== 6; // Exclude Sunday (0) and Saturday (6)
+    });
+  }
+
+  // If no days left after filtering, return empty array
+  if (filteredDays.length === 0) {
+    return [];
+  }
+
   const weeks: ContributionCalendar['weeks'] = [];
   let currentWeek: ContributionDay[] = [];
 
-  for (const day of days) {
-    if (!day || !day.date) continue;
-
-    // Safety check for date parser
-    const parsedDate = new Date(day.date);
-    if (isNaN(parsedDate.getTime())) {
+  for (let i = 0; i < filteredDays.length; i++) {
+    const day = filteredDays[i];
+    // Ensure day is not null before accessing properties
+    if (!day || !day.date) {
       continue;
     }
 
-    if (currentWeek.length > 0 && parsedDate.getUTCDay() === 0) {
-      weeks.push({ contributionDays: currentWeek });
+    const currentDate = new Date(day.date);
+    const currentDayOfWeek = currentDate.getDay();
+
+    // Start a new week if this is the first day
+    if (i === 0) {
+      currentWeek.push(day);
+      continue;
+    }
+
+    // Check if this day starts a new week
+    const prevDate = new Date(filteredDays[i - 1].date);
+    const prevDayOfWeek = prevDate.getDay();
+
+    // Determine if we need to start a new week
+    let isNewWeek = false;
+
+    if (hideWeekend) {
+      // When weekends are hidden, start a new week if the gap between days is more than 1
+      const dayDiff = Math.floor(
+        (currentDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      isNewWeek = dayDiff > 1;
+    } else {
+      // Standard week logic: new week when day of week decreases
+      isNewWeek = currentDayOfWeek <= prevDayOfWeek;
+    }
+
+    if (isNewWeek) {
+      weeks.push({
+        contributionDays: currentWeek,
+      });
       currentWeek = [];
     }
+
     currentWeek.push(day);
   }
 
+  // Push the last week
   if (currentWeek.length > 0) {
-    weeks.push({ contributionDays: currentWeek });
+    weeks.push({
+      contributionDays: currentWeek,
+    });
   }
 
   return weeks;

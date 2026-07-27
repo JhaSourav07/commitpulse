@@ -7,16 +7,15 @@ import {
   getOrgDashboardData,
   getCircuitTelemetry,
   fetchCommitHourDistribution,
+  fetchCommitPunchCard,
   isAbortError,
 } from '@/lib/github';
 import {
   calculateStreak,
   calculateMonthlyStats,
   aggregateCalendars,
-  convertLocalToUtc,
   chunkDaysIntoWeeks,
   normalizeCalendarToTimezone,
-  isLeapYear,
   daysInYear,
 } from '@/lib/calculate';
 import {
@@ -30,12 +29,14 @@ import {
   generateSkylineSVG,
   generateLanguagesSVG,
   generateActivityGraphSVG,
+  buildInlineErrorSVG,
 } from '@/lib/svg/generator';
 import { generateConstellationSVG } from '@/lib/svg/constellation';
 import { generateRadarSVG } from '@/lib/svg/radar';
 import { generateDoughnutSVG } from '@/lib/svg/doughnut';
 import { generateCommitClockSVG } from '@/lib/svg/commitClock';
 import { generateWeekdaySVG } from '@/lib/svg/weekday';
+import { generatePunchcardSVG } from '@/lib/svg/punchcard';
 import { injectStaleWatermark } from '@/lib/svg/staleWatermark';
 import { optimizeSVG } from '@/lib/svg/optimizer';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
@@ -46,7 +47,7 @@ import type {
   ContributionCalendar,
   StreakStats,
 } from '@/types';
-import { getNormalizedThemeKey, themes } from '@/lib/svg/themes';
+import { getNormalizedThemeKey, themes, resolveErrorTheme } from '@/lib/svg/themes';
 import { streakParamsSchema, coerceQueryParams } from '@/lib/validations';
 import { sanitizeHexColor, sanitizeRadius, escapeXML } from '@/lib/svg/sanitizer';
 import { getClientIp } from '@/utils/getClientIp';
@@ -55,32 +56,10 @@ import { refreshPolicy } from '@/services/github/refresh-policy';
 import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
 import { logger, setRequestId, clearRequestId } from '@/lib/logger';
 
-import { validationCache as _vc, normalizeCacheKey, cachedValidation } from './validation-cache';
-// Re-alias so existing usages in this file continue to work.
-const validationCache = _vc;
+import { normalizeCacheKey, cachedValidation } from './validation-cache';
 
 const SVG_CSP_HEADER =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
-
-function buildInlineErrorSVG(text: string): string {
-  const MAX_LINE = 48;
-  const chars = Array.from(text);
-  const truncated =
-    chars.length > MAX_LINE * 2 ? chars.slice(0, MAX_LINE * 2 - 1).join('') + '…' : text;
-  const truncatedChars = Array.from(truncated);
-  const line1 = escapeXML(truncatedChars.slice(0, MAX_LINE).join(''));
-  const line2 =
-    truncatedChars.length > MAX_LINE ? escapeXML(truncatedChars.slice(MAX_LINE).join('')) : null;
-  const textY = line2 ? '62' : '75';
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="150" viewBox="0 0 400 150">
-  <rect width="400" height="150" fill="#2d0000" rx="8"/>
-  <text x="200" y="${textY}" text-anchor="middle" dominant-baseline="central" fill="#ffcccc" font-family="sans-serif" font-size="13">${line1}</text>${
-    line2
-      ? `\n    <text x="200" y="91" text-anchor="middle" dominant-baseline="central" fill="#ffcccc" font-family="sans-serif" font-size="13">${line2}</text>`
-      : ''
-  }
-  </svg>`;
-}
 
 function getMonthlyReferenceDate(year: string | undefined, timezone: string): Date | undefined {
   if (!year) return undefined;
@@ -117,7 +96,13 @@ export async function GET(request: Request) {
         Object.values(fieldErrors.fieldErrors).flat()[0] ??
         fieldErrors.formErrors[0] ??
         'Invalid parameters';
-      const errorSvg = buildInlineErrorSVG(firstError);
+      const errTheme = resolveErrorTheme(searchParams);
+      const errorSvg = buildInlineErrorSVG(firstError, {
+        bg: errTheme.bg,
+        accent: errTheme.accent,
+        text: errTheme.text,
+        radius: errTheme.radius,
+      });
       return new NextResponse(errorSvg, {
         status: 400,
         headers: {
@@ -200,7 +185,8 @@ export async function GET(request: Request) {
       | 'pie'
       | 'activity_graph'
       | 'commit_clock'
-      | 'weekday';
+      | 'weekday'
+      | 'punchcard';
     const themeKey = getNormalizedThemeKey(theme);
     const themeName = themeKey === 'default' && theme ? theme : themeKey;
 
@@ -591,7 +577,7 @@ export async function GET(request: Request) {
         const filteredDays = allDays.slice(-effectiveDays);
         calendar = {
           totalContributions: filteredDays.reduce((sum, d) => sum + d.contributionCount, 0),
-          weeks: chunkDaysIntoWeeks(filteredDays),
+          weeks: chunkDaysIntoWeeks(filteredDays, hide_weekend), // ← ADD hide_weekend
         };
 
         if (versusCalendar) {
@@ -687,6 +673,11 @@ export async function GET(request: Request) {
         new Array(24).fill(0)
       );
       svg = generateCommitClockSVG(hourCounts, fullStats, params);
+    } else if (normalizedView === 'punchcard') {
+      const punchCard = await fetchCommitPunchCard(user, undefined, timezone).catch(() =>
+        Array.from({ length: 7 }, () => new Array(24).fill(0))
+      );
+      svg = generatePunchcardSVG(punchCard, fullStats, params);
     } else if (normalizedView === 'weekday') {
       const normalizedCalendar = normalizeCalendarToTimezone(calendar, timezone);
       svg = generateWeekdaySVG(fullWeekdayStats || fullStats, params, normalizedCalendar);
@@ -717,11 +708,14 @@ export async function GET(request: Request) {
     const secondsToMidnight = tzParam
       ? getSecondsUntilMidnightInTimezone(timezone)
       : getSecondsUntilUTCMidnight();
+    const isPngRoute = request.url.includes('/api/streak/png') || format === 'png';
     const cacheControl = isRefreshRequested
       ? 'no-cache, no-store, must-revalidate'
       : isHistoricalYear
         ? 'public, max-age=31536000, s-maxage=31536000, immutable'
-        : `public, max-age=60, s-maxage=${secondsToMidnight}, stale-while-revalidate=59`;
+        : isPngRoute
+          ? `public, max-age=60, s-maxage=${secondsToMidnight}, stale-while-revalidate=59`
+          : 'public, max-age=300, stale-while-revalidate=3600';
 
     const etag = crypto.createHash('sha256').update(svg).digest('hex');
     const weakEtag = `W/"${etag}"`;
@@ -775,7 +769,7 @@ export async function GET(request: Request) {
       },
     });
   } catch (error: unknown) {
-    return buildErrorResponse(error, parseResult, requestId);
+    return buildErrorResponse(error, parseResult, requestId, request);
   }
 }
 
@@ -813,7 +807,8 @@ function sanitizeErrorMessage(message: string): string {
 function buildErrorResponse(
   error: unknown,
   parseResult: ParseResult,
-  requestId?: string
+  requestId?: string,
+  request?: Request
 ): NextResponse {
   const rawMessage = error instanceof Error ? error.message : String(error);
   const message = sanitizeErrorMessage(rawMessage);
@@ -869,17 +864,28 @@ function buildErrorResponse(
     rawMessage.toLowerCase().includes('validation') ||
     rawMessage.toLowerCase().includes('strictly for organizations');
 
-  const errBg = `#${sanitizeHexColor(parseResult.success ? parseResult.data.bg : undefined, '0d1117')}`;
+  const searchParams = request ? new URL(request.url).searchParams : undefined;
+  const errTheme = resolveErrorTheme(searchParams);
+  const errBg =
+    parseResult.success && parseResult.data.bg
+      ? `#${sanitizeHexColor(parseResult.data.bg, '0d1117')}`
+      : errTheme.bg;
   const errAccentRaw =
     (parseResult.success &&
       (Array.isArray(parseResult.data.accent)
         ? parseResult.data.accent[parseResult.data.accent.length - 1]
         : parseResult.data.accent)) ||
     undefined;
-  const errAccent = `#${sanitizeHexColor(errAccentRaw, '58a6ff')}`;
-  const errText = `#${sanitizeHexColor(parseResult.success ? parseResult.data.text : undefined, 'c9d1d9')}`;
-  const errRadius = sanitizeRadius(parseResult.success ? parseResult.data.radius : undefined, 8);
-  const errSpeed = (parseResult.success && parseResult.data.speed) || '8s';
+  const errAccent = errAccentRaw ? `#${sanitizeHexColor(errAccentRaw, '58a6ff')}` : errTheme.accent;
+  const errText =
+    parseResult.success && parseResult.data.text
+      ? `#${sanitizeHexColor(parseResult.data.text, 'c9d1d9')}`
+      : errTheme.text;
+  const errRadius =
+    parseResult.success && parseResult.data.radius !== undefined
+      ? sanitizeRadius(parseResult.data.radius, 8)
+      : errTheme.radius;
+  const errSpeed = (parseResult.success && parseResult.data.speed) || errTheme.speed;
 
   if (isRateLimit) {
     const telemetry = getCircuitTelemetry();
@@ -931,7 +937,12 @@ function buildErrorResponse(
 
   // 3. Return a 400 Bad Request for Validation Errors
   if (isValidationError) {
-    const validationSvg = buildInlineErrorSVG(message);
+    const validationSvg = buildInlineErrorSVG(message, {
+      bg: errBg,
+      accent: errAccent,
+      text: errText,
+      radius: errRadius,
+    });
     const errorHeaders: Record<string, string> = {
       'Content-Type': 'image/svg+xml; charset=utf-8',
       'Cache-Control': 'no-store',
@@ -948,7 +959,12 @@ function buildErrorResponse(
 
   // 4. Return a 504 Gateway Timeout for aborted/timed out requests
   if (isAbortError(error)) {
-    const timeoutSvg = buildInlineErrorSVG('Request timed out. Please try again later.');
+    const timeoutSvg = buildInlineErrorSVG('Request timed out. Please try again later.', {
+      bg: errBg,
+      accent: errAccent,
+      text: errText,
+      radius: errRadius,
+    });
     const errorHeaders: Record<string, string> = {
       'Content-Type': 'image/svg+xml; charset=utf-8',
       'Cache-Control': 'no-store',
@@ -969,7 +985,12 @@ function buildErrorResponse(
     message,
   });
 
-  const errorSvg = buildInlineErrorSVG('Something went wrong. Please try again later.');
+  const errorSvg = buildInlineErrorSVG('Something went wrong. Please try again later.', {
+    bg: errBg,
+    accent: errAccent,
+    text: errText,
+    radius: errRadius,
+  });
   const errorHeaders: Record<string, string> = {
     'Content-Type': 'image/svg+xml; charset=utf-8',
     'Cache-Control': 'no-store',

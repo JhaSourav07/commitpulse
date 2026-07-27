@@ -34,7 +34,7 @@ describe('types - compiler validation', () => {
 
   it('validates constrained union types', () => {
     expectTypeOf<ViewMode>().toMatchTypeOf<
-      'default' | 'monthly' | 'pulse' | 'skyline' | 'languages'
+      'default' | 'monthly' | 'pulse' | 'skyline' | 'languages' | 'punchcard'
     >();
 
     expectTypeOf<DeltaFormat>().toMatchTypeOf<'percent' | 'absolute' | 'both'>();

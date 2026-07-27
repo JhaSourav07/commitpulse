@@ -21,7 +21,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async jwt({ token, account }) {
       if (account?.access_token) {
-        token.ghToken = encryptToken(account.access_token);
+        token.ghToken = await encryptToken(account.access_token);
       }
       return token;
     },

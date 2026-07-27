@@ -37,7 +37,7 @@ function HexInput({
         <label
           htmlFor={`${id}-picker`}
           title="Open color picker"
-          className="relative shrink-0 w-9 h-9 rounded-xl border border-black/10 dark:border-white/10 overflow-hidden cursor-pointer hover:border-emerald-500/50 transition-colors"
+          className="relative shrink-0 w-9 h-9 rounded-xl border border-black/10 dark:border-white/10 overflow-hidden cursor-pointer hover:border-emerald-500/50 focus-within:ring-2 focus-within:ring-emerald-500 transition-colors"
           style={{ backgroundColor: swatchColor ?? '#1a1a1a' }}
         >
           {!swatchColor && (
@@ -70,7 +70,7 @@ function HexInput({
             onChange={(e) => onChange(e.target.value.replace(/^#/, ''))}
             placeholder={placeholder.replace(/^#/, '')}
             maxLength={6}
-            className="w-full min-w-0 bg-gray-100/80 backdrop-blur-md border border-black/10 dark:bg-white/[0.03] dark:border-white/10 rounded-xl pl-7 pr-4 py-2.5 text-sm font-mono text-black dark:text-emerald-300 placeholder:text-gray-400 dark:placeholder:text-white/60 outline-none focus:border-emerald-500/50 transition-colors"
+            className="w-full min-w-0 bg-gray-100/80 backdrop-blur-md border border-black/10 dark:bg-white/[0.03] dark:border-white/10 rounded-xl pl-7 pr-4 py-2.5 text-sm font-mono text-black dark:text-emerald-300 placeholder:text-gray-400 dark:placeholder:text-white/60 outline-none focus:border-emerald-500/50 focus-visible:ring-2 focus-visible:ring-emerald-500 transition-colors"
           />
         </div>
       </div>
@@ -164,7 +164,7 @@ export function ControlsPanel({
             value={username}
             onChange={(e) => onUsernameChange(e.target.value)}
             placeholder={t('customize.controls.username_placeholder')}
-            className="w-full min-w-0 bg-white/60 backdrop-blur-md border border-black/10 dark:bg-black/40 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-black dark:text-emerald-300 placeholder:text-gray-400 dark:placeholder:text-white/60 outline-none focus:border-emerald-500/50 transition-all duration-300"
+            className="w-full min-w-0 bg-white/60 backdrop-blur-md border border-black/10 dark:bg-black/40 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-black dark:text-emerald-300 placeholder:text-gray-400 dark:placeholder:text-white/60 outline-none focus:border-emerald-500/50 focus-visible:ring-2 focus-visible:ring-emerald-500 transition-all duration-300"
           />
         </ControlRow>
 
