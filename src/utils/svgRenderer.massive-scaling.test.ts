@@ -79,4 +79,18 @@ describe('generateOptimizedSvg massive-scaling: Massive Data Sets and Extreme Hi
     expect(svg).toContain('id="monolith-grid"');
     expect(svg).not.toContain('NaN');
   });
+
+  it('applies adaptive height scaling for high contribution nodes maintaining distinct visual heights', () => {
+    const data: ContributionNode[] = [
+      { date: '2024-01-01', count: 10, x: 0, y: 0 },
+      { date: '2024-01-02', count: 25, x: 1, y: 0 },
+      { date: '2024-01-03', count: 50, x: 2, y: 0 },
+      { date: '2024-01-04', count: 100, x: 3, y: 0 },
+    ];
+
+    const svg = generateOptimizedSvg(data);
+
+    expect(svg).toContain('scale(1, 48)');
+    expect(svg).not.toContain('NaN');
+  });
 });

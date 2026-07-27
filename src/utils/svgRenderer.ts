@@ -94,8 +94,19 @@ export function generateOptimizedSvg(contributionData: ContributionNode[]): stri
       continue;
     }
 
+    const maxCount = safeData.reduce(
+      (max, n) => Math.max(max, typeof n?.count === 'number' ? n.count : 0),
+      0
+    );
+
     // STEP 6: Scale blueprints to custom height offsets
-    const calculatedHeight = count * blockHeightUnit;
+    const calculatedHeight =
+      maxCount > 15
+        ? Math.min(
+            60,
+            Math.max(4, Math.round((Math.log2(count + 1) / Math.log2(maxCount + 1)) * 48))
+          )
+        : count * blockHeightUnit;
 
     svgElements += `
     <g transform="translate(${isoX}, ${isoY})">

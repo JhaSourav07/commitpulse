@@ -75,12 +75,27 @@ export function computeTowerHeight(
 ): number {
   if (count === 0 && shouldShowGhostCity) return GHOST_HEIGHT_PX;
   if (count === 0) return 0;
+
+  const effectiveMax = maxCommits && maxCommits > 15 ? maxCommits : undefined;
+
   if (scale === 'log') {
+    if (effectiveMax) {
+      return Math.min(
+        MAX_LOG_HEIGHT,
+        (Math.log2(count + 1) / Math.log2(effectiveMax + 1)) * MAX_LOG_HEIGHT
+      );
+    }
     return Math.min(Math.log2(count + 1) * LOG_SCALE_MULTIPLIER, MAX_LOG_HEIGHT);
   }
   if (scale === 'sqrt') {
     const divisor = maxCommits || count || 1;
     return Math.min(Math.sqrt(count / divisor) * MAX_SQRT_HEIGHT, MAX_SQRT_HEIGHT);
+  }
+  if (effectiveMax) {
+    return Math.min(
+      MAX_LINEAR_HEIGHT,
+      Math.max(1, (Math.log2(count + 1) / Math.log2(effectiveMax + 1)) * MAX_LINEAR_HEIGHT)
+    );
   }
   return Math.min(count * LINEAR_SCALE_MULTIPLIER, MAX_LINEAR_HEIGHT);
 }

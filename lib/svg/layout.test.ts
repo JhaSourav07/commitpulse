@@ -13,7 +13,6 @@ import {
   LINEAR_SCALE_MULTIPLIER,
   MAX_LOG_HEIGHT,
   MAX_LINEAR_HEIGHT,
-  MAX_SQRT_HEIGHT,
 } from './layoutConstants';
 
 describe('computeTowers edge cases', () => {
@@ -392,6 +391,31 @@ describe('computeTowerHeight', () => {
     // fallback divisor is count
     // count=4, maxCommits=undefined -> divisor=4 -> sqrt(4/4)*50 = 50
     expect(computeTowerHeight(4, 'sqrt', false)).toBe(50);
+  });
+
+  it('preserves visual height differences across high contribution profiles (maxCommits > 15)', () => {
+    const maxCommits = 100;
+    const h10 = computeTowerHeight(10, 'linear', false, maxCommits);
+    const h25 = computeTowerHeight(25, 'linear', false, maxCommits);
+    const h50 = computeTowerHeight(50, 'linear', false, maxCommits);
+    const h100 = computeTowerHeight(100, 'linear', false, maxCommits);
+
+    expect(h10).toBeGreaterThan(0);
+    expect(h25).toBeGreaterThan(h10);
+    expect(h50).toBeGreaterThan(h25);
+    expect(h100).toBeGreaterThan(h50);
+    expect(h100).toBe(MAX_LINEAR_HEIGHT);
+  });
+
+  it('adaptively scales logarithmic mode for high contribution profiles', () => {
+    const maxCommits = 100;
+    const h10 = computeTowerHeight(10, 'log', false, maxCommits);
+    const h50 = computeTowerHeight(50, 'log', false, maxCommits);
+    const h100 = computeTowerHeight(100, 'log', false, maxCommits);
+
+    expect(h10).toBeGreaterThan(0);
+    expect(h50).toBeGreaterThan(h10);
+    expect(h100).toBe(MAX_LOG_HEIGHT);
   });
 });
 
