@@ -1,4 +1,22 @@
+/**
+ * The type of contribution graph to generate.
+ *
+ * - `snake`   - GitHub Snake (Platane/snk): animated SVG gift rendered from contribution data.
+ * - `pacman`  - Pacman-style contribution graph (abozanona/pacman-contribution-graph).
+ *
+ * @public
+ */
 export type GraphKind = 'snake' | 'pacman';
+
+/**
+ * A hint indicating where in the user's README the generated snippet should be placed.
+ *
+ * - `top`    - Near the top, below the profile header.
+ * - `middle` - Between the intro and stats sections.
+ * - `bottom` - After other stats widgets.
+ *
+ * @public
+ */
 export type GraphPlacement = 'top' | 'middle' | 'bottom';
 
 /**
