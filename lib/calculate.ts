@@ -315,12 +315,25 @@ export function calculateStreak(
   } else {
     currentStreak = 0;
   }
+  let resolvedTodayDate = localTodayStr;
+  const hasTodayEntry = nonVacationUniqueDays.some((d) => d.date === effectiveTodayStr);
+
+  // Only fallback if calendar has no entry for today at all
+  if (!hasTodayEntry && isStreakAlive) {
+    const lastActive = nonVacationUniqueDays
+      .slice(0, evaluationIndex + 1)
+      .reverse()
+      .find((d) => d.contributionCount > 0);
+    if (lastActive) {
+      resolvedTodayDate = lastActive.date;
+    }
+  }
 
   return {
     currentStreak,
     longestStreak,
     totalContributions: calendar.totalContributions || 0,
-    todayDate: localTodayStr,
+    todayDate: resolvedTodayDate,
   };
 }
 
