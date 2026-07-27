@@ -10,6 +10,8 @@ import { notFound, redirect } from 'next/navigation';
 import { resolveDashboardPeriod } from '@/utils/dashboardPeriod';
 import DashboardPageWrapper from '../DashboardPageWrapper';
 
+import EducationalCurveTracker from '@/components/dashboard/EducationalCurveTracker';
+
 export const revalidate = 3600; // Cache for 1 hour
 
 const BASE_URL =
@@ -189,6 +191,7 @@ async function DashboardContent({
 
   return (
     <DashboardPageWrapper>
+      <EducationalCurveTracker username={username} />
       <DashboardClient
         initialData={data}
         allRepoActivity={allRepos}

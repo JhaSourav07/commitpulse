@@ -76,7 +76,7 @@ function makeUploadRequest(file: File): Request {
   const form = new FormData();
   form.append('resume', file);
   return {
-    headers: new Headers(),
+    headers: new Headers({ Origin: 'https://commitpulse.vercel.app' }),
     formData: async () => form,
   } as unknown as Request;
 }

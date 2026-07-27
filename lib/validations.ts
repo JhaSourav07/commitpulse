@@ -269,7 +269,12 @@ const baseStreakParamsSchema = z.object({
   label: z
     .string()
     .optional()
-    .transform((v) => v !== 'false'),
+    .transform((v) => {
+      if (v === undefined) return undefined;
+      if (v === 'false') return false;
+      if (v === 'true') return true;
+      return v;
+    }),
 
   theme: z
     .string()
@@ -497,6 +502,7 @@ const baseStreakParamsSchema = z.object({
       'activity_graph',
       'commit_clock',
       'weekday',
+      'punchcard',
     ])
     .catch('default')
     .default('default'),

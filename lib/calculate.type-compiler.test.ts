@@ -26,7 +26,7 @@ describe('TypeScript Compiler Validation & Schema Constraints Stability (lib/cal
 
     // Verify function parameter array mappings matching implementation
     expectTypeOf(chunkDaysIntoWeeks).parameters.toEqualTypeOf<
-      [days?: ContributionDay[] | null | undefined]
+      [days?: ContributionDay[] | null | undefined, hideWeekend?: boolean]
     >();
   });
 

@@ -12,6 +12,7 @@ interface SocialsSectionProps {
   socialLinks: Record<string, string>;
   onSelectedChange: (ids: string[]) => void;
   onLinkChange: (id: string, url: string) => void;
+  onReset?: () => void;
 }
 
 function SocialIcon({ social, isDark }: { social: Social; isDark: boolean }) {
@@ -33,6 +34,7 @@ export function SocialsSection({
   socialLinks,
   onSelectedChange,
   onLinkChange,
+  onReset,
 }: SocialsSectionProps) {
   const safeSelected = Array.isArray(selected) ? selected : [];
   const safeSocialLinks = socialLinks || {};
@@ -75,6 +77,7 @@ export function SocialsSection({
         description="Add links to your profiles"
         badge={safeSelected.length}
         defaultOpen
+        onReset={onReset}
       >
         <div
           role="tablist"

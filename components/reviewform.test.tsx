@@ -102,7 +102,9 @@ describe('SubmitReviewPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Thank You!')).toBeInTheDocument();
       expect(
-        screen.getByText('Your testimonial has been received. It will be featured soon!')
+        screen.getByText(
+          'Your testimonial has been received and will be reviewed by an admin before appearing on the Wall of Love.'
+        )
       ).toBeInTheDocument();
     });
 

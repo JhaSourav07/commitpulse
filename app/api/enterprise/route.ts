@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { aggregateTeamData } from '@/lib/analytics/teamHealth';
-import { requireEnterpriseAdmin } from '@/lib/enterprise-auth';
 import type { TeamMember } from '@/types/enterprise';
 import type { ContributionCalendar } from '@/types';
 
@@ -35,9 +34,6 @@ function createMockTeamMembers(usernames: string[]): TeamMember[] {
 }
 
 export async function GET(request: NextRequest) {
-  const { error } = await requireEnterpriseAdmin();
-  if (error) return error;
-
   const searchParams = request.nextUrl.searchParams;
   const teamId = searchParams.get('teamId') || 'default-team';
   const teamName = searchParams.get('teamName') || 'Engineering Team';
@@ -74,9 +70,6 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const { error } = await requireEnterpriseAdmin();
-  if (error) return error;
-
   let body: Record<string, unknown>;
   try {
     body = await request.json();

@@ -9,12 +9,9 @@ import pLimit from 'p-limit';
 import { cloneGitHubRepository } from '@/lib/git-clone';
 import { getGitHubTokens } from '@/lib/github';
 import { formatRepoRefForLogging, sanitizeErrorForLogging } from '@/lib/sanitize-git-credentials';
-import { auth } from '@/auth';
 import { getClientIp } from '@/utils/getClientIp';
 
 const execFilePromise = promisify(execFile);
-
-const REST_TIMEOUT_MS = 5000; // 5s timeout for external API requests
 
 // Per-IP concurrent clone tracking (max 3 concurrent clones per IP)
 const MAX_CONCURRENT_CLONES_PER_IP = 3;
@@ -309,12 +306,6 @@ function resolveImportPath(
 export async function POST(req: NextRequest) {
   let tempDir = '';
   const ip = getClientIp(req);
-
-  // Require authenticated session
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-  }
 
   // Check concurrent clone limit per IP
   if (!incrementClones(ip)) {

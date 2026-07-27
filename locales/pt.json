@@ -160,7 +160,10 @@
       "footer_tip": "Cole isso no README.md do perfil do GitHub. O emblema é renderizado no lado do servidor, sem necessidade de script.",
       "tsx": "React TSX",
       "download_svg": "Baixar SVG",
-      "download_png": "Baixar PNG"
+      "download_png": "Baixar PNG",
+      "download_webp": "Baixar WebP",
+      "download_pdf": "Baixar PDF",
+      "export_as": "Exportar como"
     }
   },
   "dashboard": {

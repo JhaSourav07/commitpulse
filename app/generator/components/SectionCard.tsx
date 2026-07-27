@@ -1,7 +1,7 @@
 'use client';
 
 import { type ReactNode, useState, useId } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, RotateCcw } from 'lucide-react';
 
 interface SectionCardProps {
   title: string;
@@ -10,6 +10,7 @@ interface SectionCardProps {
   children: ReactNode;
   defaultOpen?: boolean;
   badge?: number;
+  onReset?: () => void;
 }
 
 export function SectionCard({
@@ -19,6 +20,7 @@ export function SectionCard({
   children,
   defaultOpen = true,
   badge,
+  onReset,
 }: SectionCardProps) {
   const [open, setOpen] = useState(defaultOpen);
   const contentId = useId();
@@ -58,6 +60,27 @@ export function SectionCard({
             </p>
           )}
         </div>
+        {onReset && (
+          <span
+            role="button"
+            tabIndex={0}
+            aria-label={`Reset ${title} section`}
+            title={`Reset ${title} Section`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onReset();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.stopPropagation();
+                onReset();
+              }
+            }}
+            className="p-1 rounded-lg text-gray-400 hover:text-rose-500 hover:bg-rose-500/10 dark:hover:bg-rose-500/20 transition-colors flex-shrink-0 mr-1 cursor-pointer"
+          >
+            <RotateCcw size={13} />
+          </span>
+        )}
         <ChevronDown
           size={14}
           className={`text-gray-400 dark:text-white/30 flex-shrink-0 transition-transform duration-200 ${

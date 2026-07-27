@@ -108,7 +108,7 @@ function makeUploadRequest(content: string, type: string, name = 'resume.pdf'): 
   const form = new FormData();
   form.append('resume', file);
   return {
-    headers: new Headers(),
+    headers: new Headers({ Origin: 'https://commitpulse.vercel.app' }),
     formData: async (): Promise<FormData> => form,
     url: 'http://localhost:3000/api/student/resume/upload',
     ip: '127.0.0.1',

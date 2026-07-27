@@ -22,6 +22,14 @@ vi.mock('gsap/ScrollTrigger', () => ({
   ScrollTrigger: {},
 }));
 
+vi.stubGlobal(
+  'fetch',
+  vi.fn().mockResolvedValue({
+    ok: true,
+    json: () => Promise.resolve({ success: true, reviews: [] }),
+  })
+);
+
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 

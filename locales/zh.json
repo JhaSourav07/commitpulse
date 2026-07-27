@@ -159,8 +159,11 @@
       "copy_aria_enabled": "将 {{format}} 导出片段复制到剪贴板",
       "footer_tip": "将此片段粘贴到您的 GitHub 个人主页 README.md 文件中。徽章由服务器端渲染，无需任何脚本。",
       "tsx": "React TSX",
-      "download_svg": "Download SVG",
-      "download_png": "Download PNG"
+      "download_svg": "下载 SVG",
+      "download_png": "下载 PNG",
+      "download_webp": "下载 WebP",
+      "download_pdf": "下载 PDF",
+      "export_as": "导出为"
     }
   },
   "dashboard": {

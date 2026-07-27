@@ -35,19 +35,18 @@ describe('Footer - real component coverage (CI-safe)', () => {
   it('renders social links using aria-labels (no ambiguity)', () => {
     render(<Footer />);
 
-    expect(screen.getByRole('link', { name: 'CommitPulse on GitHub' })).toHaveAttribute(
-      'href',
-      expect.stringContaining('github.com')
-    );
+    // Social links now appear twice: once in the Connect column and once in the bottom bar icon strip.
+    const githubLinks = screen.getAllByRole('link', { name: 'CommitPulse on GitHub' });
+    expect(githubLinks.length).toBeGreaterThanOrEqual(1);
+    expect(githubLinks[0]).toHaveAttribute('href', expect.stringContaining('github.com'));
 
     expect(screen.getByRole('link', { name: 'Creator Sourav Jha on GitHub' })).toHaveAttribute(
       'href',
       expect.stringContaining('github.com')
     );
 
-    expect(screen.getByRole('link', { name: 'Join CommitPulse on Discord' })).toHaveAttribute(
-      'href',
-      expect.stringContaining('discord')
-    );
+    const discordLinks = screen.getAllByRole('link', { name: 'Join CommitPulse on Discord' });
+    expect(discordLinks.length).toBeGreaterThanOrEqual(1);
+    expect(discordLinks[0]).toHaveAttribute('href', expect.stringContaining('discord'));
   });
 });

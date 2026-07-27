@@ -10,14 +10,14 @@ describe('ThemeQuickPresets Edge Cases & Empty/Missing Inputs Verification', () 
       render(<ThemeQuickPresets theme="unknown-theme" onThemeChange={vi.fn()} />)
     ).not.toThrow();
 
-    expect(screen.getAllByRole('button').length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('radio').length).toBeGreaterThan(0);
   });
 
   it('renders preset buttons while no active theme matches', () => {
     render(<ThemeQuickPresets theme="missing-theme" onThemeChange={vi.fn()} />);
 
     const activeButtons = screen
-      .getAllByRole('button')
+      .getAllByRole('radio')
       .filter((button) => button.getAttribute('aria-pressed') === 'true');
 
     expect(activeButtons).toHaveLength(0);
@@ -40,7 +40,7 @@ describe('ThemeQuickPresets Edge Cases & Empty/Missing Inputs Verification', () 
   it('renders buttons with fallback styling and accessible labels', () => {
     render(<ThemeQuickPresets theme="not-configured" onThemeChange={vi.fn()} />);
 
-    const buttons = screen.getAllByRole('button');
+    const buttons = screen.getAllByRole('radio');
 
     expect(buttons.length).toBeGreaterThan(0);
 

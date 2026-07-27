@@ -15,6 +15,21 @@ const EXPORT_FORMATS: { value: ExportFormat; labelKey: string }[] = [
   { value: 'action', labelKey: 'action' },
 ];
 
+function resolveBadgeUrl(rawUrl: string): string {
+  const cleaned = rawUrl.replace(/&amp;/g, '&');
+  try {
+    const urlObj = new URL(cleaned, window.location.origin);
+    if (urlObj.hostname === 'commitpulse.vercel.app') {
+      const originObj = new URL(window.location.origin);
+      urlObj.protocol = originObj.protocol;
+      urlObj.host = originObj.host;
+    }
+    return urlObj.toString();
+  } catch {
+    return cleaned;
+  }
+}
+
 export function ExportPanel({
   format,
   snippet,
@@ -116,13 +131,8 @@ export function ExportPanel({
         return;
       }
 
-      // 2. Clear out HTML character entities if grabbed from HTML embed strings
-      targetUrl = targetUrl.replace(/&amp;/g, '&');
-
-      // 3. SECURE LOCAL WORKSPACE TESTING: Redirect backend calls to your local server instance
-      if (targetUrl.includes('https://commitpulse.vercel.app')) {
-        targetUrl = targetUrl.replace('https://commitpulse.vercel.app', window.location.origin);
-      }
+      // 2. Clear out HTML character entities & resolve local origin
+      targetUrl = resolveBadgeUrl(targetUrl);
 
       // 4. Append a cache-busting refresh query parameter to guarantee the latest custom colors
       if (targetUrl.includes('?')) {
@@ -194,9 +204,22 @@ export function ExportPanel({
 
     try {
       setIsDownloading(true);
+      const target = document.querySelector<HTMLElement>('#export-container');
+
+      if (target) {
+        const { toPng } = await import('html-to-image');
+        const pngUrl = await toPng(target, { pixelRatio: 2 });
+        const link = document.createElement('a');
+        link.href = pngUrl;
+        link.download = `commitpulse-${username || 'badge'}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success('Badge PNG downloaded successfully!');
+        return;
+      }
 
       const urlMatch = snippet.match(/\((https?:\/\/[^)]+)\)/) || snippet.match(/src="([^"]+)"/);
-
       let targetUrl = urlMatch ? urlMatch[1] : '';
 
       if (!targetUrl) {
@@ -204,11 +227,7 @@ export function ExportPanel({
         return;
       }
 
-      targetUrl = targetUrl.replace(/&amp;/g, '&');
-
-      if (targetUrl.includes('https://commitpulse.vercel.app')) {
-        targetUrl = targetUrl.replace('https://commitpulse.vercel.app', window.location.origin);
-      }
+      targetUrl = resolveBadgeUrl(targetUrl);
 
       if (targetUrl.includes('?')) {
         targetUrl += '&format=png';
@@ -234,9 +253,87 @@ export function ExportPanel({
       document.body.removeChild(link);
 
       URL.revokeObjectURL(pngUrl);
+      toast.success('Badge PNG downloaded successfully!');
     } catch (error) {
       console.error(error);
       toast.error('Failed to download PNG badge.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleDownloadWebp = async () => {
+    if (!hasUsername || !snippet) return;
+
+    try {
+      setIsDownloading(true);
+      const target = document.querySelector<HTMLElement>('#export-container');
+
+      if (target) {
+        const { toCanvas } = await import('html-to-image');
+        const canvas = await toCanvas(target, { pixelRatio: 2 });
+        const webpUrl = canvas.toDataURL('image/webp');
+        const link = document.createElement('a');
+        link.href = webpUrl;
+        link.download = `commitpulse-${username || 'badge'}.webp`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success('Badge WebP downloaded successfully!');
+        return;
+      }
+
+      toast.error('Preview element not found for WebP conversion.');
+    } catch (error) {
+      console.error('WebP export error:', error);
+      toast.error('Failed to download WebP badge.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!hasUsername || !snippet) return;
+
+    try {
+      setIsDownloading(true);
+      const target = document.querySelector<HTMLElement>('#export-container');
+      let svgMarkup = target?.innerHTML || '';
+
+      if (!svgMarkup || !svgMarkup.includes('<svg')) {
+        const urlMatch = snippet.match(/\((https?:\/\/[^)]+)\)/) || snippet.match(/src="([^"]+)"/);
+        let targetUrl = urlMatch ? urlMatch[1] : '';
+
+        if (targetUrl) {
+          targetUrl = resolveBadgeUrl(targetUrl);
+
+          const response = await fetch(targetUrl);
+
+          if (response.ok) {
+            svgMarkup = await response.text();
+          }
+        }
+      }
+
+      if (!svgMarkup) {
+        toast.error('Could not determine badge content for PDF export.');
+        return;
+      }
+
+      const { default: JsPDF } = await import('jspdf');
+      const { exportSvgToPdf } = await import('@/lib/pdf-export');
+
+      const pdf = new JsPDF({
+        orientation: 'landscape',
+        unit: 'pt',
+        format: 'a4',
+      });
+
+      await exportSvgToPdf(svgMarkup, `commitpulse-${username || 'badge'}.pdf`, pdf);
+      toast.success('Badge PDF downloaded successfully!');
+    } catch (error) {
+      console.error('PDF export error:', error);
+      toast.error('Failed to download PDF badge.');
     } finally {
       setIsDownloading(false);
     }
@@ -246,7 +343,7 @@ export function ExportPanel({
     <div className="flex flex-col gap-4">
       {/* Code Block Header Control Deck */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div
             className="flex flex-wrap sm:flex-nowrap rounded-xl border border-black/10 bg-white/60 backdrop-blur-md dark:border-white/10 dark:bg-white/[0.03] p-1"
             aria-label="Export format"
@@ -320,6 +417,7 @@ export function ExportPanel({
           </button>
 
           <button
+            id="download-png-btn"
             type="button"
             onClick={handleDownloadPng}
             disabled={!hasUsername || isDownloading || format === 'action'}
@@ -332,6 +430,38 @@ export function ExportPanel({
             {isDownloading
               ? t('customize.export.downloading', { defaultValue: 'Downloading...' })
               : t('customize.export.download_png', { defaultValue: 'Download PNG' })}
+          </button>
+
+          <button
+            id="download-webp-btn"
+            type="button"
+            onClick={handleDownloadWebp}
+            disabled={!hasUsername || isDownloading || format === 'action'}
+            className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
+              !hasUsername || isDownloading || format === 'action'
+                ? 'bg-gray-200/90 border border-black/10 text-gray-500 cursor-not-allowed dark:bg-white/10 dark:border-white/10 dark:text-white/35'
+                : 'bg-teal-500/10 border border-teal-500/30 text-teal-500 hover:bg-teal-500/20 hover:scale-[1.03] active:scale-[0.97]'
+            }`}
+          >
+            {isDownloading
+              ? t('customize.export.downloading', { defaultValue: 'Downloading...' })
+              : t('customize.export.download_webp', { defaultValue: 'Download WebP' })}
+          </button>
+
+          <button
+            id="download-pdf-btn"
+            type="button"
+            onClick={handleDownloadPdf}
+            disabled={!hasUsername || isDownloading || format === 'action'}
+            className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
+              !hasUsername || isDownloading || format === 'action'
+                ? 'bg-gray-200/90 border border-black/10 text-gray-500 cursor-not-allowed dark:bg-white/10 dark:border-white/10 dark:text-white/35'
+                : 'bg-rose-500/10 border border-rose-500/30 text-rose-500 hover:bg-rose-500/20 hover:scale-[1.03] active:scale-[0.97]'
+            }`}
+          >
+            {isDownloading
+              ? t('customize.export.downloading', { defaultValue: 'Downloading...' })
+              : t('customize.export.download_pdf', { defaultValue: 'Download PDF' })}
           </button>
 
           {/* Share Configuration Button */}
