@@ -119,3 +119,72 @@ export function findAccessibleColor(
   }
   return best;
 }
+
+/**
+ * Linearly interpolates between two hex colours.
+ *
+ * Converts both colours to RGB, interpolates each channel independently in the
+ * 0-255 range, and returns the result as a 6-digit hex string prefixed with `#`.
+ * The interpolation factor `t` is clamped to [0, 1] so that values outside the
+ * range return the nearest endpoint.
+ *
+ * @param color1 - The starting hex colour (e.g. `#000000`). Leading `#` is optional.
+ * @param color2 - The ending hex colour (e.g. `#ffffff`). Leading `#` is optional.
+ * @param t - Interpolation position. `0` returns `color1`, `1` returns `color2`.
+ *   Values below `0` are clamped to `0`; values above `1` are clamped to `1`.
+ * @returns A 6-digit lowercase hex colour string (e.g. `#808080` for a midpoint lerp).
+ *
+ * @example
+ * ```ts
+ * lerpColor('#000000', '#ffffff', 0.5) // '#808080'
+ * lerpColor('#ff0000', '#0000ff', 0.5) // '#7f007f'
+ * lerpColor('#ff0000', '#0000ff', 0)   // '#ff0000'
+ * lerpColor('#ff0000', '#0000ff', 1)   // '#0000ff'
+ * ```
+ */
+export function lerpColor(color1: string, color2: string, t: number): string {
+  const rgb1 = hexToRgb(color1);
+  const rgb2 = hexToRgb(color2);
+  if (!rgb1 || !rgb2) return color1;
+
+  const clamped = Math.max(0, Math.min(1, t));
+  const r = Math.round(rgb1.r + (rgb2.r - rgb1.r) * clamped);
+  const g = Math.round(rgb1.g + (rgb2.g - rgb1.g) * clamped);
+  const b = Math.round(rgb1.b + (rgb2.b - rgb1.b) * clamped);
+
+  return rgbToHex(r, g, b);
+}
+
+/**
+ * Interpolates through an array of colours at a normalised position.
+ *
+ * Splits the range [0, 1] into `(colors.length - 1)` equal segments and picks
+ * the correct segment based on `t`. Then calls `lerpColor` between the two
+ * adjacent colours in that segment.
+ *
+ * @param colors - An array of two or more hex colour strings.
+ * @param t - A number in [0, 1]. `0` returns the first colour; `1` returns the last.
+ * @returns A 6-digit hex colour string interpolated from the array.
+ *
+ * @example
+ * ```ts
+ * lerpColors(['#ff0000', '#00ff00', '#0000ff'], 0)   // '#ff0000'
+ * lerpColors(['#ff0000', '#00ff00', '#0000ff'], 0.5)  // '#7f7f00' (halfway through green)
+ * lerpColors(['#ff0000', '#00ff00', '#0000ff'], 1)   // '#0000ff'
+ * ```
+ */
+export function lerpColors(colors: string[], t: number): string {
+  if (colors.length === 0) return '#000000';
+  if (colors.length === 1) return colors[0];
+
+  const clamped = Math.max(0, Math.min(1, t));
+  const segments = colors.length - 1;
+  const scaled = clamped * segments;
+  const index = Math.floor(scaled);
+  const localT = scaled - index;
+
+  const from = colors[Math.min(index, colors.length - 1)];
+  const to = colors[Math.min(index + 1, colors.length - 1)];
+
+  return lerpColor(from, to, localT);
+}
