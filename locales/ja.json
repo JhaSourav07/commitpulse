@@ -120,6 +120,10 @@
     "title": "モノリスを微調整。",
     "desc": "以下の変更はすべてリアルタイムでプレビューに反映されます。完了したらエクスポートスニペットをコピーしてください。追加の手順は不要です。",
     "live_preview": "ライブプレビュー",
+    "preview_toggle_to_light": "ライト背景プレビューに切り替える",
+    "preview_toggle_to_dark": "ダーク背景プレビューに切り替える",
+    "preview_toggle_light_label": "ライト",
+    "preview_toggle_dark_label": "ダーク",
     "active_params": "有効なパラメータ",
     "empty_preview_desc": "ユーザー名を追加すると、ここにライブプレビューが表示されます。",
     "controls": {

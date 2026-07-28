@@ -120,6 +120,10 @@
     "title": "Peaufinez votre monolithe.",
     "desc": "Chaque modification ci-dessous met à jour l'aperçu en temps réel. Copiez l'extrait d'exportation lorsque vous avez terminé. Aucune étape supplémentaire requise.",
     "live_preview": "Aperçu en direct",
+    "preview_toggle_to_light": "Passer à l'aperçu sur fond clair",
+    "preview_toggle_to_dark": "Passer à l'aperçu sur fond sombre",
+    "preview_toggle_light_label": "Clair",
+    "preview_toggle_dark_label": "Sombre",
     "active_params": "Paramètres actifs",
     "empty_preview_desc": "L'aperçu en direct du badge apparaîtra ici une fois qu'un nom d'utilisateur aura été ajouté.",
     "controls": {

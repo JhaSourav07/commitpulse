@@ -120,6 +120,10 @@
     "title": "Stimme deinen Monolithen fein ab.",
     "desc": "Jede Änderung unten aktualisiert die Vorschau in Echtzeit. Kopiere das Export-Snippet, wenn du fertig bist. Keine weiteren Schritte nötig.",
     "live_preview": "Live-Vorschau",
+    "preview_toggle_to_light": "Zur hellen Hintergrundvorschau wechseln",
+    "preview_toggle_to_dark": "Zur dunklen Hintergrundvorschau wechseln",
+    "preview_toggle_light_label": "Hell",
+    "preview_toggle_dark_label": "Dunkel",
     "active_params": "Aktive Parameter",
     "empty_preview_desc": "Die Live-Badge-Vorschau erscheint hier, sobald ein Benutzername hinzugefügt wurde.",
     "controls": {

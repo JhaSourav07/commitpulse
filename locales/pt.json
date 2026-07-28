@@ -120,6 +120,10 @@
     "title": "Ajuste o seu monólito.",
     "desc": "Cada alteração abaixo atualiza a pré-visualização em tempo real. Copie o snippet de exportação quando terminar. Nenhum passo extra necessário.",
     "live_preview": "Pré-visualização ao Vivo",
+    "preview_toggle_to_light": "Mudar para pré-visualização com fundo claro",
+    "preview_toggle_to_dark": "Mudar para pré-visualização com fundo escuro",
+    "preview_toggle_light_label": "Claro",
+    "preview_toggle_dark_label": "Escuro",
     "active_params": "Parâmetros Ativos",
     "empty_preview_desc": "A pré-visualização do emblema ao vivo aparecerá aqui assim que um nome de usuário for adicionado.",
     "controls": {

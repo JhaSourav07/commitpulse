@@ -120,6 +120,10 @@
     "title": "微调您的柱状图。",
     "desc": "下方的每项更改都会实时更新预览。完成后复制导出代码片段。无需额外操作。",
     "live_preview": "实时预览",
+    "preview_toggle_to_light": "切换到浅色背景预览",
+    "preview_toggle_to_dark": "切换到深色背景预览",
+    "preview_toggle_light_label": "浅色",
+    "preview_toggle_dark_label": "深色",
     "active_params": "当前参数",
     "empty_preview_desc": "添加用户名后，实时徽章预览将在此处显示。",
     "controls": {

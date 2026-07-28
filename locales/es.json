@@ -120,6 +120,10 @@
     "title": "Ajusta tu monolito.",
     "desc": "Cada cambio a continuación actualiza la previsualización en tiempo real. Copia el fragmento de exportación cuando termines. Sin pasos adicionales.",
     "live_preview": "Previsualización en vivo",
+    "preview_toggle_to_light": "Cambiar a vista previa de fondo claro",
+    "preview_toggle_to_dark": "Cambiar a vista previa de fondo oscuro",
+    "preview_toggle_light_label": "Claro",
+    "preview_toggle_dark_label": "Oscuro",
     "active_params": "Parámetros activos",
     "empty_preview_desc": "La previsualización en vivo de la insignia aparecerá aquí una vez que se agregue un usuario.",
     "controls": {
