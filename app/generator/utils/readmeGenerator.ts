@@ -83,6 +83,28 @@ export function generateReadme(state: GeneratorState): string {
     sections.push(`<div align="center">\n\n<p>${description}</p>\n\n</div>`);
   }
 
+  // 1.5 Hero Image Section
+  if (state.showHeroImage && state.heroImageUrl?.trim()) {
+    const url = state.heroImageUrl.trim();
+    const align = state.heroImageAlign || 'center';
+    const alt = state.heroImageAlt?.trim() || 'Coding GIF';
+    const width = state.heroImageWidth?.trim();
+
+    const imgLines: string[] = [
+      `<p align="${align}">`,
+      '  <img',
+      `    src="${url}"`,
+      `    alt="${alt}"`,
+    ];
+
+    if (width) {
+      imgLines.push(`    width="${width}"`);
+    }
+
+    imgLines.push('  />', '</p>');
+    sections.push(imgLines.join('\n'));
+  }
+
   // Inject top graphs
   if (state.graphPlacement === 'top' && graphsMarkdown) {
     sections.push(graphsMarkdown);

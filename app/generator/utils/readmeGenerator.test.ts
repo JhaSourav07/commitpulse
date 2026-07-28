@@ -59,4 +59,36 @@ describe('readmeGenerator', () => {
     expect(md).toContain('## 🐍 Snake Contribution Graph');
     expect(md).toContain('## 👾 Pacman Contribution Graph');
   });
+
+  it('renders hero image when enabled with URL', () => {
+    const state: GeneratorState = {
+      ...mockState,
+      showHeroImage: true,
+      heroImageUrl: 'https://example.com/hero.gif',
+      heroImageWidth: '450',
+      heroImageAlign: 'center',
+      heroImageAlt: 'Coding GIF',
+    };
+    const md = generateReadme(state);
+    expect(md).toContain('<p align="center">');
+    expect(md).toContain('src="https://example.com/hero.gif"');
+    expect(md).toContain('alt="Coding GIF"');
+    expect(md).toContain('width="450"');
+  });
+
+  it('renders hero image with custom alignment and width', () => {
+    const state: GeneratorState = {
+      ...mockState,
+      showHeroImage: true,
+      heroImageUrl: 'https://example.com/banner.png',
+      heroImageWidth: '100%',
+      heroImageAlign: 'left',
+      heroImageAlt: 'Custom Banner',
+    };
+    const md = generateReadme(state);
+    expect(md).toContain('<p align="left">');
+    expect(md).toContain('src="https://example.com/banner.png"');
+    expect(md).toContain('alt="Custom Banner"');
+    expect(md).toContain('width="100%"');
+  });
 });
