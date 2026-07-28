@@ -34,10 +34,18 @@ export interface GitHubRepo {
   participation?: number[];
 }
 
-const MAX_RETRIES = Number(process.env.GITHUB_MAX_RETRIES ?? '3');
-const BASE_DELAY_MS = Number(process.env.GITHUB_BASE_DELAY_MS ?? '500');
-const MAX_RETRY_DELAY_MS = Number(process.env.GITHUB_MAX_RETRY_DELAY_MS ?? '5000');
+/** Maximum number of retry attempts for GitHub API calls. Configurable via GITHUB_MAX_RETRIES env var (default: 3). */
+export const MAX_RETRIES = Number(process.env.GITHUB_MAX_RETRIES ?? '3');
+/** Base delay in milliseconds before the first retry. Configurable via GITHUB_BASE_DELAY_MS env var (default: 500). */
+export const BASE_DELAY_MS = Number(process.env.GITHUB_BASE_DELAY_MS ?? '500');
+/** Maximum delay in milliseconds between retries. Configurable via GITHUB_MAX_RETRY_DELAY_MS env var (default: 5000). */
+export const MAX_RETRY_DELAY_MS = Number(process.env.GITHUB_MAX_RETRY_DELAY_MS ?? '5000');
 
+/**
+ * Calculates a jittered backoff delay for retry logic.
+ * @param attempt - The zero-based retry attempt number.
+ * @returns The delay in milliseconds with random jitter applied.
+ */
 export function getJitteredBackoff(attempt: number): number {
   const base = BASE_DELAY_MS * Math.pow(2, attempt);
   const jitter = 0.5 + Math.random() * 0.5;
