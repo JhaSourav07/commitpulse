@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import TopRivalriesTicker from '@/components/TopRivalriesTicker';
 import DeveloperArena from '@/components/DeveloperArena';
+import DeveloperAchievementBadges from '@/components/DeveloperAchievementBadges';
 import {
   Radar,
   RadarChart,
@@ -1553,6 +1554,9 @@ export default function CompareClient() {
                       />
                     </div>
                   </div>
+
+                  {/* Developer Achievement Badges */}
+                  <DeveloperAchievementBadges user1={d1} user2={d2} />
 
                   {/* Coding Habits Showdown */}
                   <CodingHabitShowdown user1={d1} user2={d2} />

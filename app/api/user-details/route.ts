@@ -56,7 +56,11 @@ export async function GET(request: Request) {
     return NextResponse.json({
       exists: true,
       login: profile.login,
-      name: profile.name,
+      /**
+       * GitHub user's public display name. May be null for users who have not set a public name.
+       * @see https://docs.github.com/en/rest/users/users#get-a-user
+       */
+      name: profile.name ?? null,
       avatar_url: profile.avatar_url,
       public_repos: profile.public_repos,
       stats,
