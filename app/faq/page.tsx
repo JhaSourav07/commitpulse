@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslation } from '@/context/TranslationContext';
-import { HelpCircle, ChevronDown, Search, Sparkles } from 'lucide-react';
+import { ChevronDown, Search, Sparkles } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -17,72 +17,85 @@ export default function FAQPage() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const faqs: FAQItem[] = [
-    {
-      id: 1,
-      question: t('faq.q1') || 'What is CommitPulse?',
-      answer:
-        t('faq.a1') ||
-        'CommitPulse is an intelligent AI-powered commit message generator that helps developers write clear, professional, and standardized commit messages in seconds.',
-      category: 'General',
-    },
-    {
-      id: 2,
-      question: t('faq.q2') || 'How does the AI generate commit messages?',
-      answer:
-        t('faq.a2') ||
-        'It analyzes your code diff, understands the changes, and generates Conventional Commit formatted messages with appropriate type, scope, and emoji (if enabled).',
-      category: 'How it Works',
-    },
-    {
-      id: 3,
-      question: t('faq.q3') || 'Is CommitPulse completely free?',
-      answer:
-        t('faq.a3') ||
-        'Yes! The tool is 100% free, open source, and requires no API keys or sign-up.',
-      category: 'Pricing',
-    },
-    {
-      id: 4,
-      question: t('faq.q4') || 'What commit conventions does it support?',
-      answer:
-        t('faq.a4') ||
-        'It follows Conventional Commits standard and can adapt to Angular, Semantic Versioning, and custom team conventions.',
-      category: 'Features',
-    },
-    {
-      id: 5,
-      question: t('faq.q5') || 'Can I customize the output style?',
-      answer:
-        t('faq.a5') ||
-        'Absolutely. On the Customize page you can control tone, length, emoji usage, capitalization, and preferred commit types.',
-      category: 'Features',
-    },
-    {
-      id: 6,
-      question: t('faq.q6') || 'Do you store my code?',
-      answer:
-        t('faq.a6') ||
-        'No. Everything runs locally in your browser. Your code is never sent to any server.',
-      category: 'Privacy',
-    },
-    {
-      id: 7,
-      question: t('faq.q7') || 'Can I self-host CommitPulse?',
-      answer:
-        t('faq.a7') ||
-        'Yes. The entire project is open source. You can run it locally or deploy it on Vercel, Railway, or any hosting platform.',
-      category: 'Self Hosting',
-    },
-    {
-      id: 8,
-      question: t('faq.q8') || 'How can I contribute to the project?',
-      answer:
-        t('faq.a8') ||
-        'We welcome contributions! Check our GitHub repository for open issues, feature requests, and the contribution guidelines.',
-      category: 'Community',
-    },
-  ];
+  const faqs: FAQItem[] = useMemo(
+    () => [
+      {
+        id: 1,
+        question: t('faq.q1', { defaultValue: 'What is CommitPulse?' }),
+        answer: t('faq.a1', {
+          defaultValue:
+            'CommitPulse turns your public GitHub contribution history into customizable SVG badges, dashboards, and 3D-style visualizations for your profile README.',
+        }),
+        category: 'General',
+      },
+      {
+        id: 2,
+        question: t('faq.q2', { defaultValue: 'How does CommitPulse get my GitHub data?' }),
+        answer: t('faq.a2', {
+          defaultValue:
+            'CommitPulse reads public contribution data from GitHub, then renders it as streak stats, heatmaps, comparison views, and shareable badge images.',
+        }),
+        category: 'How it Works',
+      },
+      {
+        id: 3,
+        question: t('faq.q3', { defaultValue: 'Is CommitPulse completely free?' }),
+        answer: t('faq.a3', {
+          defaultValue:
+            'Yes. CommitPulse is free and open source. You can use the hosted badge generator or self-host your own instance.',
+        }),
+        category: 'Pricing',
+      },
+      {
+        id: 4,
+        question: t('faq.q4', { defaultValue: 'Can I customize the badge?' }),
+        answer: t('faq.a4', {
+          defaultValue:
+            'Yes. You can choose themes, colors, views, layout dimensions, grace periods, timezone behavior, and other URL parameters.',
+        }),
+        category: 'Features',
+      },
+      {
+        id: 5,
+        question: t('faq.q5', {
+          defaultValue: 'Why does my contribution count differ from GitHub?',
+        }),
+        answer: t('faq.a5', {
+          defaultValue:
+            'GitHub and CommitPulse may calculate time boundaries differently. CommitPulse uses UTC-aware caching and supports timezone options to keep streak calculations consistent.',
+        }),
+        category: 'Features',
+      },
+      {
+        id: 6,
+        question: t('faq.q6', { defaultValue: 'Do private contributions count?' }),
+        answer: t('faq.a6', {
+          defaultValue:
+            'Private contributions can only appear when your GitHub profile settings allow private contribution visibility. Otherwise, CommitPulse can only show public activity.',
+        }),
+        category: 'Privacy',
+      },
+      {
+        id: 7,
+        question: t('faq.q7', { defaultValue: 'Can I self-host CommitPulse?' }),
+        answer: t('faq.a7', {
+          defaultValue:
+            'Yes. You can clone the repository, configure the required environment variables, and deploy it on Vercel or another compatible platform.',
+        }),
+        category: 'Self Hosting',
+      },
+      {
+        id: 8,
+        question: t('faq.q8', { defaultValue: 'How can I contribute to the project?' }),
+        answer: t('faq.a8', {
+          defaultValue:
+            'We welcome contributions. Check the GitHub repository for open issues, read the contribution guidelines, and pick a beginner-friendly issue to start.',
+        }),
+        category: 'Community',
+      },
+    ],
+    [t]
+  );
 
   const filteredFaqs = useMemo(() => {
     return faqs.filter(
@@ -90,7 +103,7 @@ export default function FAQPage() {
         faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
         faq.answer.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [searchQuery]);
+  }, [faqs, searchQuery]);
 
   const toggleFAQ = (id: number) => {
     setOpenIndex(openIndex === id ? null : id);
@@ -135,6 +148,7 @@ export default function FAQPage() {
                 <Search size={20} />
               </div>
               <input
+                aria-label="Search questions..."
                 type="text"
                 placeholder="Search questions..."
                 value={searchQuery}

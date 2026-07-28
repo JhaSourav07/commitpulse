@@ -83,6 +83,30 @@ describe('parseWebhookEvent', () => {
     expect(event?.status).toBe('pending');
   });
 
+  it('parses a check_run event with root-level repository', () => {
+    const payload = {
+      repository: {
+        name: 'commitpulse',
+        full_name: 'JhaSourav07/commitpulse',
+        owner: { login: 'JhaSourav07', type: 'User' },
+      },
+      check_run: {
+        id: 12345,
+        name: 'test-check',
+        status: 'completed',
+        conclusion: 'success',
+        started_at: recentIso,
+        completed_at: recentIso,
+      },
+    };
+    const event = parseWebhookEvent(payload);
+    expect(event).not.toBeNull();
+    expect(event?.type).toBe('check_run');
+    expect(event?.status).toBe('success');
+    expect(event?.repository).toBe('JhaSourav07/commitpulse');
+    expect(event?.details.name).toBe('test-check');
+  });
+
   it('returns null when no workflow_run or check_run in payload', () => {
     const event = parseWebhookEvent({});
     expect(event).toBeNull();

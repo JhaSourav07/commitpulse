@@ -832,7 +832,7 @@ describe('generateSVG', () => {
       );
 
       expect(svg).toContain(
-        '<title id="cp-title-octocat">CommitPulse User Stats for octocat</title>'
+        '<title id="cp-title-octocat">GitHub streak for octocat is 5 days</title>'
       );
       expect(svg).toContain('<desc id="cp-desc-octocat">');
       expect(svg).toContain('aria-labelledby="cp-title-octocat"');
@@ -1197,6 +1197,30 @@ describe('generateMonthlySVG', () => {
       bg: '1f0d14',
     } as unknown as BadgeParams);
     expect(svgRose).toContain('fill: #ff4b72');
+  });
+  it('resolves to the first-declared theme when multiple themes share the same bg color', () => {
+    // 'highcontrast' and 'lumos' both use bg '0a0a0a' but have different
+    // negative colors. 'highcontrast' is declared first in themes.ts, so
+    // the lookup (whether a linear scan or a precomputed map) must resolve
+    // to its negative color ('ff3333'), not lumos's ('ef4444').
+    expect(themes.highcontrast.bg.toLowerCase()).toBe(themes.lumos.bg.toLowerCase());
+    expect(themes.highcontrast.negative).not.toBe(themes.lumos.negative);
+
+    const negativeStats: MonthlyStats = {
+      currentMonthTotal: 5,
+      previousMonthTotal: 20,
+      deltaPercentage: -75,
+      deltaAbsolute: -15,
+      currentMonthName: 'June',
+    };
+
+    const svg = generateMonthlySVG(negativeStats, {
+      user: 'octocat',
+      bg: '0a0a0a',
+    } as unknown as BadgeParams);
+
+    expect(svg).toContain(`fill: #${themes.highcontrast.negative}`);
+    expect(svg).not.toContain(`fill: #${themes.lumos.negative}`);
   });
 
   it('renders monthly stats correctly with percentage delta', () => {
@@ -2668,6 +2692,79 @@ describe('XML Validation - All Generator Outputs', () => {
       expect(svg).toContain('Auto Title');
       expect(svg).toContain('Auto Subtitle');
       expect(svg).toContain('class="subtitle"');
+    });
+  });
+
+  describe('label parameter custom title rendering', () => {
+    const baseParams = {
+      user: 'avi',
+      bg: hexColor('0d1117'),
+      text: hexColor('c9d1d9'),
+      accent: hexColor('58a6ff'),
+      speed: '8s',
+      scale: 'linear',
+    } as const;
+
+    it('renders custom label instead of uppercase username when custom label is supplied', () => {
+      const svg = generateSVG(
+        mockStats,
+        {
+          ...baseParams,
+          label: 'Team Streak',
+        },
+        mockCalendar
+      );
+
+      assertValidSVG(svg);
+      expect(svg).toContain('Team Streak');
+      expect(svg).not.toContain('AVI');
+    });
+
+    it('sanitizes custom label to prevent XSS / XML Injection', () => {
+      const svg = generateSVG(
+        mockStats,
+        {
+          ...baseParams,
+          label: '<script>alert(1)</script>',
+        },
+        mockCalendar
+      );
+
+      assertValidSVG(svg);
+      expect(svg).not.toContain('<script>');
+      expect(svg).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+    });
+
+    it('truncates custom label if it exceeds 40 characters', () => {
+      const longLabel = 'a'.repeat(50);
+      const expectedLabel = 'a'.repeat(40) + '...';
+      const svg = generateSVG(
+        mockStats,
+        {
+          ...baseParams,
+          label: longLabel,
+        },
+        mockCalendar
+      );
+
+      assertValidSVG(svg);
+      expect(svg).toContain(expectedLabel);
+      expect(svg).not.toContain(longLabel);
+    });
+
+    it('works correctly in auto-theme mode', () => {
+      const svg = generateSVG(
+        mockStats,
+        {
+          user: 'avi',
+          autoTheme: true,
+          label: 'Auto Label Title',
+        } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      assertValidSVG(svg);
+      expect(svg).toContain('Auto Label Title');
     });
   });
 

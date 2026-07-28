@@ -1,3 +1,4 @@
+import type { GeneratorState } from '../types';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, vi } from 'vitest';
@@ -15,9 +16,25 @@ vi.mock('framer-motion', () => ({
   },
 }));
 
+const mockState: GeneratorState = {
+  name: '',
+  description: '',
+  selectedTechs: [],
+  selectedSocials: [],
+  socialLinks: {},
+  githubUsername: 'test',
+  showCommitPulse: false,
+  commitPulseAccent: '',
+  showRepoSpotlight: false,
+  spotlightRepo: '',
+  showSnakeGraph: false,
+  showPacmanGraph: false,
+  graphPlacement: 'bottom',
+};
+
 describe('PreviewPanel Component - Empty Fallback Tests', () => {
   it('Case 1: Render PreviewPanel with null/empty content strings and verify that a clear, non-breaking default fallback UI text or placeholder is displayed', () => {
-    render(<PreviewPanel markdown="" />);
+    render(<PreviewPanel markdown="" state={mockState} />);
 
     expect(screen.getByText('README.md')).toBeInTheDocument();
     expect(screen.getByText(/0 chars/)).toBeInTheDocument();
@@ -31,12 +48,12 @@ describe('PreviewPanel Component - Empty Fallback Tests', () => {
     };
 
     expect(() => {
-      render(<PreviewPanel {...(props as { markdown: string })} />);
+      render(<PreviewPanel {...(props as { markdown: string })} state={mockState} />);
     }).not.toThrow();
   });
 
   it('Case 3: Verify standard structural CSS styles or container class names are maintained even when the layout displays its default empty layout state', () => {
-    const { container } = render(<PreviewPanel markdown="" />);
+    const { container } = render(<PreviewPanel markdown="" state={mockState} />);
 
     const outerContainer = container.firstChild as HTMLElement;
     expect(outerContainer).toHaveClass('flex', 'flex-col', 'h-full', 'rounded-2xl', 'border');
@@ -51,7 +68,7 @@ describe('PreviewPanel Component - Empty Fallback Tests', () => {
   it('Case 4: Assert that no unexpected runtime errors or execution breaks occur during initial render mounting with empty parameters', () => {
     let renderResult;
     expect(() => {
-      renderResult = render(<PreviewPanel markdown="" />);
+      renderResult = render(<PreviewPanel markdown="" state={mockState} />);
     }).not.toThrow();
 
     expect(renderResult).toBeDefined();
@@ -59,7 +76,7 @@ describe('PreviewPanel Component - Empty Fallback Tests', () => {
   });
 
   it('Case 5: Scan key DOM tree structures to confirm that specific empty state markers, descriptions, or fallback test IDs exist inside the document', () => {
-    const { container } = render(<PreviewPanel markdown="" />);
+    const { container } = render(<PreviewPanel markdown="" state={mockState} />);
 
     const panelPreview = container.querySelector('#panel-preview');
     expect(panelPreview).toBeInTheDocument();

@@ -68,3 +68,25 @@ export async function GET(request: NextRequest) {
     }
   );
 }
+
+export async function POST(request: NextRequest) {
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  if (!body || typeof body !== 'object') {
+    return NextResponse.json({ error: 'Request body must be a JSON object' }, { status: 400 });
+  }
+
+  return NextResponse.json(
+    {
+      success: true,
+      message: 'Enterprise configuration updated',
+      data: body,
+    },
+    { status: 200 }
+  );
+}

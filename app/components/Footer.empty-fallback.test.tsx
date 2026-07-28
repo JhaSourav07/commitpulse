@@ -95,11 +95,11 @@ describe('Footer empty-fallback and edge-cases', () => {
     expect(homeLink).not.toHaveAttribute('aria-label'); // undefined ariaLabel
     expect(homeLink).not.toHaveAttribute('target'); // not external
 
-    // External Link Component
-    const githubLink = screen.getByRole('link', { name: 'CommitPulse on GitHub' });
-    expect(githubLink).toBeInTheDocument();
-    expect(githubLink).toHaveAttribute('target', '_blank');
-    expect(githubLink).toHaveAttribute('rel', 'noopener noreferrer');
+    // External Link Component — now appears twice (Connect column + bottom bar icon strip)
+    const githubLinks = screen.getAllByRole('link', { name: 'CommitPulse on GitHub' });
+    expect(githubLinks.length).toBeGreaterThanOrEqual(1);
+    expect(githubLinks[0]).toHaveAttribute('target', '_blank');
+    expect(githubLinks[0]).toHaveAttribute('rel', 'noopener noreferrer');
   });
 
   it('renders correct current year when system date environment changes', () => {

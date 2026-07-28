@@ -212,14 +212,16 @@ AssertionError: expected '<svg width="600"…' to include 'width="100%"'
 
 **Interpreting SVG URL responses in the browser:**
 
-| What you see                                 | What it means                                              |
-| -------------------------------------------- | ---------------------------------------------------------- |
-| Animated isometric city renders correctly    | ✅ Everything is working                                   |
-| Ghost-city badge with "NOT FOUND" label      | ✅ Working — the username doesn't exist on GitHub          |
-| Styled error card with "Invalid username"    | ✅ Working — the username format was invalid               |
-| Raw JSON `{"error":"Invalid parameters"...}` | ❌ Bug — validation errors must return SVG, not JSON       |
-| Browser XML parse error / blank white page   | ❌ Bug — unescaped `&` or malformed SVG in generator       |
-| `401 Unauthorized` in the terminal           | ❌ Your `GITHUB_PAT` in `.env.local` is missing or invalid |
+| What you see                                 | What it means                                        |
+| -------------------------------------------- | ---------------------------------------------------- |
+| Animated isometric city renders correctly    | ✅ Everything is working                             |
+| Ghost-city badge with "NOT FOUND" label      | ✅ Working — the username doesn't exist on GitHub    |
+| Styled error card with "Invalid username"    | ✅ Working — the username format was invalid         |
+| Raw JSON `{"error":"Invalid parameters"...}` | ❌ Bug — validation errors must return SVG, not JSON |
+| Browser XML parse error / blank white page   | ❌ Bug — unescaped `&` or malformed SVG in generator |
+
+| `401 Unauthorized` in the terminal
+❌ Your `GITHUB_PAT` in `.env.local` is missing or invalid |
 
 ### 5. Checking Branch Coverage Before Pushing
 
@@ -410,7 +412,7 @@ To maintain high quality in our codebase, we use structured **Issue Templates** 
 - **🐛 Bug Report Template**: For reporting visual glitches, API errors, or unexpected behavior.
 - **✨ Feature Request Template**: For suggesting new isometric monolith designs, themes, or time/accuracy improvements.
 
-By using these templates, you provide maintainers with clear details and context. Since you authored the issue, you can immediately claim it for yourself by commenting `/claim`! (Note: Issues authored by `jhasourav07` can be claimed by anyone).
+By using these templates, you provide maintainers with clear details and context. Since you authored the issue, you can immediately claim it for yourself by commenting `/claim`! (Note: Issues authored by `jhasourav07` can be claimed by anyone immediately. Additionally, if an issue is opened by anyone other than `jhasourav07` or `aamod007`, is older than 1 week, and has no assignees, any contributor can claim it).
 
 ### 🔍 Semantic Duplicate Detection
 
@@ -425,13 +427,13 @@ To help maintainers keep the repository organized and prevent multiple contribut
 
 Our automation runs entirely through issue comments. Here is how you interact with it:
 
-| Command                       | Who Can Use It?                                         | What It Does                                              |
-| ----------------------------- | ------------------------------------------------------- | --------------------------------------------------------- |
-| `/claim`                      | **Issue Author (or Anyone if authored by jhasourav07)** | Self-assigns the issue to you.                            |
-| `/unclaim`                    | **Assigned Contributor**                                | Removes the assignment from yourself (opens it back up).  |
-| `/addlabel <label1> <label2>` | **Anyone**                                              | Adds labels to the issue (e.g. `/addlabel frontend bug`). |
-| `/unassign @username`         | **Maintainers Only**                                    | Removes the assignee from an issue.                       |
-| `/assign @username`           | **Maintainers Only**                                    | Manually assigns someone to an issue.                     |
+| Command                       | Who Can Use It?                                                                                           | What It Does                                              |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `/claim`                      | **Issue Author (or Anyone if authored by jhasourav07, or Anyone if older than 1 week with no assignees)** | Self-assigns the issue to you.                            |
+| `/unclaim`                    | **Assigned Contributor**                                                                                  | Removes the assignment from yourself (opens it back up).  |
+| `/addlabel <label1> <label2>` | **Anyone**                                                                                                | Adds labels to the issue (e.g. `/addlabel frontend bug`). |
+| `/unassign @username`         | **Maintainers Only**                                                                                      | Removes the assignee from an issue.                       |
+| `/assign @username`           | **Maintainers Only**                                                                                      | Manually assigns someone to an issue.                     |
 
 ### ⏳ The Inactivity Policy (Assignment Expiry)
 
@@ -456,7 +458,7 @@ If the bot rejects your command, check these common scenarios:
 - **"Commands cannot be used on closed issues"**: You cannot claim, assign, or unassign on closed issues. Find an open one!
 - **"You already have X/5 active assigned issues"**: You have reached the maximum of 5 concurrent assignments. Finish one of your current tasks before claiming a new issue. If you're stuck, use the `/unclaim` command to unassign yourself from an issue, or ask a maintainer to `/unassign` you.
 - **"This issue is already assigned to @username"**: Be faster next time! Look for issues without assignees.
-- **"Only the author of this issue can claim it"**: You tried to `/claim` an issue you did not create. You can only claim issues that you authored (unless the issue was authored by `jhasourav07`, which anyone can claim).
+- **"Only the author of this issue can claim it"**: You tried to `/claim` an issue you did not create. You can only claim issues that you authored (unless the issue is older than 1 week with no assignees, or was authored by `jhasourav07`, which anyone can claim).
 - **"The following label(s) do not exist"**: You can only add existing repo labels. The bot will reply with a list of valid labels you can use.
 - **"You don't have permission"**: You tried to use `/assign` or `/unassign`. Please use `/claim` instead.
 

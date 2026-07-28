@@ -1,4 +1,5 @@
 'use client';
+import { copyToClipboard } from '@/utils/clipboard';
 import Link from 'next/link';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
@@ -28,7 +29,7 @@ export default function ErrorBoundary({
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(terminalContent);
+      await copyToClipboard(terminalContent);
       toast.success('Terminal output copied!');
     } catch {
       toast.error('Failed to copy terminal output');

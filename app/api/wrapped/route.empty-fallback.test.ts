@@ -14,6 +14,7 @@ vi.mock('@/lib/svg/generator', () => ({
   generateWrappedSVG: vi.fn(() => '<svg>mock-wrapped</svg>'),
   generateNotFoundSVG: vi.fn(() => '<svg>mock-not-found</svg>'),
   generateRateLimitSVG: vi.fn(() => '<svg>mock-rate-limit</svg>'),
+  buildInlineErrorSVG: vi.fn((text: string) => `<svg>mock-inline-error: ${text}</svg>`),
 }));
 
 vi.mock('@/utils/getClientIp', () => ({

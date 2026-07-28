@@ -33,6 +33,7 @@ export interface CommitPulseSectionProps {
   onGithubUsernameChange: (v: string) => void;
   onShowCommitPulseChange: (v: boolean) => void;
   onCommitPulseAccentChange: (v: string) => void;
+  onReset?: () => void;
 }
 
 const BADGE_BASE = 'https://commitpulse.vercel.app/api/streak';
@@ -78,6 +79,7 @@ export function CommitPulseSection({
   onGithubUsernameChange,
   onShowCommitPulseChange,
   onCommitPulseAccentChange,
+  onReset,
 }: CommitPulseSectionProps) {
   const safeUsername = githubUsername || '';
   const safeAccent = commitPulseAccent || '';
@@ -193,6 +195,7 @@ export function CommitPulseSection({
         description="Embed your live 3D contribution streak in the README"
         defaultOpen={true}
         badge={badgeCount}
+        onReset={onReset}
       >
         <div className="flex items-center justify-between mb-5">
           <div>

@@ -38,10 +38,10 @@ const SHOWDOWNS = [
     badgeColor: 'border-purple-500/30 text-purple-400 bg-purple-500/5',
   },
   {
-    u1: 'vercel',
-    u2: 'netlify',
+    u1: 'rauchg',
+    u2: 'biilmann',
     label: 'Vercel vs Netlify',
-    desc: 'Platform Wars',
+    desc: 'Founder Showdown',
     badgeColor: 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5',
   },
   {
@@ -522,9 +522,11 @@ export default function DeveloperArena({ onSelectBattle }: DeveloperArenaProps) 
                     className="flex items-start gap-4"
                   >
                     <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-white/10 shrink-0">
-                      <img
+                      <Image
                         src={`https://github.com/${currentChallenge.username}.png`}
                         alt={currentChallenge.name}
+                        width={64}
+                        height={64}
                         className="w-full h-full object-cover"
                       />
                     </div>
@@ -723,9 +725,11 @@ export default function DeveloperArena({ onSelectBattle }: DeveloperArenaProps) 
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="relative w-12 h-12 rounded-full overflow-hidden border border-white/10 bg-zinc-800 shrink-0">
-                      <img
+                      <Image
                         src={`https://github.com/${legend.username}.png`}
                         alt={legend.name}
+                        width={48}
+                        height={48}
                         className="w-full h-full object-cover"
                       />
                     </div>

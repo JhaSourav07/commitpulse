@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { validateGitHubUsername } from '@/lib/validations';
 import { getFullDashboardData } from '@/lib/github';
+import { fetchPRInsights } from '@/services/github/pr-insights';
 import type {
   AchievementDef,
   AchievementCategory,
@@ -570,9 +571,13 @@ export async function GET(request: Request) {
 
   try {
     const userToken = await getUserGitHubToken();
-    const dashboardData = await getFullDashboardData(username, { token: userToken });
+    const [dashboardData, prInsightsData] = await Promise.all([
+      getFullDashboardData(username, { token: userToken }),
+      fetchPRInsights(username, userToken).catch(() => null),
+    ]);
 
     const { profile, stats, languages } = dashboardData;
+
     const totalStars = profile.stats.stars;
     const totalForks =
       (dashboardData.popularRepos as Array<{ forkCount: number }> | undefined)?.reduce(
@@ -644,7 +649,7 @@ export async function GET(request: Request) {
       'weekend-warrior': weekendContributions,
       'pr-rookie': stats.totalPRs,
       'pr-master': stats.totalPRs,
-      'merge-master': stats.totalPRs,
+      'merge-master': prInsightsData?.mergedPRs ?? 0,
       'review-expert': stats.totalReviews,
       'pr-legend': stats.totalPRs,
       'star-collector': totalStars,
