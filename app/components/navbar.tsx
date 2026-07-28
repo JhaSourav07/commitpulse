@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Menu, X, Activity, Moon, Sun, Globe, ChevronDown, Check, Keyboard } from 'lucide-react';
 import { useGlowEffect } from '@/hooks/useGlowEffect';
 import KeyboardShortcutsModal from '@/components/KeyboardShortcutsModal';
+import CommandPalette from '@/components/CommandPalette';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useThemeToggle } from './theme-switch';
 import { useTranslation, LANGUAGE_LABELS, type Language } from '@/context/TranslationContext';
@@ -170,6 +171,24 @@ export default function Navbar() {
 
   const [isHidden, setIsHidden] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+
+  useEffect(() => {
+    const handleGlobalPaletteShortcut = (e: KeyboardEvent) => {
+      const isTypingTarget =
+        e.target instanceof HTMLElement &&
+        (e.target.tagName === 'INPUT' ||
+          e.target.tagName === 'TEXTAREA' ||
+          e.target.isContentEditable);
+
+      if (!isTypingTarget && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalPaletteShortcut);
+    return () => window.removeEventListener('keydown', handleGlobalPaletteShortcut);
+  }, []);
 
   const pathname = usePathname();
 
@@ -532,6 +551,11 @@ export default function Navbar() {
         </div>
       </header>
       <KeyboardShortcutsModal isOpen={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      <CommandPalette
+        isOpen={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        onOpenShortcuts={() => setShortcutsOpen(true)}
+      />
     </>
   );
 }
