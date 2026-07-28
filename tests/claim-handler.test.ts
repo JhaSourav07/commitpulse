@@ -79,10 +79,10 @@ describe('handleClaim', () => {
     await handleClaim({ github: mockGithub, context: mockContext });
 
     expect(mockGithub.rest.issues.createComment).toHaveBeenCalledWith({
-      owner: 'JhaSourav07',
-      repo: 'commitpulse',
+      owner: mockContext.repo.owner,
+      repo: mockContext.repo.repo,
       issue_number: 123,
-      body: '❌ Commands cannot be used on closed issues.',
+      body: '...',
     });
     expect(mockGithub.rest.issues.get).not.toHaveBeenCalled();
   });
@@ -103,8 +103,8 @@ describe('handleClaim', () => {
     await handleClaim({ github: mockGithub, context: mockContext });
 
     expect(mockGithub.rest.issues.addAssignees).toHaveBeenCalledWith({
-      owner: 'JhaSourav07',
-      repo: 'commitpulse',
+      owner: mockContext.repo.owner,
+      repo: mockContext.repo.repo,
       issue_number: 123,
       assignees: ['author1'],
     });
@@ -125,8 +125,8 @@ describe('handleClaim', () => {
     await handleClaim({ github: mockGithub, context: mockContext });
 
     expect(mockGithub.rest.issues.addAssignees).toHaveBeenCalledWith({
-      owner: 'JhaSourav07',
-      repo: 'commitpulse',
+      owner: mockContext.repo.owner,
+      repo: mockContext.repo.repo,
       issue_number: 123,
       assignees: ['anyone'],
     });
@@ -150,8 +150,8 @@ describe('handleClaim', () => {
     await handleClaim({ github: mockGithub, context: mockContext });
 
     expect(mockGithub.rest.issues.createComment).toHaveBeenCalledWith({
-      owner: 'JhaSourav07',
-      repo: 'commitpulse',
+      owner: mockContext.repo.owner,
+      repo: mockContext.repo.repo,
       issue_number: 123,
       body: '❌ Only the author of this issue (@somebody) can claim it.',
     });
@@ -175,8 +175,8 @@ describe('handleClaim', () => {
     await handleClaim({ github: mockGithub, context: mockContext });
 
     expect(mockGithub.rest.issues.addAssignees).toHaveBeenCalledWith({
-      owner: 'JhaSourav07',
-      repo: 'commitpulse',
+      owner: mockContext.repo.owner,
+      repo: mockContext.repo.repo,
       issue_number: 123,
       assignees: ['anyone'],
     });
@@ -200,8 +200,8 @@ describe('handleClaim', () => {
     await handleClaim({ github: mockGithub, context: mockContext });
 
     expect(mockGithub.rest.issues.createComment).toHaveBeenCalledWith({
-      owner: 'JhaSourav07',
-      repo: 'commitpulse',
+      owner: mockContext.repo.owner,
+      repo: mockContext.repo.repo,
       issue_number: 123,
       body: '❌ Only the author of this issue (@aamod007) can claim it.',
     });
@@ -219,11 +219,23 @@ describe('handleClaim', () => {
       },
     });
 
+    it("handles GitHub API failure", async () => {
+      mockGithub.rest.issues.get.mockRejectedValueOnce(
+        new Error("GitHub API failed")
+      );
+      await expect(
+        handleClaim({
+          github: mockGithub,
+          context: mockContext,
+        })
+      ).rejects.toThrow("GitHub API failed");
+    });
+
     await handleClaim({ github: mockGithub, context: mockContext });
 
     expect(mockGithub.rest.issues.createComment).toHaveBeenCalledWith({
-      owner: 'JhaSourav07',
-      repo: 'commitpulse',
+      owner: mockContext.repo.owner,
+      repo: mockContext.repo.repo,
       issue_number: 123,
       body: '❌ This issue is already assigned to @assigned_user',
     });
