@@ -568,7 +568,7 @@ export default function DashboardClient({
     <div
       id="dashboard-root"
       data-dashboard
-      className="p-4 md:p-6 lg:p-8 min-h-screen relative bg-transparent"
+      className="p-4 md:p-6 lg:p-8 min-h-screen relative bg-transparent w-full max-w-full overflow-x-hidden"
     >
       <div
         id="generate-dashboard-btn"
@@ -584,7 +584,7 @@ export default function DashboardClient({
             </button>
           )}
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:flex lg:flex-wrap gap-3 w-full lg:w-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:flex lg:flex-wrap gap-3 w-full lg:w-auto">
           {!isCompareMode && (
             <>
               <button

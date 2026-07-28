@@ -15,6 +15,7 @@ import { Check, Code, Copy, Download, ExternalLink, Loader2, Sparkles, X } from 
 import type { DashboardExportData } from '@/types/dashboard';
 import { useShareActions } from '@/hooks/useShareActions';
 import { useTranslation } from '@/context/TranslationContext';
+import { SITE_URL } from '@/lib/constants';
 
 type OptionState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -147,7 +148,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
   const [mdCopied, setMdCopied] = useState(false);
   const [toast, setToast] = useState<{ msg: string; id: number } | null>(null);
 
-  const profileUrl = `https://commitpulse.vercel.app/dashboard/${username}`;
+  const profileUrl = `${SITE_URL}/dashboard/${username}`;
 
   const handleWhatsApp = () => {
     const text = encodeURIComponent(profileUrl);

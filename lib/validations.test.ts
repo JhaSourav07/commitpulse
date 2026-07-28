@@ -9,6 +9,9 @@ import {
   validateGitHubUsername,
 } from './validations';
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 function parse(params: Record<string, string>) {
   return streakParamsSchema.parse({ user: 'octocat', ...params });
 }
@@ -1708,5 +1711,34 @@ describe('streakParamsSchema — days parameter validation', () => {
     const result = streakParamsSchema.safeParse({ user: 'octocat' });
     expect(result.success).toBe(true);
     if (result.success) expect(result.data.days).toBeUndefined();
+  });
+});
+
+describe('[Docs] customization.md documents every real `view` enum value', () => {
+  const docsContent = readFileSync(join(__dirname, '../docs/customization.md'), 'utf-8');
+
+  // Mirrors the exact enum in streakParamsSchema's `view` field.
+  const REAL_VIEWS = [
+    'default',
+    'monthly',
+    'heatmap',
+    'pulse',
+    'skyline',
+    'languages',
+    'constellation',
+    'radar',
+    'doughnut',
+    'pie',
+    'activity_graph',
+    'commit_clock',
+    'weekday',
+  ];
+
+  it('mentions every real view value at least once', () => {
+    for (const view of REAL_VIEWS) {
+      expect(docsContent, `docs/customization.md should mention view="${view}"`).toContain(
+        `\`${view}\``
+      );
+    }
   });
 });

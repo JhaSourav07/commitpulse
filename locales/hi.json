@@ -120,6 +120,10 @@
     "title": "अपने मोनोलिथ को फाइन-ट्यून करें।",
     "desc": "नीचे दिया गया हर बदलाव लाइव पूर्वावलोकन को रीयल-टाइम में अपडेट करता है। काम पूरा होने पर एक्सपोर्ट स्निपेट कॉपी करें। कोई अतिरिक्त कदम नहीं।",
     "live_preview": "लाइव पूर्वावलोकन",
+    "preview_toggle_to_light": "हल्के पृष्ठभूमि पूर्वावलोकन पर स्विच करें",
+    "preview_toggle_to_dark": "गहरे पृष्ठभूमि पूर्वावलोकन पर स्विच करें",
+    "preview_toggle_light_label": "हल्का",
+    "preview_toggle_dark_label": "गहरा",
     "active_params": "सक्रिय पैरामीटर",
     "empty_preview_desc": "यूज़रनेम जोड़ने के बाद लाइव बैज पूर्वावलोकन यहां दिखाई देगा।",
     "controls": {
@@ -492,7 +496,15 @@
       "merge_rate_header": "Merge Rate",
       "reviews_header": "Reviews",
       "avg_review_header": "Avg Review Time",
-      "no_repos": "No repository data available."
+      "no_repos": "कोई रिपॉजिटरी डेटा उपलब्ध नहीं है।",
+      "velocity_title": "PR समीक्षा गति",
+      "velocity_subtitle": "रिपॉजिटरी में पुल अनुरोधों की समीक्षा कितनी जल्दी होती है, यह समझें",
+      "first_review": "प्रथम समीक्षा",
+      "velocity_first_review": "पहली समीक्षा तक का समय",
+      "cycle_time": "चक्र समय",
+      "avg_review_time": "औसत समीक्षा समय",
+      "fastest_merge": "सबसे तेज़ मर्ज",
+      "repo_turnaround": "रिपॉजिटरी टर्नअराउंड"
     },
     "enterprise": {
       "title": "Enterprise Engineering Health Dashboard",
