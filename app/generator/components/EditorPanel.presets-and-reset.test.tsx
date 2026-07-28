@@ -34,6 +34,7 @@ describe('EditorPanel Section Reset & Profile Presets', () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
