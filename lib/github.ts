@@ -34,10 +34,18 @@ export interface GitHubRepo {
   participation?: number[];
 }
 
-const MAX_RETRIES = Number(process.env.GITHUB_MAX_RETRIES ?? '3');
-const BASE_DELAY_MS = Number(process.env.GITHUB_BASE_DELAY_MS ?? '500');
-const MAX_RETRY_DELAY_MS = Number(process.env.GITHUB_MAX_RETRY_DELAY_MS ?? '5000');
+/** Maximum number of retry attempts for GitHub API calls. Configurable via GITHUB_MAX_RETRIES env var (default: 3). */
+export const MAX_RETRIES = Number(process.env.GITHUB_MAX_RETRIES ?? '3');
+/** Base delay in milliseconds before the first retry. Configurable via GITHUB_BASE_DELAY_MS env var (default: 500). */
+export const BASE_DELAY_MS = Number(process.env.GITHUB_BASE_DELAY_MS ?? '500');
+/** Maximum delay in milliseconds between retries. Configurable via GITHUB_MAX_RETRY_DELAY_MS env var (default: 5000). */
+export const MAX_RETRY_DELAY_MS = Number(process.env.GITHUB_MAX_RETRY_DELAY_MS ?? '5000');
 
+/**
+ * Calculates a jittered backoff delay for retry logic.
+ * @param attempt - The zero-based retry attempt number.
+ * @returns The delay in milliseconds with random jitter applied.
+ */
 export function getJitteredBackoff(attempt: number): number {
   const base = BASE_DELAY_MS * Math.pow(2, attempt);
   const jitter = 0.5 + Math.random() * 0.5;
@@ -2698,9 +2706,24 @@ export async function getWrappedData(
     token: options?.token,
   };
 
-  const [userData, repos] = await Promise.all([
+  const prevYear = (parseInt(normalizedYear, 10) - 1).toString();
+  const prevFrom = convertLocalToUtc(parseInt(prevYear, 10), 1, 1, 0, 0, 0, timezone);
+  const prevTo = convertLocalToUtc(parseInt(prevYear, 10), 12, 31, 23, 59, 59, timezone);
+  const prevFetchOptions: FetchOptions = {
+    ...fetchOptions,
+    from: prevFrom,
+    to: prevTo,
+  };
+
+  const [userData, prevUserData, hourDistribution] = await Promise.all([
     fetchGitHubContributions(username, fetchOptions),
-    fetchUserRepos(username, fetchOptions),
+    fetchGitHubContributions(username, prevFetchOptions).catch(() => ({
+      calendar: { totalContributions: 0, weeks: [] },
+      repoContributions: [],
+    })),
+    fetchCommitHourDistribution(username, options?.token, timezone).catch(() =>
+      new Array(24).fill(0)
+    ),
   ]);
   const calendar = userData.calendar;
   const allDays = calendar.weeks.flatMap((w) => w.contributionDays);
@@ -2730,11 +2753,107 @@ export async function getWrappedData(
   const weekendRatio =
     totalContributions > 0 ? Math.round((weekendTotal / totalContributions) * 100) : 0;
 
+  const streakStats = calculateStreak(calendar, timezone);
+  const longestStreak = streakStats.longestStreak;
+
+  const previousYearContributions = prevUserData?.calendar?.totalContributions || 0;
+  const diff = totalContributions - previousYearContributions;
+  const contributionGrowth =
+    previousYearContributions > 0
+      ? Math.round((diff / previousYearContributions) * 100)
+      : totalContributions > 0
+        ? 100
+        : 0;
+
+  const mostActiveRepos = (userData.repoContributions || [])
+    .map((rc) => ({
+      name: rc.repository.name,
+      commits: rc.contributions.totalCount,
+    }))
+    .sort((a, b) => b.commits - a.commits)
+    .slice(0, 5);
+
   const langCounts: Record<string, number> = {};
-  for (const repo of repos) {
-    if (repo.language) langCounts[repo.language] = (langCounts[repo.language] || 0) + 1;
+  for (const rc of userData.repoContributions || []) {
+    const lang = rc.repository.primaryLanguage?.name;
+    if (lang) {
+      langCounts[lang] = (langCounts[lang] || 0) + rc.contributions.totalCount;
+    }
   }
-  const topLanguage = Object.entries(langCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'Unknown';
+  const totalLangContributions = Object.values(langCounts).reduce((a, b) => a + b, 0);
+  const primaryLanguages = Object.entries(langCounts)
+    .map(([name, count]) => ({
+      name,
+      percentage:
+        totalLangContributions > 0 ? Math.round((count / totalLangContributions) * 100) : 0,
+      color: LANGUAGE_COLORS[name] ?? '#a855f7',
+    }))
+    .sort((a, b) => b.percentage - a.percentage)
+    .slice(0, 5);
+
+  const topLanguage = primaryLanguages[0]?.name || 'Unknown';
+
+  const weekdayCounts = new Array(7).fill(0);
+  for (const day of allDays) {
+    if (!day || !day.date) continue;
+    const dow = new Date(day.date + 'T12:00:00Z').getUTCDay();
+    weekdayCounts[dow] += day.contributionCount;
+  }
+  const DAYS_OF_WEEK = [
+    'Sunday',
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+  ];
+  const maxDayIndex = weekdayCounts.reduce(
+    (maxIdx, currentVal, currentIdx, arr) => (currentVal > arr[maxIdx] ? currentIdx : maxIdx),
+    0
+  );
+  const mostProductiveDay = DAYS_OF_WEEK[maxDayIndex];
+
+  const maxVal = Math.max(...hourDistribution);
+  const mostActiveHour = maxVal > 0 ? hourDistribution.indexOf(maxVal) : 12;
+
+  const milestones = [
+    {
+      name: 'First 100 Contributions',
+      description: 'Crossed 100 contributions in a single year.',
+      unlocked: totalContributions >= 100,
+    },
+    {
+      name: 'Century Contributor',
+      description: 'Crossed 500 contributions in a single year.',
+      unlocked: totalContributions >= 500,
+    },
+    {
+      name: 'Elite Developer',
+      description: 'Crossed 1000 contributions in a single year.',
+      unlocked: totalContributions >= 1000,
+    },
+    {
+      name: 'Grandmaster Contributor',
+      description: 'Crossed 2500 contributions in a single year.',
+      unlocked: totalContributions >= 2500,
+    },
+    {
+      name: 'Consistent Coder',
+      description: 'Achieved a contribution streak of 7+ days.',
+      unlocked: longestStreak >= 7,
+    },
+    {
+      name: 'Unstoppable Streak',
+      description: 'Achieved a contribution streak of 30+ days.',
+      unlocked: longestStreak >= 30,
+    },
+    {
+      name: 'Dev Dedicated',
+      description: 'Achieved a contribution streak of 100+ days.',
+      unlocked: longestStreak >= 100,
+    },
+  ];
 
   return {
     totalContributions,
@@ -2744,6 +2863,14 @@ export async function getWrappedData(
     weekendRatio,
     topLanguage,
     calendar,
+    longestStreak,
+    previousYearContributions,
+    contributionGrowth,
+    mostActiveRepos,
+    primaryLanguages,
+    milestones,
+    mostProductiveDay,
+    mostActiveHour,
   };
 }
 
