@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET } from './route';
+import type { GitHubRepo } from '@/lib/github';
 
 vi.mock('@/lib/github', () => ({
   fetchUserRepos: vi.fn(),
@@ -63,7 +64,7 @@ describe('GET /api/languages', () => {
     vi.mocked(fetchUserRepos).mockResolvedValue([
       { name: 'repo1', stargazers_count: 10, language: 'JavaScript' },
       { name: 'repo2', stargazers_count: 5, language: 'TypeScript' },
-    ] as any);
+    ] as GitHubRepo[]);
 
     const req = makeRequest({ user: 'octocat' });
     const res = await GET(req);
@@ -80,7 +81,7 @@ describe('GET /api/languages', () => {
     vi.mocked(fetchUserRepos).mockResolvedValue([
       { name: 'repo1', stargazers_count: 10, language: 'JavaScript' },
       { name: 'repo2', stargazers_count: 5, language: 'TypeScript' },
-    ] as any);
+    ] as GitHubRepo[]);
 
     const req = makeRequest({ user: 'octocat', format: 'json' });
     const res = await GET(req);
@@ -95,7 +96,7 @@ describe('GET /api/languages', () => {
   it('returns 304 Not Modified when ETag matches if-none-match', async () => {
     vi.mocked(fetchUserRepos).mockResolvedValue([
       { name: 'repo1', stargazers_count: 10, language: 'JavaScript' },
-    ] as any);
+    ] as GitHubRepo[]);
 
     const initialReq = makeRequest({ user: 'octocat' });
     const initialRes = await GET(initialReq);

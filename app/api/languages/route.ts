@@ -101,8 +101,10 @@ export async function GET(request: Request) {
   const text = searchParams.get('text') || undefined;
   const accent = searchParams.get('accent') || undefined;
   const title = searchParams.get('title') || undefined;
-  const hideTitle = searchParams.get('hide_title') === 'true' || searchParams.get('hide_title') === '1';
-  const hideBorder = searchParams.get('hide_border') === 'true' || searchParams.get('hide_border') === '1';
+  const hideTitle =
+    searchParams.get('hide_title') === 'true' || searchParams.get('hide_title') === '1';
+  const hideBorder =
+    searchParams.get('hide_border') === 'true' || searchParams.get('hide_border') === '1';
   const format = searchParams.get('format') || 'svg';
   const rawRadius = searchParams.get('radius');
   const radius = rawRadius ? Number(rawRadius) : undefined;

@@ -144,14 +144,12 @@ export function generateLanguagesSVG(
     `;
   }
 
-  const borderStroke = hideBorder
-    ? ''
-    : 'stroke="#ffffff" stroke-opacity="0.1" stroke-width="1"';
+  const borderStroke = hideBorder ? '' : 'stroke="#ffffff" stroke-opacity="0.1" stroke-width="1"';
 
   return `
     <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${
-    user ? `${user}'s language distribution` : 'Language distribution'
-  }">
+      user ? `${user}'s language distribution` : 'Language distribution'
+    }">
       <style>
         ${DEFAULT_FONTS_BASE64}
         .card-title {
