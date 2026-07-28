@@ -496,7 +496,15 @@
       "merge_rate_header": "Merge Rate",
       "reviews_header": "Reviews",
       "avg_review_header": "Avg Review Time",
-      "no_repos": "No repository data available."
+      "no_repos": "कोई रिपॉजिटरी डेटा उपलब्ध नहीं है।",
+      "velocity_title": "PR समीक्षा गति",
+      "velocity_subtitle": "रिपॉजिटरी में पुल अनुरोधों की समीक्षा कितनी जल्दी होती है, यह समझें",
+      "first_review": "प्रथम समीक्षा",
+      "velocity_first_review": "पहली समीक्षा तक का समय",
+      "cycle_time": "चक्र समय",
+      "avg_review_time": "औसत समीक्षा समय",
+      "fastest_merge": "सबसे तेज़ मर्ज",
+      "repo_turnaround": "रिपॉजिटरी टर्नअराउंड"
     },
     "enterprise": {
       "title": "Enterprise Engineering Health Dashboard",

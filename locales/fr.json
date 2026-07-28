@@ -496,7 +496,15 @@
       "merge_rate_header": "Merge Rate",
       "reviews_header": "Reviews",
       "avg_review_header": "Avg Review Time",
-      "no_repos": "No repository data available."
+      "no_repos": "No repository data available.",
+      "velocity_title": "Vélocité de Revue de PR",
+      "velocity_subtitle": "Suivez la rapidité de revue des pull requests par dépôt",
+      "first_review": "First Review",
+      "velocity_first_review": "Délai 1ère Revue",
+      "cycle_time": "Temps de Cycle",
+      "avg_review_time": "Durée Moyenne de Revue",
+      "fastest_merge": "Fusion Plus Rapide",
+      "repo_turnaround": "Temps par Dépôt"
     },
     "enterprise": {
       "title": "Enterprise Engineering Health Dashboard",
