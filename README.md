@@ -211,6 +211,8 @@ GITHUB_TOKEN=your_github_pat_here
 
 > Replace `your_github_pat_here` with your own GitHub Personal Access Token.
 
+> **Authentication header note:** When sending an `Authorization` header, use the conventional `Bearer` casing. The incorrect form `Authorization: bearer <token>` should be replaced with `Authorization: Bearer <token>`. Although RFC 7235 treats authentication schemes as case-insensitive, using `Bearer` helps avoid compatibility issues with certain proxies, API gateways, CDNs, and custom HTTP implementations. This casing issue was already fixed in PR #6147 and is documented here as historical reference and implementation guidance.
+
 > ⚠️ **Security Notice**
 >
 > - Never commit `.env.local` or any file containing secrets to Git.

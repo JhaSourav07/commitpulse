@@ -4,6 +4,20 @@ This document addresses common questions and troubleshooting topics regarding Co
 
 ---
 
+### How should I format an Authorization header?
+
+Use the conventional `Bearer` casing in the authentication scheme:
+
+```http
+Authorization: bearer <token>
+```
+
+```http
+Authorization: Bearer <token>
+```
+
+Although RFC 7235 treats authentication schemes as case-insensitive, using `Bearer` helps avoid compatibility issues with certain proxies, API gateways, CDNs, and custom HTTP implementations. This header-casing issue was already fixed in PR #6147 and is documented here as historical reference and implementation guidance.
+
 ### Why does my contribution count differ from GitHub?
 
 GitHub calculates contribution data using UTC timestamps. CommitPulse syncs cache invalidation with UTC midnight to ensure consistent results.
