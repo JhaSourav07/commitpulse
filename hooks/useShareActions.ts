@@ -51,6 +51,12 @@ function buildStreakSvgUrl(username: string): string {
   return url.toString();
 }
 
+export function buildLanguagesSvgUrl(username: string): string {
+  const url = new URL('/api/languages', getOrigin());
+  url.searchParams.set('user', sanitizeUsernameForUrl(username));
+  return url.toString();
+}
+
 function removeUnsafeSvgAttributes(element: Element) {
   const attributes = Array.from(element.attributes);
   for (const attr of attributes) {
@@ -326,6 +332,26 @@ export function useShareActions(
     }
   };
 
+  const handleDownloadLanguagesSVG = async () => {
+    setOptionState('languagesSvg', 'loading');
+    try {
+      const response = await fetch(buildLanguagesSvgUrl(username));
+      if (!response.ok) throw new Error('Failed to fetch Languages SVG');
+      const svgText = sanitizeAndCanonicalizeSvg(await response.text());
+      const blob = new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = `${sanitizeFilenameSegment(username)}-languages.svg`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+      setOptionState('languagesSvg', 'success');
+    } catch (err) {
+      console.error('[useShareActions] Languages SVG download failed:', err);
+      setOptionState('languagesSvg', 'error');
+    }
+  };
+
   const handleCopyMarkdown = async () => {
     setOptionState('markdown', 'loading');
     try {
@@ -512,6 +538,7 @@ export function useShareActions(
     handleDownloadWEBP,
     handleCopyImage,
     handleDownloadSVG,
+    handleDownloadLanguagesSVG,
     handleCopyMarkdown,
     handleDownloadCSV,
     handleDownloadJSON,
