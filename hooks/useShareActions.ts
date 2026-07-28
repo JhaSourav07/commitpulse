@@ -52,7 +52,7 @@ function buildStreakSvgUrl(username: string): string {
 }
 
 export function buildLanguagesSvgUrl(username: string): string {
-  const url = new URL('/api/languages', getOrigin());
+  const url = new URL('/api/languages', BADGE_BASE_URL);
   url.searchParams.set('user', sanitizeUsernameForUrl(username));
   return url.toString();
 }
