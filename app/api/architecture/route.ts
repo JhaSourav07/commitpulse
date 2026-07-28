@@ -9,6 +9,7 @@ import pLimit from 'p-limit';
 import { cloneGitHubRepository } from '@/lib/git-clone';
 import { getGitHubTokens } from '@/lib/github';
 import { formatRepoRefForLogging, sanitizeErrorForLogging } from '@/lib/sanitize-git-credentials';
+import { rateLimit } from '@/lib/rate-limit';
 import { getClientIp } from '@/utils/getClientIp';
 
 const execFilePromise = promisify(execFile);
@@ -316,6 +317,15 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const ip = getClientIp(req);
+    const rateLimitResult = await rateLimit(ip, 5, 60000);
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429 }
+      );
+    }
     const { repoUrl } = await req.json();
 
     if (!repoUrl) {
