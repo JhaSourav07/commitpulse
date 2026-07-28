@@ -3,6 +3,16 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { EditorPanel } from './EditorPanel';
 import type { GeneratorState } from '../types';
 
+// Mock fetch to prevent real network requests from CommitPulseSection
+vi.stubGlobal(
+  'fetch',
+  vi.fn().mockResolvedValue({
+    ok: false,
+    status: 404,
+    json: () => Promise.resolve({ error: 'User not found' }),
+  })
+);
+
 const mockState: GeneratorState = {
   name: 'Original Name',
   description: 'Original Description',
