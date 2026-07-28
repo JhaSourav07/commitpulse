@@ -1,15 +1,84 @@
+/**
+ * lib/svg/punchcard.ts
+ *
+ * Renders a GitHub-style "punch card" SVG — an isometric grid where each cell
+ * represents one hour of one day of the week (24 columns x 7 rows). The height
+ * of each isometric "tower" scales with the commit count relative to the peak,
+ * and the tower opacity reflects relative intensity. Hour labels (12a, 6a, 12p,
+ * 6p) run along one diagonal; day-of-week labels (Mon-Sun) run along the other.
+ *
+ * The 24x7 grid uses a parallelogram layout derived from the tile half-width and
+ * half-height (TILE_W_HALF, TILE_H_HALF). The grid origin is offset horizontally
+ * so the full punch card is centered within the WIDTH canvas.
+ *
+ * @module
+ */
+
 import type { BadgeParams, StreakStats } from '../../types';
 import { escapeXML, sanitizeHexColor } from './sanitizer';
 import { truncateUsername, getSizeScale } from './generator';
 
+/** SVG canvas width in viewBox units. Scaled by getSizeScale() at render time. */
 const WIDTH = 800;
+
+/** SVG canvas height in viewBox units. Scaled by getSizeScale() at render time. */
 const HEIGHT = 400;
+
+/**
+ * Half-width of each isometric tile (from center to side edge).
+ * Controls the horizontal spacing between hour columns.
+ */
 const TILE_W_HALF = 12;
+
+/**
+ * Half-height of each isometric tile (from center to top/bottom edge).
+ * Controls the diagonal slope of both the hour and day axes.
+ */
 const TILE_H_HALF = 6.5;
 
+/**
+ * X coordinate of the grid's top-left corner anchor point.
+ * Derived from WIDTH, TILE_W_HALF, and TILE_H_HALF to center the 24x7
+ * parallelogram grid horizontally within the canvas.
+ */
 const ORIGIN_X = WIDTH / 2 - ((24 - 7) * TILE_W_HALF) / 2 - 20;
+
+/** Y coordinate of the grid's top-left corner anchor point. */
 const ORIGIN_Y = 160;
 
+/**
+ * Renders a GitHub-style punch card SVG for the given user.
+ *
+ * The punch card is an isometric 24x7 grid: rows represent days of the week
+ * (Mon at the top, Sun at the bottom) and columns represent hours of the day
+ * (12a at the left, 11 PM at the right). Each occupied cell is rendered as a
+ * 3-face isometric tower whose height scales with `punchCardData[day][hour]`
+ * relative to the peak value across the entire grid. The tower opacity scales
+ * from 0.3 (low activity) to 1.0 (peak activity).
+ *
+ * @param punchCardData - A 7x24 matrix of commit counts where `punchCardData[day][hour]`
+ *   is the number of commits on `dayNames[day]` during hour `hour` (0 = midnight).
+ *   Days are ordered Mon (index 0) through Sun (index 6). All 168 cells must
+ *   be present; missing data should be zero-filled.
+ * @param stats - Streak statistics used to populate the total-commits counter.
+ *   Requires `stats.totalContributions`.
+ * @param params - Badge rendering parameters. Controls background, text color, accent
+ *   color, size scale, corner radius, and visibility flags (hideBackground, hide_title,
+ *   hide_stats, custom_title).
+ * @returns A complete, self-contained SVG string. No external stylesheets are
+ *   required; the Inter font is loaded via an @import inside the SVG.
+ *
+ * @remarks
+ * The painter's algorithm renders days back-to-front (day 0 first, day 6 last) so
+ * that towers on later days overlap those on earlier days correctly.
+ *
+ * @example
+ * ```ts
+ * const data: number[][] = Array.from({ length: 7 }, () => new Array(24).fill(0));
+ * data[1][10] = 5; // 5 commits on Tuesday at 10 AM
+ * const svg = generatePunchcardSVG(data, { totalContributions: 5 }, {});
+ * ```
+ */
 export function generatePunchcardSVG(
   punchCardData: number[][],
   stats: StreakStats,
