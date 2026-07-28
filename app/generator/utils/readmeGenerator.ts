@@ -141,14 +141,18 @@ export function generateReadme(state: GeneratorState): string {
       .map((id) => {
         const social = getSocialById(id);
         if (!social) return null;
-        const val = state.socialLinks[id];
+        const val = state.socialLinks[id] || '';
         const sanitized = sanitizeSocialUrl(id, val);
-        const resolvedUrl =
+        let resolvedUrl =
           social.id === 'email'
             ? `mailto:${sanitized.replace(/^mailto:/i, '')}`
             : sanitized.startsWith('http')
               ? sanitized
-              : `${social.baseUrl}${sanitized}`;
+              : `${social.baseUrl || ''}${sanitized}`;
+
+        if (social.id !== 'email' && !/^https?:\/\//i.test(resolvedUrl)) {
+          resolvedUrl = `https://${resolvedUrl}`;
+        }
 
         if (social.type === 'simpleicon' && social.siSlug) {
           return [
