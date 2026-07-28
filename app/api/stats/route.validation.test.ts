@@ -67,9 +67,12 @@ describe('GET /api/stats additional runtime coverage', () => {
 
     expect(response.status).toBe(200);
 
-    expect(fetchGitHubContributions).toHaveBeenCalledWith('octocat', {
-      bypassCache: true,
-    });
+    expect(fetchGitHubContributions).toHaveBeenCalledWith(
+      'octocat',
+      expect.objectContaining({
+        bypassCache: true,
+      })
+    );
 
     expect(response.headers.get('X-Refresh-Status')).toBe('Fresh');
     expect(response.headers.get('X-Cache-Status')).toBe('MISS');
@@ -137,8 +140,11 @@ describe('GET /api/stats additional runtime coverage', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('X-Refresh-Status')).toBe('Cooldown-Served-Cached');
 
-    expect(fetchGitHubContributions).toHaveBeenLastCalledWith('octocat', {
-      bypassCache: false,
-    });
+    expect(fetchGitHubContributions).toHaveBeenLastCalledWith(
+      'octocat',
+      expect.objectContaining({
+        bypassCache: false,
+      })
+    );
   });
 });

@@ -1,3 +1,4 @@
+import type { GeneratorState } from '../types';
 import { describe, expect, it, vi, beforeEach, afterEach, MockInstance } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
@@ -49,6 +50,22 @@ class TestErrorBoundary extends React.Component<
   }
 }
 
+const mockState: GeneratorState = {
+  name: '',
+  description: '',
+  selectedTechs: [],
+  selectedSocials: [],
+  socialLinks: {},
+  githubUsername: 'test',
+  showCommitPulse: false,
+  commitPulseAccent: '',
+  showRepoSpotlight: false,
+  spotlightRepo: '',
+  showSnakeGraph: false,
+  showPacmanGraph: false,
+  graphPlacement: 'bottom',
+};
+
 describe('PreviewPanel: Hydration Stability, Exception Safety & Error Fallbacks', () => {
   let consoleErrorSpy: MockInstance;
 
@@ -67,7 +84,7 @@ describe('PreviewPanel: Hydration Stability, Exception Safety & Error Fallbacks'
   it('Test 1: should maintain Hydration Stability and render without crashing on initial load', () => {
     render(
       <TestErrorBoundary>
-        <PreviewPanel {...defaultProps} />
+        <PreviewPanel {...defaultProps} state={mockState} />
       </TestErrorBoundary>
     );
     expect(screen.getByText('Hello')).toBeInTheDocument();
@@ -78,7 +95,7 @@ describe('PreviewPanel: Hydration Stability, Exception Safety & Error Fallbacks'
     render(
       <TestErrorBoundary>
         {/* @ts-expect-error - injecting mock prop for testing purposes */}
-        <PreviewPanel forceCrash={true} {...defaultProps} />
+        <PreviewPanel forceCrash={true} {...defaultProps} state={mockState} />
       </TestErrorBoundary>
     );
     expect(screen.getByTestId('error-recovery-ui')).toBeInTheDocument();
@@ -88,7 +105,7 @@ describe('PreviewPanel: Hydration Stability, Exception Safety & Error Fallbacks'
     render(
       <TestErrorBoundary>
         {/* @ts-expect-error - injecting mock prop for testing purposes */}
-        <PreviewPanel forceCrash={true} {...defaultProps} />
+        <PreviewPanel forceCrash={true} {...defaultProps} state={mockState} />
       </TestErrorBoundary>
     );
     expect(screen.getByText('Something went wrong.')).toBeInTheDocument();
@@ -99,7 +116,7 @@ describe('PreviewPanel: Hydration Stability, Exception Safety & Error Fallbacks'
     render(
       <TestErrorBoundary>
         {/* @ts-expect-error - injecting mock prop for testing purposes */}
-        <PreviewPanel forceCrash={true} {...defaultProps} />
+        <PreviewPanel forceCrash={true} {...defaultProps} state={mockState} />
       </TestErrorBoundary>
     );
     expect(consoleErrorSpy).toHaveBeenCalled();
@@ -113,7 +130,7 @@ describe('PreviewPanel: Hydration Stability, Exception Safety & Error Fallbacks'
     render(
       <TestErrorBoundary>
         {/* @ts-expect-error - injecting mock prop for testing purposes */}
-        <PreviewPanel forceCrash={true} {...defaultProps} />
+        <PreviewPanel forceCrash={true} {...defaultProps} state={mockState} />
       </TestErrorBoundary>
     );
 

@@ -594,6 +594,42 @@ describe('TTLCache', () => {
       cache.destroy();
     });
 
+    describe('[Bug fix] delete() empty-key consistency with get()/has()', () => {
+      it('delete("") returns false instead of throwing, consistent with has("") and get("")', () => {
+        const cache = new TTLCache<string>();
+
+        expect(() => cache.delete('')).not.toThrow();
+        expect(cache.delete('')).toBe(false);
+
+        // Cross-check: matches the already-tested has()/get() behavior for the same input
+        expect(cache.has('')).toBe(false);
+        expect(cache.get('')).toBeNull();
+
+        cache.destroy();
+      });
+
+      it("delete() on a whitespace-only key returns false, matching set()'s rejection of the same input", () => {
+        const cache = new TTLCache<string>();
+
+        expect(() => cache.set('   ', 'value', 60_000)).toThrow('Cache key cannot be empty');
+        expect(() => cache.delete('   ')).not.toThrow();
+        expect(cache.delete('   ')).toBe(false);
+
+        cache.destroy();
+      });
+
+      it('delete() still correctly removes a real, previously-set entry', () => {
+        const cache = new TTLCache<string>();
+        cache.set('real-key', 'value', 60_000);
+
+        expect(cache.delete('real-key')).toBe(true);
+        expect(cache.get('real-key')).toBeNull();
+        expect(cache.delete('real-key')).toBe(false); // already gone — no error, just false
+
+        cache.destroy();
+      });
+    });
+
     it('handles rapid get/set/delete cycles', () => {
       const cache = new TTLCache<number>();
       for (let i = 0; i < 100; i++) {

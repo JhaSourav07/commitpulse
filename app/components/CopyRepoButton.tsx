@@ -1,5 +1,6 @@
 'use client';
 
+import { copyToClipboard } from '@/utils/clipboard';
 import { useState } from 'react';
 import { Copy } from 'lucide-react';
 
@@ -10,7 +11,7 @@ export default function CopyRepoButton() {
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(REPO_URL);
+      await copyToClipboard(REPO_URL);
       setCopyState('copied');
     } catch {
       setCopyState('error');

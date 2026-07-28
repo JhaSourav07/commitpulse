@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { BadgeTheme } from '../../types';
-import { hexColor } from './sanitizer';
+import { hexColor, sanitizeHexColor, sanitizeRadius, sanitizeSpeed } from './sanitizer';
 
 const HEX_COLOR_REGEX = /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/;
 
@@ -79,13 +79,80 @@ export const AUTO_THEME_DARK: BadgeTheme = themes.dark ?? themes.default;
  * Resolves a theme case-insensitively by matching the normalized user input
  * against the normalized theme registry keys. Returns the standard theme key.
  */
-export function getNormalizedThemeKey(themeInput: string | undefined | null): string {
+export function getNormalizedThemeKey(
+  themeInput: string | string[] | undefined | null | unknown
+): string {
   if (!themeInput) return 'default'; // fallback key
+
+  if (Array.isArray(themeInput)) {
+    if (themeInput.length === 0) return 'default';
+    themeInput = themeInput[0];
+  }
+
+  if (typeof themeInput !== 'string') return 'default';
 
   const target = themeInput.trim().toLowerCase();
   const matchedKey = Object.keys(themes).find((key) => key.toLowerCase() === target);
 
   return matchedKey || 'default';
+}
+
+export interface ErrorThemeColors {
+  bg: string;
+  accent: string;
+  text: string;
+  radius: number;
+  speed: string;
+}
+
+/**
+ * Resolves theme colors and badge parameters from request query params or raw object.
+ * Enables error fallbacks to visually match requested user themes.
+ */
+export function resolveErrorTheme(
+  searchParams?: URLSearchParams | Record<string, string | string[] | undefined> | null
+): ErrorThemeColors {
+  let themeInput: string | undefined;
+  let bgInput: string | undefined;
+  let accentInput: string | undefined;
+  let textInput: string | undefined;
+  let radiusInput: string | number | undefined;
+  let speedInput: string | undefined;
+
+  if (searchParams) {
+    if (typeof (searchParams as URLSearchParams).get === 'function') {
+      const sp = searchParams as URLSearchParams;
+      themeInput = sp.get('theme') ?? undefined;
+      bgInput = sp.get('bg') ?? undefined;
+      accentInput = sp.get('accent') ?? undefined;
+      textInput = sp.get('text') ?? undefined;
+      radiusInput = sp.get('radius') ?? undefined;
+      speedInput = sp.get('speed') ?? undefined;
+    } else {
+      const obj = searchParams as Record<string, string | string[] | undefined>;
+      const getVal = (k: string) => {
+        const v = obj[k];
+        return Array.isArray(v) ? v[0] : v;
+      };
+      themeInput = getVal('theme');
+      bgInput = getVal('bg');
+      accentInput = getVal('accent');
+      textInput = getVal('text');
+      radiusInput = getVal('radius');
+      speedInput = getVal('speed');
+    }
+  }
+
+  const themeKey = getNormalizedThemeKey(themeInput);
+  const baseTheme = themes[themeKey] || themes.default;
+
+  const bg = `#${sanitizeHexColor(bgInput, baseTheme.bg)}`;
+  const accent = `#${sanitizeHexColor(accentInput, baseTheme.accent)}`;
+  const text = `#${sanitizeHexColor(textInput, baseTheme.text)}`;
+  const radius = sanitizeRadius(radiusInput, 8);
+  const speed = sanitizeSpeed(speedInput, '8s');
+
+  return { bg, accent, text, radius, speed };
 }
 
 validateThemes(themes);

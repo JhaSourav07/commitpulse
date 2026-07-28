@@ -132,10 +132,12 @@ describe('GET /api/stats - Mock Integrations', () => {
 
     expect(response.status).toBe(200);
 
-    expect(mockFetchGitHubContributions).toHaveBeenCalledWith('testuser', {
-      bypassCache: false,
-      token: undefined,
-    });
+    expect(mockFetchGitHubContributions).toHaveBeenCalledWith(
+      'testuser',
+      expect.objectContaining({
+        bypassCache: false,
+      })
+    );
 
     expect(response.headers.get('X-Cache-Status')).toBe('HIT');
   });

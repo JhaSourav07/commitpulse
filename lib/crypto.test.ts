@@ -13,52 +13,52 @@ afterAll(() => {
 });
 
 describe('encryptToken / decryptToken', () => {
-  it('round-trips a plain text token', () => {
+  it('round-trips a plain text token', async () => {
     const plain = 'ghp_test123token';
-    const enc = encryptToken(plain);
+    const enc = await encryptToken(plain);
     expect(enc).not.toBe(plain);
-    expect(decryptToken(enc)).toBe(plain);
+    expect(await decryptToken(enc)).toBe(plain);
   });
 
-  it('produces different ciphertexts for the same input (random salt/IV)', () => {
+  it('produces different ciphertexts for the same input (random salt/IV)', async () => {
     const plain = 'same-value';
-    const a = encryptToken(plain);
-    const b = encryptToken(plain);
+    const a = await encryptToken(plain);
+    const b = await encryptToken(plain);
     expect(a).not.toBe(b);
   });
 
-  it('rejects a tampered ciphertext', () => {
-    const enc = encryptToken('secret');
+  it('rejects a tampered ciphertext', async () => {
+    const enc = await encryptToken('secret');
     const parts = enc.split('.');
     parts[2] = Buffer.from('ffffffffffffffff').toString('base64');
-    expect(() => decryptToken(parts.join('.'))).toThrow();
+    await expect(decryptToken(parts.join('.'))).rejects.toThrow();
   });
 
-  it('throws on invalid payload format', () => {
-    expect(() => decryptToken('not-a-valid-format')).toThrow();
+  it('throws on invalid payload format', async () => {
+    await expect(decryptToken('not-a-valid-format')).rejects.toThrow();
   });
 
-  it('handles empty string', () => {
-    const enc = encryptToken('');
-    expect(decryptToken(enc)).toBe('');
+  it('handles empty string', async () => {
+    const enc = await encryptToken('');
+    expect(await decryptToken(enc)).toBe('');
   });
 
-  it('handles special characters', () => {
+  it('handles special characters', async () => {
     const plain = 'abc123!@#$%^&*()_+=-[]{}|;:,.<>?/~`';
-    expect(decryptToken(encryptToken(plain))).toBe(plain);
+    expect(await decryptToken(await encryptToken(plain))).toBe(plain);
   });
 
-  it('throws when ENCRYPTION_KEY is missing', () => {
+  it('throws when ENCRYPTION_KEY is missing', async () => {
     const saved = process.env.ENCRYPTION_KEY;
     delete process.env.ENCRYPTION_KEY;
-    expect(() => encryptToken('x')).toThrow('ENCRYPTION_KEY');
+    await expect(encryptToken('x')).rejects.toThrow('ENCRYPTION_KEY');
     process.env.ENCRYPTION_KEY = saved;
   });
 
-  it('throws when ENCRYPTION_KEY is too short', () => {
+  it('throws when ENCRYPTION_KEY is too short', async () => {
     const saved = process.env.ENCRYPTION_KEY;
     process.env.ENCRYPTION_KEY = 'short';
-    expect(() => encryptToken('x')).toThrow('ENCRYPTION_KEY');
+    await expect(encryptToken('x')).rejects.toThrow('ENCRYPTION_KEY');
     process.env.ENCRYPTION_KEY = saved;
   });
 });

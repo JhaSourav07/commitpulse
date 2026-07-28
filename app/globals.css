@@ -119,6 +119,15 @@ html {
     color: rgb(255 255 255 / 66%);
     opacity: 1;
   }
+
+  /* Custom utility to fix footer link contrast issues on hover */
+  .footer-link:hover {
+    color: #115e59 !important; /* teal-800 */
+  }
+
+  .dark .footer-link:hover {
+    color: #a78bfa !important; /* violet-400 */
+  }
 }
 
 /* Shimmer Animation */

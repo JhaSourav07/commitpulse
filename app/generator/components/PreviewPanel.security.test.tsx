@@ -1,6 +1,23 @@
+import type { GeneratorState } from '../types';
 import '@testing-library/jest-dom/vitest';
 import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+
+const mockState: GeneratorState = {
+  name: '',
+  description: '',
+  selectedTechs: [],
+  selectedSocials: [],
+  socialLinks: {},
+  githubUsername: 'test',
+  showCommitPulse: false,
+  commitPulseAccent: '',
+  showRepoSpotlight: false,
+  spotlightRepo: '',
+  showSnakeGraph: false,
+  showPacmanGraph: false,
+  graphPlacement: 'bottom',
+};
 
 describe('PreviewPanel Security', () => {
   it('removes script tags from malicious html', () => {

@@ -5,7 +5,6 @@ import '@testing-library/jest-dom/vitest';
 import StatsCard from './StatsCard';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 
 // Mock framer-motion to prevent elements from having opacity: 0 in jsdom
 vi.mock('framer-motion', () => ({

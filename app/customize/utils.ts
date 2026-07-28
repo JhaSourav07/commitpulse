@@ -1,4 +1,6 @@
 import type { CustomizeOptions, ExportFormat } from './types';
+import type { Scale, BadgeSize, Font, ViewMode, DeltaFormat, Language, Timezone } from './types';
+import { SPEEDS, SIZES, FONTS, VIEW_MODES, DELTA_FORMATS, LANGUAGES, TIMEZONES } from './types';
 
 const BADGE_BASE_URL = 'https://commitpulse.vercel.app/api/streak';
 
@@ -276,4 +278,242 @@ export function buildQueryParams(options: CustomizeOptions): string {
   if (options.timezone !== 'UTC') params.set('tz', options.timezone);
 
   return params.toString();
+}
+
+// ─── Config Export / Import ────────────────────────────────────────────────
+
+/** Bumped whenever the schema gains or removes fields in a breaking way. */
+export const CONFIG_SCHEMA_VERSION = 1 as const;
+
+export interface ConfigFileV1 {
+  version: 1;
+  config: CustomizeOptions;
+}
+
+/**
+ * Serialises the current form state to a versioned JSON blob and triggers
+ * an immediate browser download as `commitpulse-config.json`.
+ */
+export function exportConfig(options: CustomizeOptions): void {
+  const payload: ConfigFileV1 = {
+    version: CONFIG_SCHEMA_VERSION,
+    config: options,
+  };
+
+  const json = JSON.stringify(payload, null, 2);
+  const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = 'commitpulse-config.json';
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(url);
+}
+
+/** Union of all valid SPEED values (for runtime validation). */
+const VALID_SPEEDS = SPEEDS.map((s) => s.value) as string[];
+/** Union of all valid SIZE values. */
+const VALID_SIZES = SIZES.map((s) => s.value) as string[];
+/** Union of all valid FONT values. */
+const VALID_FONTS = FONTS.map((f) => f.value) as string[];
+/** Union of all valid VIEW_MODE values. */
+const VALID_VIEW_MODES = VIEW_MODES.map((v) => v.value) as string[];
+/** Union of all valid DELTA_FORMAT values. */
+const VALID_DELTA_FORMATS = DELTA_FORMATS.map((d) => d.value) as string[];
+/** Union of all valid LANGUAGE values. */
+const VALID_LANGUAGES = LANGUAGES.map((l) => l.value) as string[];
+/** Union of all valid TIMEZONE values. */
+const VALID_TIMEZONES = TIMEZONES.map((t) => t.value) as string[];
+
+function isString(v: unknown): v is string {
+  return typeof v === 'string';
+}
+function isBoolean(v: unknown): v is boolean {
+  return typeof v === 'boolean';
+}
+function isFiniteNumber(v: unknown): v is number {
+  return typeof v === 'number' && Number.isFinite(v);
+}
+function isNumericOrEmpty(v: unknown): v is number | '' {
+  return v === '' || (isFiniteNumber(v) && Number.isInteger(v));
+}
+
+/**
+ * Default values used as fallbacks when an imported field is missing or invalid.
+ * Mirrors the initial state in page.tsx so round-trip fidelity is guaranteed.
+ */
+const CONFIG_DEFAULTS: CustomizeOptions = {
+  username: '',
+  theme: 'dark',
+  bgHex: '',
+  bgType: 'solid',
+  bgStart: '',
+  bgEnd: '',
+  bgAngle: 90,
+  accentHex: '',
+  textHex: '',
+  scale: 'linear',
+  speed: '8s',
+  font: 'Inter',
+  year: '',
+  radius: 8,
+  size: 'medium',
+  hideTitle: false,
+  hideBackground: false,
+  hideStats: false,
+  viewMode: 'default',
+  deltaFormat: 'percent',
+  badgeWidth: '',
+  badgeHeight: '',
+  grace: 1,
+  language: 'en',
+  timezone: 'UTC',
+};
+
+/**
+ * Parses and validates a raw JSON string (typically the text content of a
+ * `.json` file chosen by the user) and returns a fully-typed `CustomizeOptions`
+ * object on success, or a user-facing error string on failure.
+ *
+ * - Unknown fields are silently ignored (forward-compat).
+ * - Invalid or missing fields fall back to defaults (graceful degradation).
+ * - Only the version envelope and the `config` key are strictly required.
+ */
+export function importConfig(
+  raw: string
+): { ok: true; options: CustomizeOptions } | { ok: false; error: string } {
+  // 1. Parse JSON
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return { ok: false, error: 'Invalid JSON: the file could not be parsed.' };
+  }
+
+  // 2. Top-level shape
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    return { ok: false, error: 'Invalid config file: expected a JSON object at the top level.' };
+  }
+
+  const root = parsed as Record<string, unknown>;
+
+  // 3. Version field
+  if (!('version' in root)) {
+    return { ok: false, error: 'Invalid config file: missing required "version" field.' };
+  }
+  if (root.version !== CONFIG_SCHEMA_VERSION) {
+    // Future versions get a graceful message; we still attempt to import below.
+    // For now only v1 exists, so any other value is an error.
+    return {
+      ok: false,
+      error: `Unsupported config version "${String(root.version)}". Expected version ${CONFIG_SCHEMA_VERSION}.`,
+    };
+  }
+
+  // 4. Config key
+  if (!('config' in root) || typeof root.config !== 'object' || root.config === null) {
+    return { ok: false, error: 'Invalid config file: missing or malformed "config" object.' };
+  }
+
+  const c = root.config as Record<string, unknown>;
+
+  // 5. Field-level validation with safe fallbacks
+  const username = isString(c.username) ? c.username : CONFIG_DEFAULTS.username;
+  const theme = isString(c.theme) && c.theme.length > 0 ? c.theme : CONFIG_DEFAULTS.theme;
+
+  const bgTypeRaw = c.bgType;
+  const bgType =
+    bgTypeRaw === 'solid' || bgTypeRaw === 'linear' || bgTypeRaw === 'radial'
+      ? bgTypeRaw
+      : CONFIG_DEFAULTS.bgType;
+
+  const bgHex = isString(c.bgHex) ? c.bgHex : CONFIG_DEFAULTS.bgHex;
+  const bgStart = isString(c.bgStart) ? c.bgStart : CONFIG_DEFAULTS.bgStart;
+  const bgEnd = isString(c.bgEnd) ? c.bgEnd : CONFIG_DEFAULTS.bgEnd;
+  const bgAngle =
+    isFiniteNumber(c.bgAngle) && c.bgAngle >= 0 && c.bgAngle <= 360
+      ? c.bgAngle
+      : CONFIG_DEFAULTS.bgAngle;
+
+  const accentHex = isString(c.accentHex) ? c.accentHex : CONFIG_DEFAULTS.accentHex;
+  const textHex = isString(c.textHex) ? c.textHex : CONFIG_DEFAULTS.textHex;
+
+  // Scale must be one of 'linear' | 'log' | 'sqrt'
+  const scaleClean: Scale =
+    isString(c.scale) && ['linear', 'log', 'sqrt'].includes(c.scale)
+      ? (c.scale as Scale)
+      : CONFIG_DEFAULTS.scale;
+
+  const speed =
+    isString(c.speed) && VALID_SPEEDS.includes(c.speed) ? c.speed : CONFIG_DEFAULTS.speed;
+  const font: Font =
+    isString(c.font) && (VALID_FONTS.includes(c.font) || c.font.length > 0)
+      ? (c.font as Font)
+      : CONFIG_DEFAULTS.font;
+  const year = isString(c.year) ? c.year : CONFIG_DEFAULTS.year;
+  const radius =
+    isFiniteNumber(c.radius) && c.radius >= 0 && c.radius <= 50 ? c.radius : CONFIG_DEFAULTS.radius;
+  const size: BadgeSize =
+    isString(c.size) && VALID_SIZES.includes(c.size) ? (c.size as BadgeSize) : CONFIG_DEFAULTS.size;
+
+  const hideTitle = isBoolean(c.hideTitle) ? c.hideTitle : CONFIG_DEFAULTS.hideTitle;
+  const hideBackground = isBoolean(c.hideBackground)
+    ? c.hideBackground
+    : CONFIG_DEFAULTS.hideBackground;
+  const hideStats = isBoolean(c.hideStats) ? c.hideStats : CONFIG_DEFAULTS.hideStats;
+
+  const viewMode: ViewMode =
+    isString(c.viewMode) && VALID_VIEW_MODES.includes(c.viewMode)
+      ? (c.viewMode as ViewMode)
+      : CONFIG_DEFAULTS.viewMode;
+  const deltaFormat: DeltaFormat =
+    isString(c.deltaFormat) && VALID_DELTA_FORMATS.includes(c.deltaFormat)
+      ? (c.deltaFormat as DeltaFormat)
+      : CONFIG_DEFAULTS.deltaFormat;
+
+  const badgeWidth = isNumericOrEmpty(c.badgeWidth) ? c.badgeWidth : CONFIG_DEFAULTS.badgeWidth;
+  const badgeHeight = isNumericOrEmpty(c.badgeHeight) ? c.badgeHeight : CONFIG_DEFAULTS.badgeHeight;
+  const grace =
+    isFiniteNumber(c.grace) && c.grace >= 0 && c.grace <= 7 ? c.grace : CONFIG_DEFAULTS.grace;
+
+  const language: Language =
+    isString(c.language) && VALID_LANGUAGES.includes(c.language)
+      ? (c.language as Language)
+      : CONFIG_DEFAULTS.language;
+  const timezone: Timezone =
+    isString(c.timezone) && VALID_TIMEZONES.includes(c.timezone)
+      ? (c.timezone as Timezone)
+      : CONFIG_DEFAULTS.timezone;
+
+  const options: CustomizeOptions = {
+    username,
+    theme,
+    bgHex,
+    bgType,
+    bgStart,
+    bgEnd,
+    bgAngle,
+    accentHex,
+    textHex,
+    scale: scaleClean,
+    speed,
+    font,
+    year,
+    radius,
+    size,
+    hideTitle,
+    hideBackground,
+    hideStats,
+    viewMode,
+    deltaFormat,
+    badgeWidth,
+    badgeHeight,
+    grace,
+    language,
+    timezone,
+  };
+  return { ok: true, options };
 }

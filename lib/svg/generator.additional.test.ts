@@ -336,13 +336,13 @@ describe('[Issue] border parameter produces stroke attribute in SVG', () => {
 // ─── 4. org / repo change entity type in <title> ─────────────────────────────
 
 describe('[Issue] org and repo params change entity type in SVG <title>', () => {
-  it('renders "User Stats" in title when neither org nor repo is set', () => {
+  it('renders "GitHub streak" in title when neither org nor repo is set', () => {
     const svg = generateSVG(baseStats, { user: 'chetan' } as unknown as BadgeParams, baseCalendar);
 
-    expect(svg).toContain('<title id="cp-title-chetan">CommitPulse User Stats for chetan</title>');
+    expect(svg).toContain('<title id="cp-title-chetan">GitHub streak for chetan is 7 days</title>');
   });
 
-  it('renders "Organization Stats" in title when org param is set', () => {
+  it('renders "GitHub Organization streak" in title when org param is set', () => {
     const svg = generateSVG(
       baseStats,
       { user: 'chetan', org: 'my-org' } as unknown as BadgeParams,
@@ -350,11 +350,11 @@ describe('[Issue] org and repo params change entity type in SVG <title>', () => 
     );
 
     expect(svg).toContain(
-      '<title id="cp-title-chetan">CommitPulse Organization Stats for chetan</title>'
+      '<title id="cp-title-chetan">GitHub Organization streak for chetan is 7 days</title>'
     );
   });
 
-  it('renders "Repository Stats" in title when repo param is set', () => {
+  it('renders "GitHub Repository streak" in title when repo param is set', () => {
     const svg = generateSVG(
       baseStats,
       { user: 'chetan', repo: 'my-repo' } as unknown as BadgeParams,
@@ -362,7 +362,7 @@ describe('[Issue] org and repo params change entity type in SVG <title>', () => 
     );
 
     expect(svg).toContain(
-      '<title id="cp-title-chetan">CommitPulse Repository Stats for chetan</title>'
+      '<title id="cp-title-chetan">GitHub Repository streak for chetan is 7 days</title>'
     );
   });
 });

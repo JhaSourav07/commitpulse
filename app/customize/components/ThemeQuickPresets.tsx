@@ -1,5 +1,5 @@
 // app/customize/components/ThemeQuickPresets.tsx
-import type { ReactElement } from 'react';
+import { useRef, type ReactElement } from 'react';
 import { themes } from '../../../lib/svg/themes';
 import { THEME_KEYS, type ThemeKey } from '../types';
 import './ThemeQuickPresets.css';
@@ -517,10 +517,39 @@ const ICON_MAP: Record<string, (c: IC) => ReactElement> = {
 };
 
 export function ThemeQuickPresets({ theme, onThemeChange }: ThemeQuickPresetsProps): ReactElement {
+  const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const validKeys = THEME_KEYS.filter((key) => key !== 'auto' && key !== 'random');
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+    let targetIndex = -1;
+
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      targetIndex = (index + 1) % validKeys.length;
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      targetIndex = (index - 1 + validKeys.length) % validKeys.length;
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      targetIndex = 0;
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      targetIndex = validKeys.length - 1;
+    }
+
+    if (targetIndex !== -1) {
+      const nextKey = validKeys[targetIndex];
+      onThemeChange(nextKey);
+      buttonRefs.current[targetIndex]?.focus();
+    }
+  };
+
+  const formattedThemeName = theme.charAt(0).toUpperCase() + theme.slice(1);
+
   return (
     <>
-      <div className="theme-quick-presets">
-        {THEME_KEYS.filter((key) => key !== 'auto' && key !== 'random').map((key) => {
+      <div className="theme-quick-presets" role="radiogroup" aria-label="Theme presets">
+        {validKeys.map((key, index) => {
           const t = themes[key as ThemeKey];
           if (!t) return null;
 
@@ -535,12 +564,19 @@ export function ThemeQuickPresets({ theme, onThemeChange }: ThemeQuickPresetsPro
           return (
             <button
               key={key}
+              ref={(el) => {
+                buttonRefs.current[index] = el;
+              }}
               type="button"
+              role="radio"
+              tabIndex={0}
+              aria-checked={isActive}
               title={key.charAt(0).toUpperCase() + key.slice(1)}
               aria-label={`Apply ${key} theme`}
               aria-pressed={isActive}
               onClick={() => onThemeChange(key)}
-              className={`tqp-btn${isActive ? ' tqp-on' : ''}`}
+              onKeyDown={(e) => handleKeyDown(e, index)}
+              className={`tqp-btn${isActive ? ' tqp-on' : ''} focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 outline-none`}
               style={{
                 background: `linear-gradient(145deg, rgba(255,255,255,0.1), #${t.bg} 0%)`,
               }}
@@ -552,6 +588,9 @@ export function ThemeQuickPresets({ theme, onThemeChange }: ThemeQuickPresetsPro
             </button>
           );
         })}
+      </div>
+      <div className="sr-only" aria-live="polite" aria-atomic="true" role="status">
+        {`${formattedThemeName} theme preset applied`}
       </div>
     </>
   );

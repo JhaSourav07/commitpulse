@@ -269,7 +269,12 @@ const baseStreakParamsSchema = z.object({
   label: z
     .string()
     .optional()
-    .transform((v) => v !== 'false'),
+    .transform((v) => {
+      if (v === undefined) return undefined;
+      if (v === 'false') return false;
+      if (v === 'true') return true;
+      return v;
+    }),
 
   theme: z
     .string()
@@ -497,6 +502,7 @@ const baseStreakParamsSchema = z.object({
       'activity_graph',
       'commit_clock',
       'weekday',
+      'punchcard',
     ])
     .catch('default')
     .default('default'),
@@ -707,6 +713,7 @@ export const githubParamsSchema = z.object({
 
   refresh: z.preprocess((val) => val === 'true', z.boolean()).default(false),
   bypassCache: z.preprocess((val) => val === 'true', z.boolean()).default(false),
+  excludeBots: z.preprocess((val) => val === 'true', z.boolean()).default(false),
   org: z
     .string()
     .max(39, { message: 'Organization name cannot exceed 39 characters' })
@@ -786,6 +793,7 @@ export const statsParamsSchema = z.object({
     }),
   refresh: z.string().optional().transform(toRefreshFlag),
   bypassCache: z.string().optional().transform(toRefreshFlag),
+  excludeBots: z.string().optional().transform(toRefreshFlag),
   tz: timeZoneParam,
 });
 
@@ -895,6 +903,76 @@ export const wrappedParamsSchema = z.object({
     })
     .optional(),
   tz: timeZoneParam,
+});
+
+export const spotifyParamsSchema = z.object({
+  theme: z.string().optional().transform(toValidTheme).default('dark'),
+  bg: z
+    .string()
+    .optional()
+    .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
+      message: 'bg must be a valid hex color (with or without #)',
+    })
+    .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
+  text: z
+    .string()
+    .optional()
+    .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
+      message: 'text must be a valid hex color (with or without #)',
+    })
+    .transform((val) => (val ? sanitizeHexColor(val, 'ffffff') : undefined)),
+  accent: z
+    .string()
+    .optional()
+    .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
+      message: 'accent must be a valid hex color',
+    })
+    .transform((val) => (val ? sanitizeHexColor(val, '00ffaa') : undefined)),
+  width: dimensionParam('width', 100, 1200).default(400),
+  height: dimensionParam('height', 80, 800).default(150),
+  radius: z
+    .string()
+    .transform((val) => sanitizeRadius(val, 8))
+    .default(8),
+  glow: z.string().optional().transform(toGlowFlag).default(true),
+  minify: z.string().optional().transform(toMinifyFlag).default(true),
+  refresh: z.string().optional().transform(toRefreshFlag),
+  bypassCache: z.string().optional().transform(toRefreshFlag),
+});
+
+export const wakatimeParamsSchema = z.object({
+  theme: z.string().optional().transform(toValidTheme).default('dark'),
+  bg: z
+    .string()
+    .optional()
+    .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
+      message: 'bg must be a valid hex color (with or without #)',
+    })
+    .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
+  text: z
+    .string()
+    .optional()
+    .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
+      message: 'text must be a valid hex color (with or without #)',
+    })
+    .transform((val) => (val ? sanitizeHexColor(val, 'ffffff') : undefined)),
+  accent: z
+    .string()
+    .optional()
+    .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
+      message: 'accent must be a valid hex color',
+    })
+    .transform((val) => (val ? sanitizeHexColor(val, '00ffaa') : undefined)),
+  width: dimensionParam('width', 100, 1200).default(400),
+  height: dimensionParam('height', 80, 800).default(150),
+  radius: z
+    .string()
+    .transform((val) => sanitizeRadius(val, 8))
+    .default(8),
+  glow: z.string().optional().transform(toGlowFlag).default(true),
+  minify: z.string().optional().transform(toMinifyFlag).default(true),
+  refresh: z.string().optional().transform(toRefreshFlag),
+  bypassCache: z.string().optional().transform(toRefreshFlag),
 });
 
 export const notifyPostSchema = z.object({
@@ -1109,3 +1187,5 @@ export type WrappedParams = z.infer<typeof wrappedParamsSchema>;
 export type NotifyPostParams = z.infer<typeof notifyPostSchema>;
 export type NotifyGetParams = z.infer<typeof notifyGetSchema>;
 export type ResumeConfirmData = z.infer<typeof resumeConfirmDataSchema>;
+export type SpotifyParams = z.infer<typeof spotifyParamsSchema>;
+export type WakatimeParams = z.infer<typeof wakatimeParamsSchema>;

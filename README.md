@@ -167,6 +167,7 @@ For advanced usage examples including custom gradient backgrounds, multi-user co
 CommitPulse transforms GitHub contribution data into visually engaging and highly customizable SVG badges.
 
 - **🎨 Theme & Customization**: Multiple built-in themes, custom colors (`bg`, `accent`, `text`), dynamic font selection, adjustable dimensions, border radius, opacity, and system-aware `auto` light/dark theme.
+- **🎵 Spotify "Currently Playing"**: Showcase your current Spotify playback on your GitHub profile with a customizable, near real-time SVG card.
 - **📈 Contribution Analytics**: Current streak and longest streak tracking, monthly contribution summaries, historical year-by-year viewing, and custom grace period configurations.
 - **🔥 Visualization Modes**: Isometric 3D monolith rendering (with ghost city blueprint foundations), GitHub-style heatmap, monthly statistics view, and radar chart view.
 - **🌍 Localization & Accessibility**: Multi-language support (e.g. English, Hindi, Simplified Chinese, Portuguese), timezone-aware calculations, and high-contrast accessibility themes.
@@ -182,6 +183,7 @@ To keep the repository clean and readable, technical details have been modulariz
 - **[🎨 Customization Guide & Parameters](docs/customization.md)**: Explore the list of over 30 URL parameters including `theme`, `view` (e.g. `skyline`, `heatmap`, `radar`, `monthly`), `radius`, `grace`, `tz`, `entrance`, `versus`, and layout dimensions to style your monolith.
 - **[🏛️ Architecture & Design Philosophy](docs/architecture.md)**: Read about why we built isometric 3D monolith landscapes instead of flat meters, and check out our Next.js 16 Edge computing pipeline.
 - **[🚀 Self-Hosting & Deployment](docs/self_hosting.md)**: Step-by-step instructions to clone, configure `.env.local` with GitHub Personal Access Tokens (PAT), set up MongoDB tracking, and deploy to Vercel with one click.
+- **[🎵 Spotify Setup Guide](docs/SPOTIFY_SETUP.md)**: Instructions for setting up Spotify integration for the Currently Playing feature.
 - **[🤖 Automated Contributor Workflow](docs/contributor_workflow.md)**: Overview of GSSoC contribution automation, self-claiming comments `/claim`, anti-hoarding rules, stale unassign scripts, and Gemini AI-powered semantic issue duplication check.
 - **[🎯 Real-Time Accuracy & Caching](docs/accuracy.md)**: Deep dive into the "off-by-N contributions" problem and how CommitPulse solves it with UTC midnight CDN expiration and no-store GraphQL fetches.
 - **[❓ FAQ & Troubleshooting](docs/faq.md)**: Answers to common questions regarding timezone overrides, private contribution visibility, GitHub API rate limits, and troubleshooting.

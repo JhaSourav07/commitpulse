@@ -1,3 +1,4 @@
+import type { GeneratorState } from '../types';
 import React from 'react';
 import { render } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -14,6 +15,22 @@ const mockProps = {
   onUpdate: vi.fn(),
 } as unknown as PreviewPanelProps;
 
+const mockState: GeneratorState = {
+  name: '',
+  description: '',
+  selectedTechs: [],
+  selectedSocials: [],
+  socialLinks: {},
+  githubUsername: 'test',
+  showCommitPulse: false,
+  commitPulseAccent: '',
+  showRepoSpotlight: false,
+  spotlightRepo: '',
+  showSnakeGraph: false,
+  showPacmanGraph: false,
+  graphPlacement: 'bottom',
+};
+
 describe('PreviewPanel Theme Contrast and Visual Cohesion', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -27,20 +44,22 @@ describe('PreviewPanel Theme Contrast and Visual Cohesion', () => {
   it('1. should emulate both dark and light presets', () => {
     // Emulate Light mode
     setupTheme(false);
-    const { container: lightContainer, unmount } = render(<PreviewPanel {...mockProps} />);
+    const { container: lightContainer, unmount } = render(
+      <PreviewPanel {...mockProps} state={mockState} />
+    );
     expect(document.documentElement.classList.contains('dark')).toBe(false);
     expect(lightContainer).toBeTruthy();
     unmount();
 
     // Emulate Dark mode
     setupTheme(true);
-    const { container: darkContainer } = render(<PreviewPanel {...mockProps} />);
+    const { container: darkContainer } = render(<PreviewPanel {...mockProps} state={mockState} />);
     expect(document.documentElement.classList.contains('dark')).toBe(true);
     expect(darkContainer).toBeTruthy();
   });
 
   it('2. should assert that the visual elements adapt color styling properly for both settings', () => {
-    const { container } = render(<PreviewPanel {...mockProps} />);
+    const { container } = render(<PreviewPanel {...mockProps} state={mockState} />);
 
     const wrapper = container.firstChild as HTMLElement;
     expect(wrapper).toBeTruthy();
@@ -51,7 +70,7 @@ describe('PreviewPanel Theme Contrast and Visual Cohesion', () => {
   });
 
   it('3. should verify contrast ratio standards are satisfied for all textual elements', () => {
-    const { container } = render(<PreviewPanel {...mockProps} />);
+    const { container } = render(<PreviewPanel {...mockProps} state={mockState} />);
 
     // Filter out nested graphical/svg components and check standard text nodes
     const textNodes = Array.from(container.querySelectorAll('*')).filter(
@@ -66,7 +85,7 @@ describe('PreviewPanel Theme Contrast and Visual Cohesion', () => {
   });
 
   it('4. should check that specific custom stylesheet properties or Tailwind classes are active in the markup', () => {
-    const { container } = render(<PreviewPanel {...mockProps} />);
+    const { container } = render(<PreviewPanel {...mockProps} state={mockState} />);
 
     const wrapper = container.firstChild as HTMLElement;
 
@@ -78,7 +97,7 @@ describe('PreviewPanel Theme Contrast and Visual Cohesion', () => {
   });
 
   it('5. should ensure that background overlays do not clip foreground content colors', () => {
-    const { container } = render(<PreviewPanel {...mockProps} />);
+    const { container } = render(<PreviewPanel {...mockProps} state={mockState} />);
 
     const wrapper = container.firstChild as HTMLElement;
 

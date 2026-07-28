@@ -2,7 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { toast } from 'sonner';
-import NotFound from './not-found';
+import { copyToClipboard } from '@/utils/clipboard';
+
+vi.mock('@/utils/clipboard', () => ({
+  copyToClipboard: vi.fn(),
+}));
 
 // --- TYPED INTERFACES FOR MOCKED MODULES ---
 interface MockClipboardService {
@@ -32,6 +36,7 @@ vi.mock('sonner', () => ({
     error: vi.fn(),
   },
 }));
+import NotFound from './not-found';
 
 const createCacheStub = (): MockCacheLayer => {
   const store = new Map<string, unknown>();
@@ -45,20 +50,10 @@ const createCacheStub = (): MockCacheLayer => {
 };
 
 describe('NotFound Asynchronous Service Layer Mocking & Local Cache Stubs', () => {
-  let clipboardStub: MockClipboardService;
-
   beforeEach(() => {
     vi.clearAllMocks();
 
-    clipboardStub = {
-      writeText: vi.fn().mockResolvedValue(undefined),
-    };
-
-    Object.defineProperty(navigator, 'clipboard', {
-      value: clipboardStub,
-      configurable: true,
-      writable: true,
-    });
+    vi.mocked(copyToClipboard).mockResolvedValue(undefined);
   });
 
   // 1. Mock standard asynchronous imports and databases using stubs
@@ -70,8 +65,9 @@ describe('NotFound Asynchronous Service Layer Mocking & Local Cache Stubs', () =
     sonnerModule.toast.success('test message');
     expect(sonnerModule.toast.success).toHaveBeenCalledWith('test message');
 
-    await clipboardStub.writeText('git checkout this-page');
-    expect(clipboardStub.writeText).toHaveBeenCalledWith('git checkout this-page');
+    await copyToClipboard('git checkout this-page');
+
+    expect(copyToClipboard).toHaveBeenCalledWith('git checkout this-page');
   });
 
   // 2. Test service loading paths to ensure pending state overlays render
@@ -94,22 +90,20 @@ describe('NotFound Asynchronous Service Layer Mocking & Local Cache Stubs', () =
       if (cached === text) {
         return;
       }
-      await clipboardStub.writeText(text);
+      await copyToClipboard(text);
       typedCache.set(storeKey, text);
     };
 
     typedCache.set(storeKey, 'already-cached');
     await writeWithCache('already-cached');
 
-    expect(clipboardStub.writeText).not.toHaveBeenCalled();
+    expect(copyToClipboard).not.toHaveBeenCalled();
     expect(typedCache.get).toHaveBeenCalledWith(storeKey);
   });
 
   // 4. Verify correct fallback procedures during fake endpoint timeout blocks
   it('triggers fallback toast.error when clipboard write times out', async () => {
-    vi.mocked(clipboardStub.writeText).mockRejectedValueOnce(
-      new Error('TIMEOUT_CLIPBOARD_UNAVAILABLE')
-    );
+    vi.mocked(copyToClipboard).mockRejectedValueOnce(new Error('TIMEOUT_CLIPBOARD_UNAVAILABLE'));
 
     render(<NotFound />);
 
@@ -128,10 +122,10 @@ describe('NotFound Asynchronous Service Layer Mocking & Local Cache Stubs', () =
     const typedCache = createCacheStub();
     const storeKey = 'clipboard_terminal_output';
 
-    await clipboardStub.writeText('git checkout this-page');
+    await copyToClipboard('git checkout this-page');
     typedCache.set(storeKey, 'git checkout this-page');
 
-    expect(clipboardStub.writeText).toHaveBeenCalled();
+    expect(copyToClipboard).toHaveBeenCalled();
     expect(typedCache.set).toHaveBeenCalledWith(storeKey, 'git checkout this-page');
   });
 });
