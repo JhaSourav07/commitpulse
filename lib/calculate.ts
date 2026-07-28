@@ -161,6 +161,11 @@ export function calculateStreak(
   now: Date = new Date(),
   grace: number = 1
 ): StreakStats {
+  const parsedGrace = typeof grace === 'number' ? grace : Number(grace);
+  const numericGrace = !isNaN(parsedGrace) ? parsedGrace : 0;
+
+  const safeGrace = Math.min(Math.max(numericGrace, 0), 7);
+
   const localTodayStr = getLocalTodayStr(now, timezone);
 
   if (!calendar) {
@@ -222,7 +227,7 @@ export function calculateStreak(
 
       // Issue #6171:
       // only reject when today is missing AND gap > grace
-      if (gapDays > Math.max(1, grace)) {
+      if (gapDays > (safeGrace > 0 ? safeGrace : 1)) {
         todayIndex = -1;
       } else {
         todayIndex = lastIndex;
@@ -251,12 +256,12 @@ export function calculateStreak(
 
   // If we are looking at the actual today, and it has no commits,
   const evaluationIndex =
-    isActualToday && !todayHasCommits && consecutiveZeroDays < Math.max(1, grace)
+    isActualToday && !todayHasCommits && consecutiveZeroDays < Math.max(1, safeGrace)
       ? todayIndex - 1
       : todayIndex;
 
   let isStreakAlive = false;
-  for (let i = 0; i <= grace; i++) {
+  for (let i = 0; i <= safeGrace; i++) {
     const checkIndex = evaluationIndex - i;
     if (checkIndex >= 0 && uniqueDays[checkIndex] && uniqueDays[checkIndex].contributionCount > 0) {
       isStreakAlive = true;
@@ -267,7 +272,7 @@ export function calculateStreak(
   if (isStreakAlive) {
     let i = evaluationIndex;
     while (
-      i >= evaluationIndex - grace &&
+      i >= evaluationIndex - safeGrace &&
       i >= 0 &&
       uniqueDays[i] &&
       uniqueDays[i].contributionCount === 0
