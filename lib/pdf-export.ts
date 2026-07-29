@@ -1,3 +1,8 @@
+/**
+ * A minimal interface describing the parts of a jsPDF-like PDF library that
+ * this module uses. Using this type instead of importing jsPDF directly allows
+ * the module to be imported in environments where jsPDF may not be available.
+ */
 export type PdfLike = {
   internal: {
     pageSize: {
@@ -171,11 +176,42 @@ function resolveForCanvas(svgMarkup: string): string {
   return out;
 }
 
+/**
+ * Exports an SVG visualization as a PDF file, using a canvas intermediate
+ * to ensure all SVG features (filters, gradients, animations) are captured
+ * correctly.
+ *
+ * The pipeline:
+ * 1. Resolves CSS custom properties and class-based fills for canvas compatibility.
+ * 2. Parses the SVG, extracting dimensions from `width`/`height` attributes or
+ *    `viewBox` (falls back to `SVG_WIDTH`/`SVG_HEIGHT`).
+ * 3. Scales the SVG to fit the PDF page with 20 pt margins on each side.
+ * 4. Renders the SVG onto a hidden canvas at 2x pixel density for sharpness.
+ * 5. Converts the canvas to a PNG data URL and embeds it in the PDF.
+ *
+ * @param svgMarkup - Raw SVG markup string. Must be a valid SVG document fragment.
+ *   An empty string or a string without an `<svg>` root element will throw
+ *   `'SVG element not found'`.
+ * @param fileName  - The name to use when saving the PDF (e.g. `'contributions.pdf'`).
+ * @param pdf       - A jsPDF-like instance with `addImage`, `save`, and
+ *   `internal.pageSize` properties.
+ * @throws Error with message `'SVG element not found'` when the markup
+ *   contains no `<svg>` root element.
+ * @throws Error with message `'Invalid SVG dimensions for PDF export'` when
+ *   neither width/height attributes nor viewBox are present, or dimensions are <= 0.
+ * @throws Error with message `'Failed to create canvas for PDF export'` when
+ *   the browser's canvas context cannot be acquired.
+ */
 export async function exportSvgToPdf(
   svgMarkup: string,
   fileName: string,
   pdf: PdfLike
 ): Promise<void> {
+  // Guard against empty or non-string input before DOM parsing.
+  if (!svgMarkup || typeof svgMarkup !== 'string' || svgMarkup.trim() === '') {
+    throw new Error('Invalid SVG markup for PDF export: input is empty or not a string');
+  }
+
   // Always resolve CSS variables/classes — even non-autoTheme SVGs use them
   const processedSvg = resolveForCanvas(svgMarkup);
 
