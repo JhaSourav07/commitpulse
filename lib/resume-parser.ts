@@ -198,6 +198,18 @@ function extractPhone(text: string): string {
   return match ? match[0].trim() : 'N/A';
 }
 
+/**
+ * Parses a resume file (PDF or DOCX) and extracts structured information.
+ *
+ * Supported formats: PDF and DOCX (Microsoft Word). For other formats,
+ * raw text extraction is attempted. The function extracts name, email, phone,
+ * skills, education history, and work experience.
+ *
+ * @param buffer - The raw file contents as a Buffer
+ * @param mimeType - The MIME type of the file (e.g. `application/pdf`)
+ * @returns A `ParsedResume` object with extracted fields; missing fields default to `'N/A'`
+ * @throws TypeError if `buffer` is null or undefined
+ */
 export async function parseResume(buffer: Buffer, mimeType: string): Promise<ParsedResume> {
   if (!buffer) {
     throw new TypeError('Buffer cannot be null or undefined');
@@ -254,6 +266,16 @@ const FILE_SIGNATURES: Record<string, number[][]> = {
   ],
 };
 
+/**
+ * Validates that the file's magic bytes match the declared MIME type.
+ *
+ * Checks the first few bytes of the buffer against known magic byte signatures
+ * for PDF (`%PDF-`) and DOCX (`PK` ZIP header). Returns `false` for unknown types.
+ *
+ * @param buffer - The raw file contents as a Buffer
+ * @param mimeType - The declared MIME type to validate against
+ * @returns `true` if the bytes match a known signature for the given MIME type, `false` otherwise
+ */
 export function hasValidFileSignature(buffer: Buffer, mimeType: string): boolean {
   const signatures = FILE_SIGNATURES[mimeType];
   if (!signatures) return false;
