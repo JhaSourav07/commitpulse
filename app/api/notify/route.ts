@@ -413,9 +413,7 @@ export async function GET(req: Request) {
 
     await dbConnect();
 
-    const notification = await Notification.findOne({
-      username: username.toLowerCase(),
-    });
+    const notification = await findNotificationWithManagementHash(username.toLowerCase());
 
     if (!notification) {
       return NextResponse.json(
