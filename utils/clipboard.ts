@@ -1,3 +1,10 @@
+/**
+ * Fallback clipboard copy implementation using the legacy `document.execCommand('copy')`
+ * approach. Used when the modern Clipboard API is unavailable.
+ *
+ * @param text - The string to copy to the clipboard
+ * @returns `true` if the copy succeeded, `false` otherwise
+ */
 export const fallbackCopyToClipboard = (text: string): boolean => {
   const textArea = document.createElement('textarea');
 
@@ -22,6 +29,14 @@ export const fallbackCopyToClipboard = (text: string): boolean => {
   }
 };
 
+/**
+ * Copies the given text to the system clipboard. Uses the modern Clipboard API
+ * when available and falls back to the legacy `execCommand` approach otherwise.
+ *
+ * @param text - The string to copy to the clipboard
+ * @returns A promise that resolves when the copy is complete, or rejects if it fails
+ * @throws Error if both the Clipboard API and the fallback mechanism fail
+ */
 export const copyToClipboard = async (text: string): Promise<void> => {
   if (typeof navigator !== 'undefined' && navigator.clipboard) {
     try {
