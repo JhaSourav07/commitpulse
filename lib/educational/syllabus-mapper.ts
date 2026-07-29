@@ -1,5 +1,10 @@
 // lib/educational/syllabus-mapper.ts
 
+/**
+ * Academic domains used to categorise GitHub technology usage in the educational module.
+ *
+ * - Applied AI & Data Mining: Python, R, Julia, etc.\n * - Computer Architecture & Systems: C, C++, Rust, Go, Assembly\n * - Full-Stack Web Development: TypeScript, JavaScript, CSS, HTML\n * - Database Management Systems: SQL, Java, MongoDB\n * - Algorithms & Data Structures: Ruby, Haskell\n * - General Purpose / Uncategorized: any language not mapped above
+ */
 export type AcademicDomain =
   | 'Applied AI & Data Mining'
   | 'Computer Architecture & Systems'
@@ -8,6 +13,12 @@ export type AcademicDomain =
   | 'Algorithms & Data Structures'
   | 'General Purpose / Uncategorized';
 
+/**
+ * Maps lowercase GitHub language names to academic domains.
+ *
+ * Used by the educational module to categorise a user's technology stack
+ * into an academic domain for learning recommendations.
+ */
 export const languageToDomainMap: Record<string, AcademicDomain> = {
   // Applied AI, Data Science, and Data Mining
   Python: 'Applied AI & Data Mining',
@@ -44,6 +55,13 @@ export const languageToDomainMap: Record<string, AcademicDomain> = {
 /**
  * Maps a raw GitHub language string to a structured academic domain.
  */
+/**
+ * Maps a raw GitHub language string to an academic domain.
+ *
+ * Uses a case-sensitive lookup against `languageToDomainMap`. Unrecognised
+ * languages default to `'General Purpose / Uncategorized'`.
+ *
+ * @param language - The GitHub language name as returned by the GitHub API\n * @returns The corresponding `AcademicDomain`, or `'General Purpose / Uncategorized'` if not found\n */
 export function getAcademicDomain(language: string): AcademicDomain {
   return languageToDomainMap[language] || 'General Purpose / Uncategorized';
 }
