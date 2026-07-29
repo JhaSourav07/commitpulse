@@ -1,8 +1,27 @@
+/**
+ * Normalises the port from a URL object.
+ *
+ * Returns the explicit port if set, otherwise infers the default port
+ * from the URL protocol (443 for https:, 80 for http:).
+ *
+ * @param url - A parsed URL object
+ * @returns The port number as a string
+ */
 function normalizePort(url: URL): string {
   if (url.port) return url.port;
   return url.protocol === 'https:' ? '443' : '80';
 }
 
+/**
+ * Validates a server-side request against CSRF attacks by checking the Origin or
+ * Referer header matches the configured site URL.
+ *
+ * Both Origin and Referer are checked; at least one must be present and
+ * match the allowed origin for the request to pass.
+ *
+ * @param request - The incoming server request
+ * @returns `null` when the request is valid, or a 403 Response when CSRF is detected
+ */
 export function validateCSRF(request: Request): Response | null {
   const origin = request.headers.get('origin');
   const referer = request.headers.get('referer');
