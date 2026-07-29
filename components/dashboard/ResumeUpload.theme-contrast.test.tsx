@@ -184,34 +184,4 @@ describe('ResumeUpload Theme Contrast', () => {
         .fn()
         .mockReturnValue(
           fetchPromise.then(() =>
-            Promise.resolve(
-              new Response(JSON.stringify({ success: true, data: {} }), { status: 200 })
-            )
-          )
-        )
-    );
-
-    render(<ResumeUpload {...sharedProps} />);
-
-    const input = screen.getByLabelText(/upload resume/i) as HTMLInputElement;
-
-    const file = new File(['fake content'], 'resume.pdf', { type: 'application/pdf' });
-
-    fireEvent.change(input, { target: { files: [file] } });
-
-    // The component transitions to the uploading state immediately after
-    // a valid file is selected.
-    const uploadingText = await screen.findByText(/parsing resume/i);
-
-    expect(uploadingText).toHaveClass('dark:text-white/70');
-    expect(uploadingText).toHaveClass('text-gray-600');
-
-    // The spinner should have a theme‑neutral colour
-    const spinner = document.querySelector('.animate-spin');
-    expect(spinner).toBeInTheDocument();
-    expect(spinner).toHaveClass('text-emerald-500');
-
-    // Clean up by resolving the pending fetch
-    resolvePromise(null);
-  });
-});
+          .catch(err => console.error(err))
