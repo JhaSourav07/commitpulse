@@ -23,6 +23,24 @@ const globalLocks =
 
 (globalThis as GlobalWithLocks).__backgroundRefreshLocks = globalLocks;
 
+/**
+ * Manages asynchronous background refresh of cached user dashboard data.
+ *
+ * Uses an in-process Map as a lightweight lock manager to prevent concurrent
+ * refresh jobs for the same user. Cache entries older than `STALE_THRESHOLD_MS`
+ * (10 minutes) are considered stale and eligible for background refresh.
+ *
+ * Lock entries expire automatically after `LOCK_TTL_MS` (5 minutes) to prevent
+ * orphaned locks from crashed workers.
+ *
+ * @example
+ * ```ts
+ * const stale = backgroundRefresh.isStale(user.lastSyncedAt);
+ * if (stale) {
+ *   await backgroundRefresh.triggerRefresh(username);
+ * }
+ * ```
+ */
 export class BackgroundRefresh {
   private static instance: BackgroundRefresh;
 
@@ -150,6 +168,7 @@ export class BackgroundRefresh {
   }
 }
 
+/** Singleton instance of the BackgroundRefresh manager. */
 export const backgroundRefresh = BackgroundRefresh.getInstance();
 
 export default backgroundRefresh;
