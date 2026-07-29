@@ -12,6 +12,26 @@ import type { ContributionCalendar } from '@/types';
 
 const SPRINT_DAYS = 14;
 
+/**
+ * Derives a burnout risk score and level from a list of team members.
+ *
+ * Scoring is based on four signals:
+ * 1. **Contributor concentration** — if more than 50 % of members have >500
+ *    contributions, the score increases by 30 (knowledge concentration risk).
+ * 2. **Average contribution velocity** — teams averaging >300 contributions per
+ *    member score +25 (potential overwork indicator).
+ * 3. **Engagement decline** — if >30 % of members have been silent for 7+ days,
+ *    the score increases by 20.
+ * 4. **Perfect activity streak** — when *all* members have contributed in the
+ *    last 3 days, a penalty of -15 is applied (reward for healthy cadence).
+ *
+ * The final score is clamped to [0, 100].  Recommendations are generated
+ * based on the resulting level.
+ *
+ * @param members - Array of `TeamMember` objects to evaluate.
+ * @returns A `BurnoutRisk` object containing the numeric score, level, human-readable
+ *   indicators, and action recommendations.
+ */
 function calculateBurnoutRisk(members: TeamMember[]): BurnoutRisk {
   const highContributionMembers = members.filter((m) => m.totalContributions > 500);
   const avgContributions =
@@ -68,6 +88,18 @@ function calculateBurnoutRisk(members: TeamMember[]): BurnoutRisk {
   return { level, score: Math.max(0, Math.min(100, score)), indicators, recommendations };
 }
 
+/**
+ * Produces a rolling window of estimated daily contribution velocity trends.
+ *
+ * Generates `days` data points (default 8) ending at the current date.
+ * The contribution count for each day is estimated as the team's average
+ * daily rate with a ±15 % random variance. The `velocityScore` is the
+ * per-member average contribution count scaled by 10.
+ *
+ * @param members - Team members whose aggregate contributions inform the estimates.
+ * @param days   - Number of historical data points to produce (default 8).
+ * @returns An array of `VelocityTrend` objects ordered chronologically.
+ */
 function calculateVelocityTrends(members: TeamMember[], days: number = 8): VelocityTrend[] {
   const trends: VelocityTrend[] = [];
   const now = new Date();
@@ -92,6 +124,19 @@ function calculateVelocityTrends(members: TeamMember[], days: number = 8): Veloc
   return trends;
 }
 
+/**
+ * Estimates sprint progress for the current two-week sprint window.
+ *
+ * The sprint window is centered on the current date and spans `SPRINT_DAYS`
+ * days (14 days by default). Target contributions are derived from the
+ * team's average daily rate extrapolated over the sprint. A fixed 65 %
+ * completion factor is used as an optimistic baseline for the current
+ * sprint position.
+ *
+ * @param members    - Team members contributing to the sprint.
+ * @param sprintName - Optional label for the sprint (default: "Current Sprint").
+ * @returns A `SprintProgress` object with dates, targets, and progress percentage.
+ */
 function calculateSprintProgress(
   members: TeamMember[],
   sprintName: string = 'Current Sprint'
@@ -121,6 +166,15 @@ function calculateSprintProgress(
   };
 }
 
+/**
+ * Aggregates per-member contribution data into summary team metrics.
+ *
+ * Computes total contributions, active members (contributed in the last 7 days),
+ * combined streaks, and the team's average daily contribution rate.
+ *
+ * @param members - Team members to aggregate.
+ * @returns A `TeamMetrics` summary object.
+ */
 function calculateTeamMetrics(members: TeamMember[]): TeamMetrics {
   const totalContributions = members.reduce((sum, m) => sum + m.totalContributions, 0);
   const activeMembers = members.filter(
@@ -137,6 +191,22 @@ function calculateTeamMetrics(members: TeamMember[]): TeamMetrics {
   };
 }
 
+/**
+ * Derives an overall team health score from metrics and burnout risk.
+ *
+ * Three sub-dimensions are computed and averaged:
+ * - **Productivity** — percentage of team members active in the last 7 days.
+ * - **Sustainability** — inverse of the burnout risk score.
+ * - **Collaboration** — average current streak as a fraction of a healthy week (7 days).
+ *
+ * The overall score is the arithmetic mean of the three sub-dimensions. An
+ * `excellent` / `good` / `fair` / `poor` / `critical` level label is assigned
+ * based on thresholds of 80, 60, 40, and 20.
+ *
+ * @param metrics      - Pre-computed team metrics.
+ * @param burnoutRisk  - Pre-computed burnout risk for the team.
+ * @returns A `TeamHealthScore` with sub-dimension scores, overall score, and level.
+ */
 function calculateTeamHealthScore(metrics: TeamMetrics, burnoutRisk: BurnoutRisk): TeamHealthScore {
   // Guard against 0/0 = NaN and x/0 = Infinity when the team has no members —
   // an empty team should read as "no data" (0), not silently fail every
