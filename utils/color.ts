@@ -1,3 +1,13 @@
+/**
+ * Converts a hex color string to an RGB object.
+ *
+ * Supports 3-digit shorthand (#abc), 4-digit shorthand with alpha (#abcd),
+ * 6-digit full (#aabbcc), and 8-digit full with alpha (#aabbccdd).
+ * Shorthand digits are expanded and any trailing alpha channel is ignored.
+ *
+ * @param hex - A hex color string, with or without the leading `#`
+ * @returns An `{ r, g, b }` object, or `null` if the input is not a valid hex color
+ */
 export function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   const cleaned = hex.replace('#', '');
 
@@ -25,10 +35,26 @@ export function hexToRgb(hex: string): { r: number; g: number; b: number } | nul
   };
 }
 
+/**
+ * Converts red, green, and blue channel values to a hex color string.
+ *
+ * @param r - Red channel value (0-255)
+ * @param g - Green channel value (0-255)
+ * @param b - Blue channel value (0-255)
+ * @returns A 6-digit hex color string prefixed with `#`
+ */
 export function rgbToHex(r: number, g: number, b: number): string {
   return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 }
 
+/**
+ * Converts red, green, and blue channel values to HSL (Hue, Saturation, Lightness).
+ *
+ * @param r - Red channel value (0-255)
+ * @param g - Green channel value (0-255)
+ * @param b - Blue channel value (0-255)
+ * @returns An `{ h, s, l }` object where h is degrees (0-360), s and l are percentages (0-100)
+ */
 export function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
   r /= 255;
   g /= 255;
@@ -56,12 +82,27 @@ export function rgbToHsl(r: number, g: number, b: number): { h: number; s: numbe
   return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
 }
 
+/**
+ * Converts a hex color string to HSL (Hue, Saturation, Lightness).
+ * Falls back to `{ h: 0, s: 0, l: 50 }` for invalid hex strings.
+ *
+ * @param hex - A hex color string, with or without the leading `#`
+ * @returns An `{ h, s, l }` object where h is degrees (0-360), s and l are percentages (0-100)
+ */
 export function hexToHsl(hex: string): { h: number; s: number; l: number } {
   const rgb = hexToRgb(hex);
   if (!rgb) return { h: 0, s: 0, l: 50 };
   return rgbToHsl(rgb.r, rgb.g, rgb.b);
 }
 
+/**
+ * Converts HSL (Hue, Saturation, Lightness) values to a hex color string.
+ *
+ * @param h - Hue in degrees (0-360)
+ * @param s - Saturation percentage (0-100)
+ * @param l - Lightness percentage (0-100)
+ * @returns A 6-digit hex color string prefixed with `#`
+ */
 export function hslToHex(h: number, s: number, l: number): string {
   s /= 100;
   l /= 100;
@@ -85,6 +126,15 @@ function getLuminance(r: number, g: number, b: number): number {
   return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
 }
 
+/**
+ * Calculates the WCAG contrast ratio between two hex colors.
+ *
+ * Uses the relative luminance formula defined in WCAG 2.1.
+ *
+ * @param hex1 - First hex color string
+ * @param hex2 - Second hex color string
+ * @returns The contrast ratio (minimum 1, maximum 21), or 0 if either color is invalid
+ */
 export function getContrastRatio(hex1: string, hex2: string): number {
   const rgb1 = hexToRgb(hex1);
   const rgb2 = hexToRgb(hex2);
@@ -94,6 +144,19 @@ export function getContrastRatio(hex1: string, hex2: string): number {
   return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
 }
 
+/**
+ * Maps a WCAG contrast ratio to a compliance level.
+ *
+ * | Ratio    | Level | Label     |
+ * |----------|-------|-----------|
+ * | >= 7     | pass  | AAA       |
+ * | >= 4.5   | pass  | AA        |
+ * | >= 3     | warn  | AA Large  |
+ * | < 3      | fail  | Fail      |
+ *
+ * @param ratio - The contrast ratio from `getContrastRatio`
+ * @returns An object with the WCAG label and compliance level
+ */
 export function getContrastRating(ratio: number): {
   label: string;
   level: 'pass' | 'warn' | 'fail';
@@ -104,6 +167,17 @@ export function getContrastRating(ratio: number): {
   return { label: 'Fail', level: 'fail' };
 }
 
+/**
+ * Finds the lightness value in a color's HSL range that meets the target contrast ratio.
+ *
+ * Iterates lightness from 0 to 100 and returns the first value that achieves
+ * `targetRatio` against either a white or black background.
+ *
+ * @param baseHex - The base hex color to start from
+ * @param text - Whether to contrast against `'white'` (#ffffff) or `'black'` (#000000) background
+ * @param targetRatio - Minimum required contrast ratio (default: 4.5, WCAG AA normal text)
+ * @returns The hex color with accessible contrast, or the closest attempted color if none meets the ratio
+ */
 export function findAccessibleColor(
   baseHex: string,
   text: 'white' | 'black',
