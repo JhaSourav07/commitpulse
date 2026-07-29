@@ -4,6 +4,13 @@ import crypto from 'node:crypto';
 const ALGO = 'aes-256-gcm';
 const PBKDF2_ITERATIONS = 100_000;
 
+/**
+ * Derives a 32-byte AES key from the environment passphrase using PBKDF2.
+ *
+ * Reads `GITHUB_TOKEN_ENCRYPTION_KEY` or falls back to `ENCRYPTION_KEY`.
+ *
+ * @param salt - A random 16-byte salt (generated per encryption operation)\n * @returns A 32-byte key suitable for AES-256-GCM\n * @throws Error if the passphrase is missing or fewer than 32 characters
+ */
 function deriveKey(salt: Buffer): Buffer {
   const passphrase = process.env.GITHUB_TOKEN_ENCRYPTION_KEY || process.env.ENCRYPTION_KEY;
   if (!passphrase || passphrase.length < 32) {
@@ -12,11 +19,23 @@ function deriveKey(salt: Buffer): Buffer {
   return crypto.pbkdf2Sync(passphrase, salt, PBKDF2_ITERATIONS, 32, 'sha512');
 }
 
+/**
+ * Detects whether an encrypted token string uses the modern AES-256-GCM format.
+ *
+ * GCM format tokens are dot-separated: `salt.iv.tag.ciphertext` (4 parts).
+ *
+ * @param payload - The encrypted token string to inspect\n * @returns `true` if the payload has exactly 4 dot-separated base64-encoded parts\n */
 function isGcmFormat(payload: string): boolean {
   const parts = payload.split('.');
   return parts.length === 4;
 }
 
+/**
+ * Detects whether an encrypted token string uses the legacy AES-256-CBC format.
+ *
+ * Legacy format tokens are colon-separated: `ivHex:ciphertextHex` (2 parts).
+ *
+ * @param payload - The encrypted token string to inspect\n * @returns `true` if the payload has exactly 2 colon-separated hex-encoded parts\n */
 function isLegacyCbcFormat(payload: string): boolean {
   const parts = payload.split(':');
   return parts.length === 2;
