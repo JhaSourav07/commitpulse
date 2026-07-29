@@ -29,6 +29,10 @@ const INITIAL_STATE: GeneratorState = {
   showArticles: false,
   articlesPlatform: 'devto',
   articlesUsername: '',
+  themeBg: '',
+  themeText: '',
+  themeBorder: '',
+  themeIcon: '',
 };
 
 export function GeneratorClient() {
@@ -119,6 +123,10 @@ export function GeneratorClient() {
           onShowArticlesChange={(v) => setState((s) => ({ ...s, showArticles: v }))}
           onArticlesPlatformChange={(v) => setState((s) => ({ ...s, articlesPlatform: v }))}
           onArticlesUsernameChange={(v) => setState((s) => ({ ...s, articlesUsername: v }))}
+          onThemeBgChange={(v) => setState((s) => ({ ...s, themeBg: v }))}
+          onThemeTextChange={(v) => setState((s) => ({ ...s, themeText: v }))}
+          onThemeBorderChange={(v) => setState((s) => ({ ...s, themeBorder: v }))}
+          onThemeIconChange={(v) => setState((s) => ({ ...s, themeIcon: v }))}
           onApplyImport={handleApplyImport}
           onApplyPreset={handleApplyPreset}
         />

@@ -10,6 +10,7 @@ import { CommitPulseSection } from './sections/CommitPulseSection';
 import { RepoSpotlightSection } from './sections/RepoSpotlightSection';
 import { ContributionGraphSection } from './sections/ContributionGraphSection';
 import { ArticlesSection } from './sections/ArticlesSection';
+import { ThemeSection } from './sections/ThemeSection';
 import { GitHubImportModal } from './GitHubImportModal';
 import { FaGithub } from 'react-icons/fa';
 import { PROFILE_PRESETS } from '../data/presets';
@@ -39,6 +40,10 @@ export interface EditorPanelProps {
   onShowArticlesChange?: (v: boolean) => void;
   onArticlesPlatformChange?: (v: 'devto' | 'hashnode') => void;
   onArticlesUsernameChange?: (v: string) => void;
+  onThemeBgChange?: (v: string) => void;
+  onThemeTextChange?: (v: string) => void;
+  onThemeBorderChange?: (v: string) => void;
+  onThemeIconChange?: (v: string) => void;
   onApplyImport: (data: ImportedData) => void;
   onApplyPreset?: (presetState: Partial<GeneratorState>) => void;
 }
@@ -61,6 +66,10 @@ export function EditorPanel({
   onShowArticlesChange = () => {},
   onArticlesPlatformChange = () => {},
   onArticlesUsernameChange = () => {},
+  onThemeBgChange = () => {},
+  onThemeTextChange = () => {},
+  onThemeBorderChange = () => {},
+  onThemeIconChange = () => {},
   onApplyImport,
   onApplyPreset,
 }: EditorPanelProps) {
@@ -198,6 +207,22 @@ export function EditorPanel({
           onShowArticlesChange(false);
           onArticlesPlatformChange('devto');
           onArticlesUsernameChange('');
+        }}
+      />
+      <ThemeSection
+        themeBg={state.themeBg}
+        themeText={state.themeText}
+        themeBorder={state.themeBorder}
+        themeIcon={state.themeIcon}
+        onThemeBgChange={onThemeBgChange}
+        onThemeTextChange={onThemeTextChange}
+        onThemeBorderChange={onThemeBorderChange}
+        onThemeIconChange={onThemeIconChange}
+        onReset={() => {
+          onThemeBgChange('');
+          onThemeTextChange('');
+          onThemeBorderChange('');
+          onThemeIconChange('');
         }}
       />
     </form>

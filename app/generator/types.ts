@@ -61,4 +61,8 @@ export interface GeneratorState {
   showArticles?: boolean;
   articlesPlatform?: 'devto' | 'hashnode';
   articlesUsername?: string;
+  themeBg?: string;
+  themeText?: string;
+  themeBorder?: string;
+  themeIcon?: string;
 }
