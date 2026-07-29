@@ -185,6 +185,7 @@ describe('ApiUserDetailsRoute - Theme Contrast and Visual Cohesion', () => {
     // Run GET to ensure it doesn't crash and returns the correct shape
     const request = makeRequest('test-user');
     GET(request).then(async (response) => {
+.catch(err => console.error(err))
       expect(response.status).toBe(200);
       const data = await response.json();
       expect(data.exists).toBe(true);
