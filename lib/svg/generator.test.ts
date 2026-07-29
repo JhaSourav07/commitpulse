@@ -15,11 +15,72 @@ import {
   buildTowerPaths,
   generateSkylineSVG,
   generateLanguagesSVG,
+  generateSideBySideSkylineSVG,
 } from './generator';
 import { escapeXML } from './sanitizer';
 import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
 import { hexColor } from './sanitizer';
 import { themes } from './themes';
+
+describe('generateSideBySideSkylineSVG', () => {
+  const mockStats: StreakStats = {
+    totalContributions: 100,
+    firstContribution: '2023-01-01',
+    longestStreak: { start: '2023-01-01', end: '2023-01-05', length: 5 },
+    currentStreak: { start: '2023-01-01', end: '2023-01-05', length: 5 },
+  };
+
+  const mockCalendar: ContributionCalendar = {
+    totalContributions: 100,
+    weeks: [
+      {
+        contributionDays: [{ contributionCount: 5, date: '2023-01-01', color: '#ebedf0' }],
+      },
+    ],
+  };
+
+  it('generates side-by-side skyline without throwing', () => {
+    const svg = generateSideBySideSkylineSVG(
+      mockStats,
+      mockStats,
+      {
+        user: 'avi',
+        bg: '0d1117',
+        accent: '00ffaa',
+        text: 'ffffff',
+        hideBackground: false,
+        lang: 'en',
+      } as unknown as BadgeParams,
+      mockCalendar,
+      mockCalendar,
+      '2023',
+      '2024'
+    );
+    assertValidSVG(svg);
+    expect(svg).toContain('2023');
+    expect(svg).toContain('2024');
+    expect(svg).toContain('Side-by-side Skyline Comparison');
+  });
+
+  it('works correctly in auto-theme mode', () => {
+    const svg = generateSideBySideSkylineSVG(
+      mockStats,
+      mockStats,
+      {
+        user: 'avi',
+        autoTheme: true,
+        lang: 'en',
+      } as unknown as BadgeParams,
+      mockCalendar,
+      mockCalendar,
+      '2023',
+      '2024'
+    );
+    assertValidSVG(svg);
+    expect(svg).toContain('2023');
+    expect(svg).toContain('2024');
+  });
+});
 
 function assertValidSVG(svgString: string): void {
   const doc = new DOMParser().parseFromString(svgString, 'image/svg+xml');

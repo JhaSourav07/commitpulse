@@ -3019,80 +3019,44 @@ export function generateAutoThemeSkylineSVG(
   return renderSkylineSVG(stats, params, calendar, true);
 }
 
-function renderSkylineSVG(
-  stats: StreakStats,
-  params: BadgeParams,
-  calendar: ContributionCalendar,
-  isAutoTheme: boolean
-): string {
-  const safeUser = escapeXML(params.user || 'GitHub User');
-  const light = AUTO_THEME_LIGHT;
-  const dark = AUTO_THEME_DARK;
-
-  const bg = isAutoTheme ? '' : `#${sanitizeHexColor(params.bg, '0d1117')}`;
-  const rawAccent = Array.isArray(params.accent)
-    ? params.accent[params.accent.length - 1]
-    : params.accent;
-  const accent = isAutoTheme ? '' : `#${sanitizeHexColor(rawAccent, '00ffaa')}`;
-  const text = isAutoTheme ? '' : `#${sanitizeHexColor(params.text, 'ffffff')}`;
-
-  const sanitizedFont = sanitizeFont(params.font);
-  const predefinedFont = sanitizedFont
-    ? (FONT_MAP[sanitizedFont.toLowerCase() as keyof typeof FONT_MAP] ?? null)
-    : null;
-  const isPredefinedFont = Boolean(predefinedFont);
-  const selectedFont = isPredefinedFont
-    ? predefinedFont
-    : sanitizedFont
-      ? `"${sanitizedFont}", sans-serif`
-      : null;
-  const statsFont = selectedFont || '"Space Grotesk", sans-serif';
-
-  const googleFontUrlPart =
-    sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
-  const googleFontsImport = googleFontUrlPart
-    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&amp;display=swap');`
-    : '';
-
-  const parsedRadius = Number(params.radius);
-  const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50));
-
-  const width = sanitizeDimension(params.width, 800, 100, 1200);
-  const height = sanitizeDimension(params.height, 260, 80, 800);
-
+function calculateSkylineMetrics(calendar: ContributionCalendar, mode?: string) {
   const weeklyContributions: number[] = [];
-  const weeks = calendar.weeks;
-  weeks.forEach((week) => {
+  calendar.weeks.forEach((week) => {
     let count = 0;
     week.contributionDays.forEach((day) => {
       count +=
-        params.mode === 'loc'
-          ? (day.locAdditions || 0) + (day.locDeletions || 0)
-          : day.contributionCount;
+        mode === 'loc' ? (day.locAdditions || 0) + (day.locDeletions || 0) : day.contributionCount;
     });
     weeklyContributions.push(count);
   });
-
   const totalContributions = weeklyContributions.reduce((sum, c) => sum + c, 0);
   const maxWeeklyCount = Math.max(...weeklyContributions, 1);
+  return { weeklyContributions, totalContributions, maxWeeklyCount };
+}
 
-  const paddingX = 40;
-  const paddingYTop = 80;
-  const paddingYBottom = 40;
+function renderSkylineGroup(
+  weeklyContributions: number[],
+  maxSharedWeeklyCount: number,
+  params: BadgeParams,
+  isAutoTheme: boolean,
+  accentList: string[],
+  accent: string,
+  width: number,
+  height: number,
+  paddingX: number,
+  paddingYTop: number,
+  paddingYBottom: number,
+  weeks: ContributionCalendar['weeks']
+): { buildingsSVG: string; starsSVG: string } {
   const graphWidth = width - paddingX * 2;
   const graphHeight = height - paddingYTop - paddingYBottom;
   const bottomY = paddingYTop + graphHeight;
-
   const numWeeks = weeklyContributions.length || 1;
   const stepX = graphWidth / Math.max(numWeeks - 1, 1);
   const buildingWidth = Math.max(2, Math.floor(stepX - 3));
 
   let buildingsSVG = '';
   const animate = params.animate ?? true;
-
-  const accentList = Array.isArray(params.accent)
-    ? params.accent.map((c) => `#${sanitizeHexColor(c, '00ffaa')}`)
-    : [accent];
 
   const scaleParam: 'linear' | 'log' | 'sqrt' =
     params.scale === 'log' || params.scale === 'sqrt' ? params.scale : 'linear';
@@ -3109,18 +3073,14 @@ function renderSkylineSVG(
 
     let normalized = 0;
     if (count > 0) {
-      const divisor = maxWeeklyCount || 1;
+      const divisor = maxSharedWeeklyCount || 1;
       const towerHeight = computeTowerHeight(count, scaleParam, false, divisor);
       normalized = towerHeight / maxPossibleHeight;
     }
 
     let h = normalized * graphHeight;
-    if (count > 0 && h < 6) {
-      h = 6;
-    }
-    if (count === 0) {
-      h = 1.5;
-    }
+    if (count > 0 && h < 6) h = 6;
+    if (count === 0) h = 1.5;
 
     const y = bottomY - h;
     const delay = (i * 0.015).toFixed(3);
@@ -3135,7 +3095,7 @@ function renderSkylineSVG(
         buildingColor = accentList[0];
         opacity = 0.15;
       } else if (accentList.length > 1) {
-        const ratio = count / maxWeeklyCount;
+        const ratio = count / maxSharedWeeklyCount;
         let colorIdx = 0;
         if (ratio <= 0.25) colorIdx = 0;
         else if (ratio <= 0.5) colorIdx = 1;
@@ -3157,7 +3117,6 @@ function renderSkylineSVG(
       const topPadding = 6;
       const bottomPadding = 4;
       const stepYOffset = 8;
-
       const numCols = buildingWidth >= 8 ? 2 : 1;
       const startX =
         numCols === 2
@@ -3178,13 +3137,9 @@ function renderSkylineSVG(
           if (isLit) {
             const winFill = isAutoTheme ? 'var(--cp-text)' : '#ffffff';
             if (animate) {
-              windowsSVG += `
-                <rect class="cp-window cp-window-animated" style="animation-delay: ${windowDelay}s;" x="${startX[c].toFixed(1)}" y="${windowY.toFixed(1)}" width="${windowW}" height="${windowH}" fill="${winFill}" opacity="0" pointer-events="none" />
-              `;
+              windowsSVG += `<rect class="cp-window cp-window-animated" style="animation-delay: ${windowDelay}s;" x="${startX[c].toFixed(1)}" y="${windowY.toFixed(1)}" width="${windowW}" height="${windowH}" fill="${winFill}" opacity="0" pointer-events="none" />`;
             } else {
-              windowsSVG += `
-                <rect class="cp-window" x="${startX[c].toFixed(1)}" y="${windowY.toFixed(1)}" width="${windowW}" height="${windowH}" fill="${winFill}" opacity="0.85" pointer-events="none" />
-              `;
+              windowsSVG += `<rect class="cp-window" x="${startX[c].toFixed(1)}" y="${windowY.toFixed(1)}" width="${windowW}" height="${windowH}" fill="${winFill}" opacity="0.85" pointer-events="none" />`;
             }
           }
         }
@@ -3194,16 +3149,12 @@ function renderSkylineSVG(
     const dateStr = weeks[i]?.contributionDays[0]?.date || '';
     const unit = params.mode === 'loc' ? 'lines' : 'commits';
     const tooltipText = `${dateStr} week: ${count} ${unit}`;
-
-    let rectSVG = '';
     const rectClass = `cp-building${animate ? ' cp-building-animated' : ''}`;
     const rectStyle = animate ? ` style="animation-delay: ${delay}s;"` : '';
 
-    if (isAutoTheme) {
-      rectSVG = `<rect class="${rectClass}"${rectStyle} x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${buildingWidth}" height="${h.toFixed(1)}" fill="var(--cp-accent)" fill-opacity="${opacity}" rx="1" />`;
-    } else {
-      rectSVG = `<rect class="${rectClass}"${rectStyle} x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${buildingWidth}" height="${h.toFixed(1)}" fill="${buildingColor}" fill-opacity="${opacity}" rx="1" />`;
-    }
+    const rectSVG = isAutoTheme
+      ? `<rect class="${rectClass}"${rectStyle} x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${buildingWidth}" height="${h.toFixed(1)}" fill="var(--cp-accent)" fill-opacity="${opacity}" rx="1" />`
+      : `<rect class="${rectClass}"${rectStyle} x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${buildingWidth}" height="${h.toFixed(1)}" fill="${buildingColor}" fill-opacity="${opacity}" rx="1" />`;
 
     buildingsSVG += `
       <g>
@@ -3236,6 +3187,337 @@ function renderSkylineSVG(
 
     starsSVG += `<circle class="cp-star" cx="${starX.toFixed(1)}" cy="${starY.toFixed(1)}" r="${starR.toFixed(1)}" fill="${starFill}" opacity="${starOpacity.toFixed(2)}" ${starAnim} pointer-events="none" />`;
   }
+
+  return { buildingsSVG, starsSVG };
+}
+
+export function generateSideBySideSkylineSVG(
+  stats1: StreakStats,
+  stats2: StreakStats,
+  params: BadgeParams,
+  calendar1: ContributionCalendar,
+  calendar2: ContributionCalendar,
+  label1: string,
+  label2: string
+): string {
+  const isAutoTheme = params.autoTheme ?? false;
+  const light = AUTO_THEME_LIGHT;
+  const dark = AUTO_THEME_DARK;
+
+  const bg = isAutoTheme ? '' : `#${sanitizeHexColor(params.bg, '0d1117')}`;
+  const rawAccent = Array.isArray(params.accent)
+    ? params.accent[params.accent.length - 1]
+    : params.accent;
+  const accent = isAutoTheme ? '' : `#${sanitizeHexColor(rawAccent, '00ffaa')}`;
+  const text = isAutoTheme ? '' : `#${sanitizeHexColor(params.text, 'ffffff')}`;
+
+  const accentList = Array.isArray(params.accent)
+    ? params.accent.map((c) => `#${sanitizeHexColor(c, '00ffaa')}`)
+    : [accent];
+
+  const sanitizedFont = sanitizeFont(params.font);
+  const predefinedFont = sanitizedFont
+    ? (FONT_MAP[sanitizedFont.toLowerCase() as keyof typeof FONT_MAP] ?? null)
+    : null;
+  const isPredefinedFont = Boolean(predefinedFont);
+  const selectedFont = isPredefinedFont
+    ? predefinedFont
+    : sanitizedFont
+      ? `"${sanitizedFont}", sans-serif`
+      : null;
+  const statsFont = selectedFont || '"Space Grotesk", sans-serif';
+
+  const googleFontUrlPart =
+    sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
+  const googleFontsImport = googleFontUrlPart
+    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&amp;display=swap');`
+    : '';
+
+  const parsedRadius = Number(params.radius);
+  const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50));
+
+  const baseWidth = sanitizeDimension(params.width, 800, 100, 1200);
+  const height = sanitizeDimension(params.height, 260, 80, 800);
+
+  const width = baseWidth * 2;
+  const paddingX = 40;
+  const paddingYTop = 80;
+  const paddingYBottom = 40;
+  const bottomY = paddingYTop + (height - paddingYTop - paddingYBottom);
+
+  const metrics1 = calculateSkylineMetrics(calendar1, params.mode);
+  const metrics2 = calculateSkylineMetrics(calendar2, params.mode);
+  const maxSharedWeeklyCount = Math.max(metrics1.maxWeeklyCount, metrics2.maxWeeklyCount, 1);
+
+  const group1 = renderSkylineGroup(
+    metrics1.weeklyContributions,
+    maxSharedWeeklyCount,
+    params,
+    isAutoTheme,
+    accentList,
+    accent,
+    baseWidth,
+    height,
+    paddingX,
+    paddingYTop,
+    paddingYBottom,
+    calendar1.weeks
+  );
+  const group2 = renderSkylineGroup(
+    metrics2.weeklyContributions,
+    maxSharedWeeklyCount,
+    params,
+    isAutoTheme,
+    accentList,
+    accent,
+    baseWidth,
+    height,
+    paddingX,
+    paddingYTop,
+    paddingYBottom,
+    calendar2.weeks
+  );
+
+  const styleBg = isAutoTheme ? 'var(--cp-bg)' : bg;
+  const strokeStroke = isAutoTheme ? 'var(--cp-accent)' : accent;
+
+  const groundLine = `<line x1="${paddingX}" y1="${bottomY}" x2="${baseWidth - paddingX}" y2="${bottomY}" stroke="${strokeStroke}" stroke-width="1.5" stroke-opacity="0.6" filter="url(#horizonGlow)" />`;
+
+  let defs = '';
+  if (isAutoTheme) {
+    defs = `
+      <defs>
+        <linearGradient id="skyGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="var(--cp-bg)" stop-opacity="0" />
+          <stop offset="100%" stop-color="var(--cp-accent)" stop-opacity="0.12" />
+        </linearGradient>
+        <filter id="horizonGlow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="6" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+    `;
+  } else {
+    defs = `
+      <defs>
+        <linearGradient id="skyGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${bg}" stop-opacity="0" />
+          <stop offset="100%" stop-color="${accent}" stop-opacity="0.12" />
+        </linearGradient>
+        <filter id="horizonGlow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="6" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+    `;
+  }
+
+  const labels = getLabels(params.lang);
+  const modeLabel = params.mode === 'loc' ? 'TOTAL LINES OF CODE' : labels.ANNUAL_SYNC_TOTAL;
+
+  // Crown logic
+  let title1 = escapeXML(label1).toUpperCase();
+  let title2 = escapeXML(label2).toUpperCase();
+
+  if (metrics1.totalContributions > metrics2.totalContributions) {
+    title1 += ' 👑';
+  } else if (metrics2.totalContributions > metrics1.totalContributions) {
+    title2 += ' 👑';
+  }
+
+  const renderPanel = (
+    title: string,
+    groupObj: { buildingsSVG: string; starsSVG: string },
+    statsObj: StreakStats,
+    metrics: ReturnType<typeof calculateSkylineMetrics>
+  ) => `
+    <rect x="${paddingX}" y="${paddingYTop - 20}" width="${baseWidth - paddingX * 2}" height="${height - paddingYTop - paddingYBottom + 20}" fill="url(#skyGradient)" />
+    <g class="cp-stars">${groupObj.starsSVG}</g>
+    <g class="cp-skyline">${groupObj.buildingsSVG}</g>
+    ${groundLine}
+    ${!params.hide_title ? `<text x="30" y="38" class="title" font-size="${getUsernameFontSize(title)}" style="font-size: ${getUsernameFontSize(title)}px;">${title}</text>` : ''}
+    ${
+      !params.hide_stats
+        ? `
+      <g transform="translate(${baseWidth - 330}, 24)">
+        <g transform="translate(0, 0)">
+          <text class="label">${modeLabel}</text>
+          <text y="34" class="stats">${metrics.totalContributions}</text>
+        </g>
+        <g transform="translate(300, 0)">
+          <text class="label label-end">${labels.CURRENT_STREAK}</text>
+          <text y="34" class="stats stats-end">${statsObj.currentStreak}d</text>
+        </g>
+      </g>`
+        : ''
+    }
+  `;
+
+  return `
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="${width}"
+  height="${height}"
+  viewBox="0 0 ${width} ${height}"
+  fill="none"
+  role="img"
+  aria-labelledby="skyline-title skyline-desc"
+>
+  <title id="skyline-title">Side-by-side Skyline Comparison</title>
+  <desc id="skyline-desc">A panoramic city skyline visualization comparing two years of GitHub contributions</desc>
+  <style>
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;display=swap');
+  ${process.env.NODE_ENV === 'test' ? `@import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');` : DEFAULT_FONTS_BASE64}
+  ${googleFontsImport}
+
+  ${
+    isAutoTheme
+      ? `
+  :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
+  @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; } }
+  .cp-bg-fill { fill: var(--cp-bg); }
+  .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: var(--cp-text); font-size: 16px; letter-spacing: 2px; font-weight: 700; opacity: 0.9; text-transform: uppercase; }
+  .stats { font-family: ${statsFont}; fill: var(--cp-accent); font-size: 26px; font-weight: 600; letter-spacing: 0; }
+  .label { font-family: "Roboto", sans-serif; fill: var(--cp-text); font-size: 10px; font-weight: 500; letter-spacing: 0.5px; opacity: 0.5; }
+  .label-end { text-anchor: end; }
+  .stats-end { text-anchor: end; }
+  `
+      : `
+  .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: ${text}; font-size: 16px; letter-spacing: 2px; font-weight: 700; opacity: 0.9; text-transform: uppercase; }
+  .stats { font-family: ${statsFont}; fill: ${accent}; font-size: 26px; font-weight: 600; letter-spacing: 0; }
+  .label { font-family: "Roboto", sans-serif; fill: ${text}; font-size: 10px; font-weight: 500; letter-spacing: 0.5px; opacity: 0.5; }
+  .label-end { text-anchor: end; }
+  .stats-end { text-anchor: end; }
+  `
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 0.8; }
+  }
+  .cp-building {
+    transition: fill-opacity 0.2s ease;
+    transform-origin: 0px ${bottomY}px;
+    transform: scaleY(1);
+  }
+  .cp-building:hover {
+    fill-opacity: 1.0 !important;
+  }
+  .cp-building-animated {
+    transform: scaleY(0);
+    animation: skyline-rise 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .cp-window-animated {
+    opacity: 0;
+    animation: window-fade 0.6s ease-out forwards;
+  }
+  @keyframes skyline-rise {
+    to { transform: scaleY(1); }
+  }
+  @keyframes window-fade {
+    to { opacity: 0.85; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cp-star { animation: none !important; }
+    .cp-building-animated { transform: scaleY(1) !important; animation: none !important; }
+    .cp-window-animated { opacity: 0.85 !important; animation: none !important; }
+  }
+  </style>
+
+  ${defs}
+
+  <rect width="${width}" height="${height}" rx="${radius}" class="${isAutoTheme && !params.hideBackground ? 'cp-bg-fill' : ''}" fill="${params.hideBackground ? 'transparent' : styleBg}" />
+
+  <g transform="translate(0, 0)">
+    ${renderPanel(title1, group1, stats1, metrics1)}
+  </g>
+  <g transform="translate(${baseWidth}, 0)">
+    ${renderPanel(title2, group2, stats2, metrics2)}
+  </g>
+  
+  <line x1="${baseWidth}" y1="${paddingYTop}" x2="${baseWidth}" y2="${height - paddingYBottom}" stroke="${strokeStroke}" stroke-width="1" stroke-opacity="0.3" stroke-dasharray="4 4" />
+</svg>
+`;
+}
+
+function renderSkylineSVG(
+  stats: StreakStats,
+  params: BadgeParams,
+  calendar: ContributionCalendar,
+  isAutoTheme: boolean
+): string {
+  const safeUser = escapeXML(params.user || 'GitHub User');
+  const light = AUTO_THEME_LIGHT;
+  const dark = AUTO_THEME_DARK;
+
+  const bg = isAutoTheme ? '' : `#${sanitizeHexColor(params.bg, '0d1117')}`;
+  const rawAccent = Array.isArray(params.accent)
+    ? params.accent[params.accent.length - 1]
+    : params.accent;
+  const accent = isAutoTheme ? '' : `#${sanitizeHexColor(rawAccent, '00ffaa')}`;
+  const text = isAutoTheme ? '' : `#${sanitizeHexColor(params.text, 'ffffff')}`;
+
+  const accentList = Array.isArray(params.accent)
+    ? params.accent.map((c) => `#${sanitizeHexColor(c, '00ffaa')}`)
+    : [accent];
+
+  const sanitizedFont = sanitizeFont(params.font);
+  const predefinedFont = sanitizedFont
+    ? (FONT_MAP[sanitizedFont.toLowerCase() as keyof typeof FONT_MAP] ?? null)
+    : null;
+  const isPredefinedFont = Boolean(predefinedFont);
+  const selectedFont = isPredefinedFont
+    ? predefinedFont
+    : sanitizedFont
+      ? `"${sanitizedFont}", sans-serif`
+      : null;
+  const statsFont = selectedFont || '"Space Grotesk", sans-serif';
+
+  const googleFontUrlPart =
+    sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
+  const googleFontsImport = googleFontUrlPart
+    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&amp;display=swap');`
+    : '';
+
+  const parsedRadius = Number(params.radius);
+  const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50));
+
+  const width = sanitizeDimension(params.width, 800, 100, 1200);
+  const height = sanitizeDimension(params.height, 260, 80, 800);
+
+  const metrics = calculateSkylineMetrics(calendar, params.mode);
+  const weeklyContributions = metrics.weeklyContributions;
+  const totalContributions = metrics.totalContributions;
+  const maxWeeklyCount = metrics.maxWeeklyCount;
+
+  const paddingX = 40;
+  const paddingYTop = 80;
+  const paddingYBottom = 40;
+  const graphWidth = width - paddingX * 2;
+  const graphHeight = height - paddingYTop - paddingYBottom;
+  const bottomY = paddingYTop + graphHeight;
+
+  const group = renderSkylineGroup(
+    weeklyContributions,
+    maxWeeklyCount,
+    params,
+    isAutoTheme,
+    accentList,
+    accent,
+    width,
+    height,
+    paddingX,
+    paddingYTop,
+    paddingYBottom,
+    calendar.weeks
+  );
+  const buildingsSVG = group.buildingsSVG;
+  const starsSVG = group.starsSVG;
 
   const styleBg = isAutoTheme ? 'var(--cp-bg)' : bg;
 

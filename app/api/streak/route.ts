@@ -27,6 +27,7 @@ import {
   generateHeatmapSVG,
   generatePulseSVG,
   generateSkylineSVG,
+  generateSideBySideSkylineSVG,
   generateLanguagesSVG,
   generateActivityGraphSVG,
   buildInlineErrorSVG,
@@ -130,6 +131,7 @@ export async function GET(request: Request) {
       radius,
       font,
       year,
+      compare_years,
       from: customFrom,
       to: customTo,
       start_date,
@@ -498,13 +500,54 @@ export async function GET(request: Request) {
         if (hasOfflineFallback) {
           params.isOfflineFallback = true;
         }
+      } else if (compare_years && normalizedView === 'skyline') {
+        const years = compare_years.split(',').map((y) => y.trim());
+        const from1 = `${years[0]}-01-01T00:00:00Z`;
+        const to1 = `${years[0]}-12-31T23:59:59Z`;
+        const from2 = `${years[1]}-01-01T00:00:00Z`;
+        const to2 = `${years[1]}-12-31T23:59:59Z`;
+
+        const [userData1, userData2] = await Promise.all([
+          fetchGitHubContributions(user, {
+            bypassCache: shouldBypassCache,
+            from: from1,
+            to: to1,
+            signal: controller.signal,
+          }),
+          fetchGitHubContributions(user, {
+            bypassCache: shouldBypassCache,
+            from: from2,
+            to: to2,
+            signal: controller.signal,
+          }),
+        ]);
+
+        calendar = userData1.calendar;
+        versusCalendar = userData2.calendar;
+
+        if (userData1.isOfflineFallback || userData2.isOfflineFallback) {
+          params.isOfflineFallback = true;
+          servedFromStaleCache = true;
+        }
       } else {
-        const userData = await fetchGitHubContributions(user, {
+        const fetchUserPromise = fetchGitHubContributions(user, {
           bypassCache: shouldBypassCache,
           from,
           to,
           signal: controller.signal,
         });
+
+        const fetchVersusPromise = versus
+          ? fetchGitHubContributions(versus, {
+              bypassCache: shouldBypassCache,
+              from,
+              to,
+              signal: controller.signal,
+            })
+          : Promise.resolve(null);
+
+        const [userData, versusData] = await Promise.all([fetchUserPromise, fetchVersusPromise]);
+
         calendar = userData.calendar;
         repoContributions = normalizedView === 'languages' ? userData.repoContributions || [] : [];
         if (userData.isOfflineFallback) {
@@ -512,13 +555,7 @@ export async function GET(request: Request) {
           servedFromStaleCache = true;
         }
 
-        if (versus) {
-          const versusData = await fetchGitHubContributions(versus, {
-            bypassCache: shouldBypassCache,
-            from,
-            to,
-            signal: controller.signal,
-          });
+        if (versusData) {
           versusCalendar = versusData.calendar;
           if (versusData.isOfflineFallback) {
             params.isOfflineFallback = true;
@@ -652,11 +689,24 @@ export async function GET(request: Request) {
     } else if (normalizedView === 'heatmap') {
       svg = generateHeatmapSVG(fullStats, params, calendar);
     } else if (normalizedView === 'pulse') {
-      // We still use calculateStreak here to efficiently parse totalContributions for the stat display,
-      // even though the sparkline generator will extract its own daily 30-day timeline below.
       svg = generatePulseSVG(fullStats, params, calendar);
     } else if (normalizedView === 'skyline') {
-      svg = generateSkylineSVG(fullStats, params, calendar);
+      if (compare_years && versusCalendar) {
+        const years = compare_years.split(',').map((y) => y.trim());
+        const normalizedCalendar = normalizeCalendarToTimezone(calendar, timezone);
+        const normalizedVersusCalendar = normalizeCalendarToTimezone(versusCalendar, timezone);
+        svg = generateSideBySideSkylineSVG(
+          fullStats,
+          fullVersusStats!,
+          params,
+          normalizedCalendar,
+          normalizedVersusCalendar,
+          years[0],
+          years[1]
+        );
+      } else {
+        svg = generateSkylineSVG(fullStats, params, calendar);
+      }
     } else if (normalizedView === 'constellation') {
       svg = generateConstellationSVG(fullStats, params, calendar);
     } else if (normalizedView === 'radar') {
