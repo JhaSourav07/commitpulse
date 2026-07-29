@@ -757,6 +757,16 @@ function applyExplicitStackRules(bucketMap: Map<string, Map<string, EdgeBucket>>
   applyCuratedRules(bucketMap, buildCuratedRules());
 }
 
+/**
+ * Builds the technology dependency graph used by the README generator's recommendation engine.
+ *
+ * The graph is constructed from curated rules (`applyExplicitStackRules`), language family
+ * relationships (`applyLanguageFamilies`), same-category co-occurrence (`applySameCategoryRules`),
+ * and cross-category relations (`applyCategoryRelations`). Each source technology is limited
+ * to at most 24 outgoing edges, sorted by score descending.
+ *
+ * @returns A map from technology ID to a `GraphNode` containing the technology's ID and ordered edges
+ */
 function buildDependencyGraph(): Record<string, GraphNode> {
   const bucketMap = new Map<string, Map<string, EdgeBucket>>();
 
@@ -796,4 +806,12 @@ function buildDependencyGraph(): Record<string, GraphNode> {
   return graph;
 }
 
+/**
+ * Curated technology dependency graph for the README generator's recommendation engine.
+ *
+ * Each entry maps a technology ID (e.g. `'typescript'`) to a `GraphNode` containing
+ * up to 24 edges pointing to related technologies, ordered by relevance score.
+ *
+ * Populated at module initialisation via `buildDependencyGraph()`.
+ */
 export const DEPENDENCY_GRAPH: Record<string, GraphNode> = buildDependencyGraph();
