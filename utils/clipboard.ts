@@ -1,3 +1,10 @@
+/**
+ * A browser-only fallback for copying text to the clipboard using a textarea
+ * and `document.execCommand('copy')`. Used when the Clipboard API is unavailable.
+ *
+ * @param text - The string to copy.
+ * @returns true if the copy succeeded, false otherwise.
+ */
 export const fallbackCopyToClipboard = (text: string): boolean => {
   const textArea = document.createElement('textarea');
 
@@ -22,6 +29,13 @@ export const fallbackCopyToClipboard = (text: string): boolean => {
   }
 };
 
+/**
+ * Copies the given text to the system clipboard.
+ * Tries the modern Clipboard API first, then falls back to the textarea approach.
+ *
+ * @param text - The string to copy.
+ * @throws Error if both the Clipboard API and the fallback fail.
+ */
 export const copyToClipboard = async (text: string): Promise<void> => {
   if (typeof navigator !== 'undefined' && navigator.clipboard) {
     try {
