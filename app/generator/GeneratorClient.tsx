@@ -8,7 +8,6 @@ import { ReadmeInsightsPanel } from './components/ReadmeInsightsPanel';
 import { ReadmeHealthBreakdown } from './components/ReadmeHealthBreakdown';
 import { ReadmeInsight } from './components/ReadmeInsight';
 import { generateReadme, getEmptyReadme } from './utils/readmeGenerator';
-import { sanitizeSocialUrl } from './utils/urlSanitizer';
 import type { GeneratorState } from './types';
 import type { ImportedData } from './utils/githubMapper';
 import { SupportedLanguage } from '@/lib/i18n/languages';
@@ -73,27 +72,18 @@ export function GeneratorClient() {
           confirmOverwrite || !prevState.description
             ? data.description || prevState.description
             : prevState.description,
-        selectedTechs: Array.from(
-          new Set([...prevState.selectedTechs, ...(data.selectedTechs || [])])
-        ),
+        selectedTechs: Array.from(new Set([...prevState.selectedTechs, ...data.selectedTechs])),
         selectedSocials: Array.from(
-          new Set([...prevState.selectedSocials, ...(data.selectedSocials || [])])
+          new Set([...prevState.selectedSocials, ...data.selectedSocials])
         ),
         socialLinks: { ...prevState.socialLinks, ...data.socialLinks },
       };
     });
   };
 
-  const handleApplyPreset = (presetState: Partial<GeneratorState>) => {
-    setState((prevState) => ({
-      ...prevState,
-      ...presetState,
-    }));
-  };
-
   return (
     <>
-      {/* Language Selector - moved outside main container */}
+      {/* Language Selector */}
       <div className="w-full flex justify-end items-center gap-3 mb-2">
         <label htmlFor="language" className="text-sm font-medium text-gray-700 dark:text-gray-300">
           🌐 Language:
@@ -110,9 +100,12 @@ export function GeneratorClient() {
         </select>
       </div>
 
-      {/* Main container */}
-      <div className="flex flex-col lg:flex-row gap-5 xl:gap-6 items-start w-full">
-        <div className="w-full lg:w-[44%] xl:w-[42%] flex-shrink-0">
+      {/* Main Layout Container - Stable with test IDs */}
+      <div
+        className="flex flex-col lg:flex-row gap-5 xl:gap-6 items-start w-full"
+        data-testid="generator-root"
+      >
+        <div data-testid="editor-column" className="w-full lg:w-[44%] xl:w-[42%] flex-shrink-0">
           <EditorPanel
             state={state}
             onNameChange={(v) => setState((s) => ({ ...s, name: v }))}
@@ -140,7 +133,7 @@ export function GeneratorClient() {
           />
         </div>
 
-        <div className="w-full lg:flex-1 flex flex-col gap-5 xl:gap-6">
+        <div data-testid="preview-column" className="w-full lg:flex-1 flex flex-col gap-5 xl:gap-6">
           <PreviewPanel markdown={markdown} state={state} />
           <CompletionScorePanel state={state} />
           <ReadmeInsightsPanel state={state} />
