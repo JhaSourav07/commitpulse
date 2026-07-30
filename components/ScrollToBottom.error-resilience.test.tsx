@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import React, { Component, type ErrorInfo, type ReactNode } from 'react';
+import React, { Component, type ErrorInfo as _ErrorInfo, type ReactNode } from 'react';
 
 let reducedMotion = false;
 

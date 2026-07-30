@@ -46,19 +46,19 @@ export default function StatsCard({
       viewport={{ once: true }}
       whileHover={{ y: -2 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
-      className="group p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)] hover:border-black/20 dark:hover:border-[rgba(255,255,255,0.14)] hover:shadow-[0_0_24px_rgba(99,102,241,0.08)] transition-all duration-200 relative overflow-hidden"
+      className="group p-4 sm:p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)] hover:border-black/20 dark:hover:border-[rgba(255,255,255,0.14)] hover:shadow-[0_0_24px_rgba(99,102,241,0.08)] transition-all duration-200 relative overflow-hidden w-full max-w-full"
     >
-      <div className="flex justify-between items-start mb-6">
-        <div>
-          <p className="text-xs text-gray-500 uppercase tracking-widest font-medium mb-3">
+      <div className="flex justify-between items-start mb-6 gap-2">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs text-gray-500 uppercase tracking-widest font-medium mb-3 truncate">
             {title}
           </p>
 
-          <p className="text-4xl font-semibold text-gray-900 dark:text-white tracking-tight">
+          <p className="text-2xl sm:text-4xl font-semibold text-gray-900 dark:text-white tracking-tight break-words">
             {value}
           </p>
 
-          <p className="text-xs text-gray-500 mt-1.5">{description}</p>
+          <p className="text-xs text-gray-500 mt-1.5 break-words">{description}</p>
 
           {showUTCDisclaimer && (
             <div className="mt-3 space-y-1">
@@ -71,7 +71,7 @@ export default function StatsCard({
           )}
         </div>
 
-        <div className="p-2 rounded-lg bg-gray-100 dark:bg-[#111] border border-black/10 dark:border-[rgba(255,255,255,0.06)] group-hover:border-[rgba(99,102,241,0.2)] transition-colors duration-200">
+        <div className="p-2 rounded-lg bg-gray-100 dark:bg-[#111] border border-black/10 dark:border-[rgba(255,255,255,0.06)] group-hover:border-[rgba(99,102,241,0.2)] transition-colors duration-200 shrink-0">
           <IconComponent
             size={18}
             className="text-gray-500 group-hover:text-black dark:group-hover:text-white transition-colors duration-200"

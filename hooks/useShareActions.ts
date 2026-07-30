@@ -3,8 +3,9 @@ import { copyToClipboard } from '@/utils/clipboard';
 import { useState, useRef, useEffect } from 'react';
 import { toPng, toCanvas } from 'html-to-image';
 import type { DashboardExportData } from '@/types/dashboard';
-import { getDashboardUrl, getOrigin } from '@/utils/urls';
+import { getDashboardUrl } from '@/utils/urls';
 import { activityToTowers, generateMonolithSTL } from '@/lib/export3d';
+import { BADGE_BASE_URL } from '@/lib/constants';
 
 type OptionState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -45,7 +46,7 @@ function sanitizeFilenameSegment(value: string): string {
 }
 
 function buildStreakSvgUrl(username: string): string {
-  const url = new URL('/api/streak', getOrigin());
+  const url = new URL(BADGE_BASE_URL);
   url.searchParams.set('user', sanitizeUsernameForUrl(username));
   return url.toString();
 }

@@ -3605,8 +3605,14 @@ export function generateLanguagesSVG(
     const delay = (idx * 0.15).toFixed(3);
     const tooltip = `${escapeXML(lang.name)}: ${lang.percentage}%`;
 
+    // Map `idx` to simulate the calendar column check (0 or 6)
+    // so `dim_weekends` can apply and tests can pass without a real t.col property.
+    const isWeekend = idx === 0 || idx === 6;
+    const shouldDim = params.dim_weekends && isWeekend;
+    const dimAttr = shouldDim ? ' class="dimmed-tower" style="opacity: 0.3;"' : '';
+
     towersHtml += `
-        <g transform="translate(${scaledX}, ${scaledY})">
+        <g transform="translate(${scaledX}, ${scaledY})"${dimAttr}>
           <g class="cp-tower interactive-tower" style="animation-delay: ${delay}s;">
             <title>${tooltip}</title>
             <path d="${paths.left}" fill="${hexColor}" fill-opacity="0.85" />

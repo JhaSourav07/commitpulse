@@ -152,7 +152,14 @@ interface PodiumItemProps {
   isFirst: boolean;
 }
 
-function PodiumItem({ contributor, rank, height, variant, delay, isFirst }: PodiumItemProps) {
+function PodiumItem({
+  contributor,
+  rank,
+  height: _height,
+  variant,
+  delay,
+  isFirst,
+}: PodiumItemProps) {
   const styles = {
     gold: {
       ring: 'ring-[#eab308]/70',

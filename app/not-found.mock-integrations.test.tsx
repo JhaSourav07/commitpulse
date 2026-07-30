@@ -9,7 +9,7 @@ vi.mock('@/utils/clipboard', () => ({
 }));
 
 // --- TYPED INTERFACES FOR MOCKED MODULES ---
-interface MockClipboardService {
+interface _MockClipboardService {
   writeText: (text: string) => Promise<void>;
   readText?: () => Promise<string>;
 }
