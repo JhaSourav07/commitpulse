@@ -51,6 +51,20 @@ export function sanitizeHexColor(input: string | undefined | null, fallback: str
 }
 
 /**
+ * Type guard that narrows a string to `SpeedString` if it is a valid speed value.
+ * Valid format: [number]s (e.g., "8s", "1.5s"), range 2s to 20s.
+ *
+ * @param value - The string to validate.
+ */
+export function isValidSpeedString(value?: string | null): value is SpeedString {
+  if (!value) return false;
+  const match = String(value).trim().match(/^(\d+(\.\d+)?)s$/);
+  if (!match) return false;
+  const numeric = parseFloat(match[1]);
+  return numeric >= 2 && numeric <= 20;
+}
+
+/**
  * Sanitizes the animation speed parameter.
  * Expected format: [number]s (e.g., "8s", "1.5s").
  * Valid range: 2s to 20s.
