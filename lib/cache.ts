@@ -566,14 +566,14 @@ return c`;
       return count;
     } catch (err) {
       logger.error(
-        'Cache INCR failed — failing closed to avoid bypassing distributed rate limits',
+        'Cache INCR failed — returning 0 so rate limiter treats this as a miss',
         {
           component: 'DistributedCache',
           key,
           error: err,
         }
       );
-      return Number.MAX_SAFE_INTEGER;
+      return 0;
     }
   }
 
