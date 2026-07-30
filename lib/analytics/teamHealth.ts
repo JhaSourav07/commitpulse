@@ -165,6 +165,15 @@ function calculateTeamHealthScore(metrics: TeamMetrics, burnoutRisk: BurnoutRisk
   return { overall, productivity, sustainability, collaboration, level };
 }
 
+/**
+ * Aggregates raw GitHub contribution data into a full TeamHealthData object,
+ * including computed metrics, sprint progress, velocity trends, and burnout risk.
+ *
+ * @param teamId    - Unique identifier for the team.
+ * @param teamName  - Human-readable team name.
+ * @param members   - List of team members with their contribution data.
+ * @param contributionCalendar - The GitHub contribution calendar for the team.
+ */
 export function aggregateTeamData(
   teamId: string,
   teamName: string,
@@ -191,6 +200,12 @@ export function aggregateTeamData(
   };
 }
 
+/**
+ * Analyzes team members and returns a burnout risk assessment with indicators
+ * and actionable recommendations.
+ *
+ * @param members - Array of team members to evaluate.
+ */
 export {
   calculateBurnoutRisk,
   calculateVelocityTrends,

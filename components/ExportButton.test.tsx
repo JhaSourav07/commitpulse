@@ -171,4 +171,52 @@ describe('ExportButton', () => {
 
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
+
+  // Accessibility tests
+
+  it('uses focus-visible outline for keyboard navigation', () => {
+    render(<ExportButton />);
+
+    const trigger = screen.getByRole('button', { name: /export/i });
+    expect(trigger).toHaveClass('focus-visible:outline-none');
+  });
+
+  it('dropdown menu has correct ARIA role and labelling', () => {
+    render(<ExportButton />);
+    fireEvent.click(screen.getByRole('button', { name: /export/i }));
+
+    const menu = screen.getByRole('menu');
+    expect(menu).toBeInTheDocument();
+    const items = screen.getAllByRole('menuitem');
+    expect(items).toHaveLength(3); // PNG, PDF, SVG
+  });
+
+  it('sets aria-haspopup="true" on the trigger button', () => {
+    render(<ExportButton />);
+
+    const trigger = screen.getByRole('button', { name: /export/i });
+    expect(trigger).toHaveAttribute('aria-haspopup', 'true');
+  });
+
+  it('sets aria-expanded to true when the menu is open', () => {
+    render(<ExportButton />);
+    const trigger = screen.getByRole('button', { name: /export/i });
+
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(trigger);
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('error message uses role="alert" for screen reader announcement', () => {
+    mockedUseExportImage.mockReturnValue({
+      exportImage,
+      isExporting: false,
+      error: 'Something went wrong',
+    });
+
+    render(<ExportButton />);
+
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveTextContent('Something went wrong');
+  });
 });

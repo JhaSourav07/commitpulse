@@ -230,6 +230,12 @@ function calculateDurationFallback(startedAt: string, finishedAt: string): numbe
   }
 }
 
+/**
+ * Aggregates an array of workflow runs into summary statistics.
+ * Ignores in-progress runs when computing average build duration.
+ *
+ * @param runs - Array of CI workflow runs to aggregate.
+ */
 export function processRuns(runs: CIWorkflowRun[]) {
   const totalRuns = runs.length;
   const successfulRuns = runs.filter((r) => r.conclusion === 'success').length;
@@ -398,6 +404,16 @@ function buildInsights(runs: CIWorkflowRun[]): CIInsights {
   };
 }
 
+/**
+ * Fetches CI/CD analytics for a given GitHub username.
+ * Results are cached for 10 minutes using DistributedCache.
+ * Fetches the user's repositories, then queries workflow runs for up to 5 targets
+ * (including fork parents), and aggregates statistics and trends.
+ *
+ * @param username  - GitHub username to analyze.
+ * @param userToken - Optional personal access token (uses rotation pool if omitted).
+ * @param signal    - Optional AbortSignal for request cancellation.
+ */
 export async function fetchCIAnalytics(
   username: string,
   userToken?: string,

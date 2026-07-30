@@ -1,5 +1,10 @@
 import { useRef } from 'react';
 
+/**
+ * A lightweight in-memory cache backed by a React ref.
+ * Holds up to 10 entries and evicts the oldest when full.
+ * The cache is cleared on component unmount since it lives in a ref.
+ */
 export function useFetchCache<T>() {
   const cacheRef = useRef(new Map<string, T>());
 

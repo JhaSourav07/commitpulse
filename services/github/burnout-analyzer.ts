@@ -25,6 +25,9 @@ interface InactivityAlert {
 
 const GITHUB_REST_URL = 'https://api.github.com';
 
+/**
+ * Per-contributor burnout and activity metrics derived from weekly commit data.
+ */
 export interface ContributorMetric {
   username: string;
   avatarUrl: string;
@@ -40,6 +43,10 @@ export interface ContributorMetric {
   recentAdditionsTrend: number[]; // additions per week for last 12 weeks
 }
 
+/**
+ * Complete burnout risk report for a repository, including contributor-level
+ * metrics, inactivity alerts, and actionable recommendations.
+ */
 export interface BurnoutReport {
   repoName: string;
   totalCommits: number;

@@ -3,6 +3,9 @@
 const TOKEN_ENDPOINT = 'https://accounts.spotify.com/api/token';
 const NOW_PLAYING_ENDPOINT = 'https://api.spotify.com/v1/me/player/currently-playing';
 
+/**
+ * Represents the currently playing track on Spotify.
+ */
 export interface SpotifyTrackData {
   isPlaying: boolean;
   title?: string;
@@ -14,6 +17,10 @@ export interface SpotifyTrackData {
   durationMs?: number;
 }
 
+/**
+ * Returns true when all required Spotify OAuth environment variables are present.
+ * Use this guard before calling other functions in this module.
+ */
 export function isSpotifyConfigured(): boolean {
   return !!(
     process.env.SPOTIFY_CLIENT_ID &&
