@@ -49,8 +49,11 @@ describe('GeneratorClient - Edge Cases & Empty/Missing Inputs Verification', () 
   });
 
   it('Case 3: preserves layout styling and column widths in the default empty layout state', () => {
-    const { container } = render(<GeneratorClient />);
-    const root = container.children[1] as HTMLElement;
+    render(<GeneratorClient />);
+
+    const root = screen.getByTestId('generator-root');
+    const editorColumn = screen.getByTestId('editor-column');
+    const previewColumn = screen.getByTestId('preview-column');
 
     // Outer grid classes
     expect(root).toHaveClass('flex');
@@ -58,11 +61,10 @@ describe('GeneratorClient - Edge Cases & Empty/Missing Inputs Verification', () 
     expect(root).toHaveClass('lg:flex-row');
 
     // Columns
-    const [editorCol, previewCol] = Array.from(root.children);
-    expect(editorCol).toHaveClass('w-full');
-    expect(editorCol).toHaveClass('lg:w-[44%]');
-    expect(previewCol).toHaveClass('w-full');
-    expect(previewCol).toHaveClass('lg:flex-1');
+    expect(editorColumn).toHaveClass('w-full');
+    expect(editorColumn).toHaveClass('lg:w-[44%]');
+    expect(previewColumn).toHaveClass('w-full');
+    expect(previewColumn).toHaveClass('lg:flex-1');
   });
 
   it('Case 4: evaluates completion checklist correctly with 0% score and Beginner level for empty profile', () => {

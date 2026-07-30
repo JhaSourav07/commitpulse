@@ -34,6 +34,7 @@ function setMobileViewport() {
   });
   window.dispatchEvent(new Event('resize'));
 }
+
 describe('GeneratorClient responsive breakpoints', () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -55,26 +56,29 @@ describe('GeneratorClient responsive breakpoints', () => {
     expect(screen.getByTestId('editor-panel')).toBeInTheDocument();
     expect(screen.getByTestId('preview-panel')).toBeInTheDocument();
   });
+
   it('stacks editor and preview into vertical columns on mobile', () => {
     setMobileViewport();
 
-    const { container } = render(<GeneratorClient />);
+    render(<GeneratorClient />);
 
-    const root = container.firstElementChild as HTMLElement;
-    const [editorColumn, previewColumn] = Array.from(root.children);
+    const root = screen.getByTestId('generator-root');
+    const editorColumn = screen.getByTestId('editor-column');
+    const previewColumn = screen.getByTestId('preview-column');
 
     expect(root).toHaveClass('flex-col');
 
     expect(editorColumn).toHaveClass('w-full');
     expect(previewColumn).toHaveClass('w-full');
   });
+
   it('avoids fixed-width layout classes that could cause horizontal scrolling', () => {
     setMobileViewport();
 
-    const { container } = render(<GeneratorClient />);
+    render(<GeneratorClient />);
 
-    const root = container.firstElementChild as HTMLElement;
-    const [editorColumn, previewColumn] = Array.from(root.children);
+    const editorColumn = screen.getByTestId('editor-column');
+    const previewColumn = screen.getByTestId('preview-column');
 
     expect(editorColumn).toHaveClass('w-full');
     expect(editorColumn).not.toHaveClass('w-screen');
@@ -82,6 +86,7 @@ describe('GeneratorClient responsive breakpoints', () => {
     expect(previewColumn).toHaveClass('w-full');
     expect(previewColumn).not.toHaveClass('w-screen');
   });
+
   it('keeps editor and preview panels accessible on smaller viewports', () => {
     setMobileViewport();
 
@@ -90,16 +95,19 @@ describe('GeneratorClient responsive breakpoints', () => {
     expect(screen.getByTestId('editor-panel')).toBeVisible();
     expect(screen.getByTestId('preview-panel')).toBeVisible();
   });
+
   it('keeps both layout columns inside the responsive container on mobile', () => {
     setMobileViewport();
 
-    const { container } = render(<GeneratorClient />);
+    render(<GeneratorClient />);
 
-    const root = container.firstElementChild as HTMLElement;
+    const root = screen.getByTestId('generator-root');
+    const editorColumn = screen.getByTestId('editor-column');
+    const previewColumn = screen.getByTestId('preview-column');
 
     expect(root.children).toHaveLength(2);
 
-    expect(root.firstElementChild).toHaveClass('w-full');
-    expect(root.lastElementChild).toHaveClass('w-full');
+    expect(editorColumn).toHaveClass('w-full');
+    expect(previewColumn).toHaveClass('w-full');
   });
 });

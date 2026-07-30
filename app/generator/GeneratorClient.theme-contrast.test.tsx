@@ -68,8 +68,9 @@ describe('GeneratorClient theme contrast', () => {
   });
 
   it('keeps responsive layout classes active for visual cohesion', () => {
-    const { container } = render(<GeneratorClient />);
-    const root = container.children[1] as HTMLElement;
+    render(<GeneratorClient />);
+
+    const root = screen.getByTestId('generator-root');
 
     expect(root).toHaveClass('flex');
     expect(root).toHaveClass('flex-col');
@@ -79,9 +80,10 @@ describe('GeneratorClient theme contrast', () => {
   });
 
   it('keeps editor and preview width classes from clipping foreground content', () => {
-    const { container } = render(<GeneratorClient />);
-    const root = container.firstElementChild as HTMLElement;
-    const [editorColumn, previewColumn] = Array.from(root.children);
+    render(<GeneratorClient />);
+
+    const editorColumn = screen.getByTestId('editor-column');
+    const previewColumn = screen.getByTestId('preview-column');
 
     expect(editorColumn).toHaveClass('w-full');
     expect(editorColumn).toHaveClass('lg:w-[44%]');
