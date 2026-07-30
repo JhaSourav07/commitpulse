@@ -1,17 +1,27 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import ShareButtons from './ShareButtons';
 
 const TEST_URL = 'https://commitpulse.vercel.app/dashboard/testuser';
 const TEST_TITLE = 'Check out my CommitPulse streak!';
 
+// Mock the clipboard utility
+vi.mock('../utils/clipboard', () => ({
+  copyToClipboard: vi.fn().mockResolvedValue(true),
+}));
+
 describe('ShareButtons', () => {
-  it('renders LinkedIn and Twitter share buttons', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders LinkedIn, Twitter share buttons and copy-link button', () => {
     render(<ShareButtons url={TEST_URL} />);
 
     expect(screen.getByRole('link', { name: /linkedin/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /twitter/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /copy link/i })).toBeInTheDocument();
   });
 
   it('LinkedIn share link contains correctly encoded URL', () => {
@@ -45,7 +55,7 @@ describe('ShareButtons', () => {
     expect(twitter.getAttribute('href')).not.toContain('&text=');
   });
 
-  it('sets target="_blank" and rel="noopener noreferrer" on all share links', () => {
+  it('sets target="_blank" and rel="noopener noreferrer" on share links', () => {
     render(<ShareButtons url={TEST_URL} />);
 
     const links = screen.getAllByRole('link');
@@ -53,5 +63,13 @@ describe('ShareButtons', () => {
       expect(link).toHaveAttribute('target', '_blank');
       expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     });
+  });
+
+  it('copy-link button is a button with accessible label', () => {
+    render(<ShareButtons url={TEST_URL} />);
+
+    const copyBtn = screen.getByRole('button', { name: /copy link/i });
+    expect(copyBtn).toBeInTheDocument();
+    expect(copyBtn).toHaveAttribute('aria-live', 'polite');
   });
 });

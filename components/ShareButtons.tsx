@@ -1,4 +1,7 @@
-import { FaLinkedin, FaXTwitter } from 'react-icons/fa6';
+'use client';
+import { useState, useCallback } from 'react';
+import { FaLinkedin, FaXTwitter, FaLink } from 'react-icons/fa6';
+import { copyToClipboard } from '../utils/clipboard';
 
 interface ShareButtonsProps {
   url: string;
@@ -6,12 +9,21 @@ interface ShareButtonsProps {
 }
 
 export default function ShareButtons({ url, title = '' }: ShareButtonsProps) {
+  const [copied, setCopied] = useState(false);
   const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
     url
   )}`;
   const twitterUrl =
     `https://x.com/intent/tweet?url=${encodeURIComponent(url)}` +
     (title ? `&text=${encodeURIComponent(title)}` : '');
+
+  const handleCopyLink = useCallback(async () => {
+    const success = await copyToClipboard(url);
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }, [url]);
 
   return (
     <div className="flex gap-3">
@@ -31,6 +43,15 @@ export default function ShareButtons({ url, title = '' }: ShareButtonsProps) {
       >
         <FaXTwitter size={24} aria-hidden="true" />
       </a>
+      <button
+        type="button"
+        onClick={handleCopyLink}
+        aria-label={copied ? 'Link copied!' : 'Copy link to clipboard'}
+        aria-live="polite"
+        className="focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded"
+      >
+        <FaLink size={24} aria-hidden="true" />
+      </button>
     </div>
   );
 }
