@@ -1,5 +1,6 @@
 import { getTechById } from '../data/technologies';
 import { getSocialById } from '../data/socials';
+import { validateSocialHandle, sanitizeSocialUrl } from './urlSanitizer';
 import type { GeneratorState } from '../types';
 
 const BADGE_BASE = 'https://commitpulse.vercel.app/api/streak';
@@ -83,6 +84,28 @@ export function generateReadme(state: GeneratorState): string {
     sections.push(`<div align="center">\n\n<p>${description}</p>\n\n</div>`);
   }
 
+  // 1.5 Hero Image Section
+  if (state.showHeroImage && state.heroImageUrl?.trim()) {
+    const url = state.heroImageUrl.trim();
+    const align = state.heroImageAlign || 'center';
+    const alt = state.heroImageAlt?.trim() || 'Coding GIF';
+    const width = state.heroImageWidth?.trim();
+
+    const imgLines: string[] = [
+      `<p align="${align}">`,
+      '  <img',
+      `    src="${url}"`,
+      `    alt="${alt}"`,
+    ];
+
+    if (width) {
+      imgLines.push(`    width="${width}"`);
+    }
+
+    imgLines.push('  />', '</p>');
+    sections.push(imgLines.join('\n'));
+  }
+
   // Inject top graphs
   if (state.graphPlacement === 'top' && graphsMarkdown) {
     sections.push(graphsMarkdown);
@@ -126,7 +149,12 @@ export function generateReadme(state: GeneratorState): string {
   }
 
   // 3. Socials Section
-  const activeSocials = state.selectedSocials.filter((id) => state.socialLinks[id]?.trim());
+  const activeSocials = state.selectedSocials.filter((id) => {
+    const val = state.socialLinks[id];
+    if (!val?.trim()) return false;
+    const sanitized = sanitizeSocialUrl(id, val);
+    return validateSocialHandle(id, sanitized);
+  });
 
   if (activeSocials.length > 0) {
     const socialLines: string[] = ['## 🌐 Connect With Me', '', '<div align="center">'];
@@ -135,13 +163,14 @@ export function generateReadme(state: GeneratorState): string {
       .map((id) => {
         const social = getSocialById(id);
         if (!social) return null;
-        const rawUrl = state.socialLinks[id]?.trim() || '';
+        const val = state.socialLinks[id] || '';
+        const sanitized = sanitizeSocialUrl(id, val);
         let resolvedUrl =
           social.id === 'email'
-            ? `mailto:${rawUrl.replace(/^mailto:/i, '')}`
-            : rawUrl.startsWith('http')
-              ? rawUrl
-              : `${social.baseUrl || ''}${rawUrl}`;
+            ? `mailto:${sanitized.replace(/^mailto:/i, '')}`
+            : sanitized.startsWith('http')
+              ? sanitized
+              : `${social.baseUrl || ''}${sanitized}`;
 
         if (social.id !== 'email' && !/^https?:\/\//i.test(resolvedUrl)) {
           resolvedUrl = `https://${resolvedUrl}`;

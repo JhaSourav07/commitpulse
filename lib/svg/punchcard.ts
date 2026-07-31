@@ -10,6 +10,14 @@ const TILE_H_HALF = 6.5;
 const ORIGIN_X = WIDTH / 2 - ((24 - 7) * TILE_W_HALF) / 2 - 20;
 const ORIGIN_Y = 160;
 
+/**
+ * Generates an SVG punchcard visualization showing commit activity across days and hours.
+ *
+ * @param punchCardData - 7x24 matrix of commit counts indexed by [day][hour].
+ * @param stats        - Streak statistics used for labels and totals.
+ * @param params       - Badge parameters (username, theme colors, size).
+ * @returns A complete SVG string suitable for embedding or converting to PNG.
+ */
 export function generatePunchcardSVG(
   punchCardData: number[][],
   stats: StreakStats,

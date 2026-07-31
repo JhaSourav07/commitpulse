@@ -39,20 +39,6 @@ function getSafeRootCause(error: unknown): unknown {
   return currentErr;
 }
 
-function getSafeErrorMessage(error: unknown): string {
-  const rootCause = getSafeRootCause(error);
-
-  if (rootCause instanceof Error && rootCause.message) {
-    return rootCause.message;
-  }
-
-  if (error instanceof Error && error.message) {
-    return error.message;
-  }
-
-  return 'Unknown error';
-}
-
 function logSecurityEvent(event: string, details: Record<string, unknown>) {
   logger.warn('Security event', {
     type: 'SECURITY_EVENT',
@@ -249,10 +235,14 @@ export async function GET(request: Request) {
       );
     }
 
-    // Default fallback
-    const errMessage = getSafeErrorMessage(error);
+    // Default fallback — log full detail server-side; never forward raw error
+    // strings to callers (fixes: information-leak via unhandled 500 responses).
+    logger.error('Unhandled error in GET /api/github', { error });
 
-    return NextResponse.json({ error: errMessage }, { status: 500 });
+    return NextResponse.json(
+      { error: 'An unexpected error occurred. Please try again.' },
+      { status: 500 }
+    );
   } finally {
     clearTimeout(timeoutId);
   }
