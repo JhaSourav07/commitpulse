@@ -61,4 +61,9 @@ export interface GeneratorState {
   showArticles?: boolean;
   articlesPlatform?: 'devto' | 'hashnode';
   articlesUsername?: string;
+  showHeroImage?: boolean;
+  heroImageUrl?: string;
+  heroImageWidth?: string;
+  heroImageAlign?: 'left' | 'center' | 'right';
+  heroImageAlt?: string;
 }
