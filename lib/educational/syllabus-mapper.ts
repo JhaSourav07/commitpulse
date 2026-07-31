@@ -1,5 +1,9 @@
 // lib/educational/syllabus-mapper.ts
 
+/**
+ * Represents the academic domain categories used to classify GitHub repositories
+ * by the technology stacks they use.
+ */
 export type AcademicDomain =
   | 'Applied AI & Data Mining'
   | 'Computer Architecture & Systems'
@@ -8,6 +12,10 @@ export type AcademicDomain =
   | 'Algorithms & Data Structures'
   | 'General Purpose / Uncategorized';
 
+/**
+ * A lookup table mapping GitHub language names to academic domain categories.
+ * Used to classify repositories by technology stack into academic subjects.
+ */
 export const languageToDomainMap: Record<string, AcademicDomain> = {
   // Applied AI, Data Science, and Data Mining
   Python: 'Applied AI & Data Mining',
