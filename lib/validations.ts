@@ -216,15 +216,18 @@ const timeZoneParam = z
   .optional()
   .refine(isValidTimeZone, { message: 'Invalid timezone' });
 
-export const GITHUB_USERNAME_REGEX = /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i;
+// GitHub username validation: 1-39 characters, alphanumeric and hyphens only
+// Must start and end with alphanumeric, cannot have consecutive hyphens
+export const GITHUB_USERNAME_REGEX = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$/;
 
 export const githubUsernameSchema = z
   .string({ error: 'Invalid GitHub username' })
   .trim()
-  .min(1, { message: 'Invalid GitHub username' })
-  .max(39, { message: 'Invalid GitHub username' })
+  .min(1, { message: 'Invalid GitHub username: username is required' })
+  .max(39, { message: 'Invalid GitHub username: username cannot exceed 39 characters' })
   .regex(GITHUB_USERNAME_REGEX, {
-    message: 'Invalid GitHub username',
+    message:
+      'Invalid GitHub username: must contain only alphanumeric characters and hyphens, starting and ending with alphanumeric',
   });
 
 const baseStreakParamsSchema = z.object({
