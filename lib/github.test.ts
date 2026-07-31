@@ -571,7 +571,7 @@ describe('fetchCommitHourDistribution', () => {
             defaultBranchRef: {
               target: {
                 history: {
-                  nodes: [{ committedDate: isoTimestamp }],
+                  nodes: [{ author: { date: isoTimestamp } }],
                 },
               },
             },
@@ -623,7 +623,7 @@ describe('fetchCommitHourDistribution', () => {
             defaultBranchRef: {
               target: {
                 history: {
-                  nodes: [{ committedDate: isoTimestamp }],
+                  nodes: [{ author: { date: isoTimestamp } }],
                 },
               },
             },
