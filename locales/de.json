@@ -120,6 +120,10 @@
     "title": "Stimme deinen Monolithen fein ab.",
     "desc": "Jede Änderung unten aktualisiert die Vorschau in Echtzeit. Kopiere das Export-Snippet, wenn du fertig bist. Keine weiteren Schritte nötig.",
     "live_preview": "Live-Vorschau",
+    "preview_toggle_to_light": "Zur hellen Hintergrundvorschau wechseln",
+    "preview_toggle_to_dark": "Zur dunklen Hintergrundvorschau wechseln",
+    "preview_toggle_light_label": "Hell",
+    "preview_toggle_dark_label": "Dunkel",
     "active_params": "Aktive Parameter",
     "empty_preview_desc": "Die Live-Badge-Vorschau erscheint hier, sobald ein Benutzername hinzugefügt wurde.",
     "controls": {
@@ -160,7 +164,10 @@
       "footer_tip": "Füge dies in die README.md deines GitHub-Profils ein. Das Badge wird serverseitig gerendert, kein Skript erforderlich.",
       "tsx": "React TSX",
       "download_svg": "SVG herunterladen",
-      "download_png": "PNG herunterladen"
+      "download_png": "PNG herunterladen",
+      "download_webp": "WebP herunterladen",
+      "download_pdf": "PDF herunterladen",
+      "export_as": "Exportieren als"
     }
   },
   "dashboard": {
@@ -489,7 +496,15 @@
       "merge_rate_header": "Merge Rate",
       "reviews_header": "Reviews",
       "avg_review_header": "Avg Review Time",
-      "no_repos": "No repository data available."
+      "no_repos": "No repository data available.",
+      "velocity_title": "PR Review Velocity",
+      "velocity_subtitle": "Understand how quickly pull requests move through review across repositories",
+      "first_review": "First Review",
+      "velocity_first_review": "Time to 1st Review",
+      "cycle_time": "Cycle Time",
+      "avg_review_time": "Average Review Time",
+      "fastest_merge": "Fastest Merge",
+      "repo_turnaround": "Repository Turnaround"
     },
     "enterprise": {
       "title": "Enterprise Engineering Health Dashboard",

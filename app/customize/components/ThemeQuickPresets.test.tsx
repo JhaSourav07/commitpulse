@@ -15,25 +15,25 @@ describe('ThemeQuickPresets', () => {
 
   it('renders without crashing', () => {
     render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
-    expect(screen.getAllByRole('button').length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('radio').length).toBeGreaterThan(0);
   });
 
   it('renders a button for each valid theme key', () => {
     render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
-    const buttons = screen.getAllByRole('button');
+    const buttons = screen.getAllByRole('radio');
     expect(buttons.length).toBe(validKeys.length);
   });
 
   it('active theme button has aria-pressed="true"', () => {
     render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
-    const activeBtn = screen.getByRole('button', { name: /apply dark theme/i });
+    const activeBtn = screen.getByRole('radio', { name: /apply dark theme/i });
     expect(activeBtn.getAttribute('aria-pressed')).toBe('true');
   });
 
   it('inactive theme buttons have aria-pressed="false"', () => {
     render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
     const inactiveKey = validKeys.find((key) => key !== 'dark')!;
-    const inactiveBtn = screen.getByRole('button', {
+    const inactiveBtn = screen.getByRole('radio', {
       name: new RegExp(`apply ${inactiveKey} theme`, 'i'),
     });
     expect(inactiveBtn.getAttribute('aria-pressed')).toBe('false');
@@ -44,7 +44,7 @@ describe('ThemeQuickPresets', () => {
     render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
 
     const inactiveKey = validKeys.find((key) => key !== 'dark')!;
-    const inactiveBtn = screen.getByRole('button', {
+    const inactiveBtn = screen.getByRole('radio', {
       name: new RegExp(`apply ${inactiveKey} theme`, 'i'),
     });
 
@@ -55,7 +55,7 @@ describe('ThemeQuickPresets', () => {
 
   it('each button has an aria-label starting with "Apply"', () => {
     render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
-    const buttons = screen.getAllByRole('button');
+    const buttons = screen.getAllByRole('radio');
 
     buttons.forEach((button) => {
       expect(button.getAttribute('aria-label')).toMatch(/^Apply/i);
@@ -66,7 +66,7 @@ describe('ThemeQuickPresets', () => {
     render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
 
     validKeys.forEach((key) => {
-      const button = screen.getByRole('button', {
+      const button = screen.getByRole('radio', {
         name: new RegExp(`apply ${key} theme`, 'i'),
       });
 
@@ -77,12 +77,12 @@ describe('ThemeQuickPresets', () => {
   it('switching active theme updates aria-pressed correctly', () => {
     const { rerender } = render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
 
-    const darkBtn = screen.getByRole('button', { name: /apply dark theme/i });
+    const darkBtn = screen.getByRole('radio', { name: /apply dark theme/i });
     expect(darkBtn.getAttribute('aria-pressed')).toBe('true');
 
     rerender(<ThemeQuickPresets theme="neon" onThemeChange={onThemeChange} />);
 
-    const neonBtn = screen.getByRole('button', { name: /apply neon theme/i });
+    const neonBtn = screen.getByRole('radio', { name: /apply neon theme/i });
     expect(neonBtn.getAttribute('aria-pressed')).toBe('true');
     expect(darkBtn.getAttribute('aria-pressed')).toBe('false');
   });
@@ -90,8 +90,8 @@ describe('ThemeQuickPresets', () => {
   it('does not render buttons for auto or random themes', () => {
     render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
 
-    expect(screen.queryByRole('button', { name: /apply auto theme/i })).toBeNull();
-    expect(screen.queryByRole('button', { name: /apply random theme/i })).toBeNull();
+    expect(screen.queryByRole('radio', { name: /apply auto theme/i })).toBeNull();
+    expect(screen.queryByRole('radio', { name: /apply random theme/i })).toBeNull();
   });
 });
 
@@ -108,7 +108,7 @@ describe('ThemeQuickPresets responsive rendering & high-contrast', () => {
 
     const { rerender } = render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
 
-    expect(screen.getAllByRole('button', { name: /apply .+ theme/i })).toHaveLength(
+    expect(screen.getAllByRole('radio', { name: /apply .+ theme/i })).toHaveLength(
       validKeys.length
     );
 
@@ -117,7 +117,7 @@ describe('ThemeQuickPresets responsive rendering & high-contrast', () => {
 
     rerender(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
 
-    expect(screen.getAllByRole('button', { name: /apply .+ theme/i })).toHaveLength(
+    expect(screen.getAllByRole('radio', { name: /apply .+ theme/i })).toHaveLength(
       validKeys.length
     );
   });
@@ -125,7 +125,7 @@ describe('ThemeQuickPresets responsive rendering & high-contrast', () => {
   it('checks rendering of all preset buttons with accessible labels', () => {
     render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
 
-    const presetButtons = screen.getAllByRole('button', { name: /apply .+ theme/i });
+    const presetButtons = screen.getAllByRole('radio', { name: /apply .+ theme/i });
     expect(presetButtons).toHaveLength(validKeys.length);
   });
 
@@ -133,14 +133,14 @@ describe('ThemeQuickPresets responsive rendering & high-contrast', () => {
     render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
 
     expect(
-      screen.getByRole('button', { name: /apply dark theme/i }).getAttribute('aria-pressed')
+      screen.getByRole('radio', { name: /apply dark theme/i }).getAttribute('aria-pressed')
     ).toBe('true');
   });
 
   it('check if wrapper div uses flex and wrap so buttons reflow on narrow viewports', () => {
     render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
 
-    const buttons = screen.getAllByRole('button');
+    const buttons = screen.getAllByRole('radio');
     const wrapper = buttons.at(0)?.parentElement;
 
     expect(wrapper).not.toBeNull();
@@ -150,7 +150,7 @@ describe('ThemeQuickPresets responsive rendering & high-contrast', () => {
   it('check if each preset button has theme bg colour(inline)', () => {
     render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
 
-    const buttons = screen.getAllByRole('button');
+    const buttons = screen.getAllByRole('radio');
 
     buttons.forEach((button) => {
       expect(button.getAttribute('style')).not.toBeNull();
@@ -161,7 +161,7 @@ describe('ThemeQuickPresets responsive rendering & high-contrast', () => {
   it('checking if highcontrast is inactive when different theme is active', () => {
     render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
 
-    const highContrastButton = screen.getByRole('button', {
+    const highContrastButton = screen.getByRole('radio', {
       name: /apply highcontrast theme/i,
     });
 
@@ -171,7 +171,7 @@ describe('ThemeQuickPresets responsive rendering & high-contrast', () => {
   it('check if highcontrast button becomes active when selected', () => {
     render(<ThemeQuickPresets theme="highcontrast" onThemeChange={onThemeChange} />);
 
-    const highContrastButton = screen.getByRole('button', {
+    const highContrastButton = screen.getByRole('radio', {
       name: /apply highcontrast theme/i,
     });
 
@@ -186,7 +186,7 @@ describe('ThemeQuickPresets responsive rendering & high-contrast', () => {
       <ThemeQuickPresets theme="highcontrast" onThemeChange={onThemeChange} />
     );
 
-    const mobileButtons = screen.getAllByRole('button', { name: /apply .+ theme/i });
+    const mobileButtons = screen.getAllByRole('radio', { name: /apply .+ theme/i });
     expect(mobileButtons).toHaveLength(validKeys.length);
 
     mobileButtons.forEach((button) => {
@@ -194,7 +194,7 @@ describe('ThemeQuickPresets responsive rendering & high-contrast', () => {
       expect(button.getAttribute('aria-label')).toMatch(/^Apply/i);
     });
 
-    const mobileHighContrastButton = screen.getByRole('button', {
+    const mobileHighContrastButton = screen.getByRole('radio', {
       name: /apply highcontrast theme/i,
     });
 
@@ -207,7 +207,7 @@ describe('ThemeQuickPresets responsive rendering & high-contrast', () => {
 
     rerender(<ThemeQuickPresets theme="highcontrast" onThemeChange={onThemeChange} />);
 
-    const desktopHighContrastButton = screen.getByRole('button', {
+    const desktopHighContrastButton = screen.getByRole('radio', {
       name: /apply highcontrast theme/i,
     });
 

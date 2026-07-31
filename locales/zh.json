@@ -120,6 +120,10 @@
     "title": "微调您的柱状图。",
     "desc": "下方的每项更改都会实时更新预览。完成后复制导出代码片段。无需额外操作。",
     "live_preview": "实时预览",
+    "preview_toggle_to_light": "切换到浅色背景预览",
+    "preview_toggle_to_dark": "切换到深色背景预览",
+    "preview_toggle_light_label": "浅色",
+    "preview_toggle_dark_label": "深色",
     "active_params": "当前参数",
     "empty_preview_desc": "添加用户名后，实时徽章预览将在此处显示。",
     "controls": {
@@ -159,8 +163,11 @@
       "copy_aria_enabled": "将 {{format}} 导出片段复制到剪贴板",
       "footer_tip": "将此片段粘贴到您的 GitHub 个人主页 README.md 文件中。徽章由服务器端渲染，无需任何脚本。",
       "tsx": "React TSX",
-      "download_svg": "Download SVG",
-      "download_png": "Download PNG"
+      "download_svg": "下载 SVG",
+      "download_png": "下载 PNG",
+      "download_webp": "下载 WebP",
+      "download_pdf": "下载 PDF",
+      "export_as": "导出为"
     }
   },
   "dashboard": {
@@ -489,7 +496,15 @@
       "merge_rate_header": "Merge Rate",
       "reviews_header": "Reviews",
       "avg_review_header": "Avg Review Time",
-      "no_repos": "No repository data available."
+      "no_repos": "没有可用的仓库数据。",
+      "velocity_title": "PR 审查速度",
+      "velocity_subtitle": "了解跳过各仓库的拉取请求审查速度",
+      "first_review": "首次审查",
+      "velocity_first_review": "首次审查所用时间",
+      "cycle_time": "周期时间",
+      "avg_review_time": "平均审查时间",
+      "fastest_merge": "最快合并",
+      "repo_turnaround": "仓库周转时间"
     },
     "enterprise": {
       "title": "Enterprise Engineering Health Dashboard",

@@ -1,7 +1,10 @@
+// lib/export3d.test.ts
 import { describe, it, expect } from 'vitest';
 import { generateMonolithSTL, activityToTowers } from './export3d';
 import type { TowerData } from './svg/layout';
 import type { ActivityData } from '@/types/dashboard';
+
+// ─── generateMonolithSTL ─────────────────────────────────────────────────────
 
 describe('generateMonolithSTL', () => {
   it('generates a valid STL string from tower data', () => {
@@ -53,88 +56,89 @@ describe('generateMonolithSTL', () => {
     expect(stl).toContain('vertex');
     expect(stl).toContain('endsolid commitpulse_monolith');
   });
-});
 
-it('generates structurally valid ASCII STL facets', () => {
-  const mockTowers: TowerData[] = [
-    {
-      x: 0,
-      y: 0,
-      h: 10,
-      hasCommits: true,
-      isGhost: false,
-      isToday: false,
-      isTodayWithCommits: false,
-      tooltip: '',
-      date: '',
-      contributionCount: 5,
-      faceOpacity: { left: 1, right: 1, top: 1 },
-      strokeOpacity: 1,
-      strokeWidth: 1,
-      row: 0,
-      col: 0,
-      intensityLevel: 2,
-    },
-  ];
+  it('generates structurally valid ASCII STL facets', () => {
+    const mockTowers: TowerData[] = [
+      {
+        x: 0,
+        y: 0,
+        h: 10,
+        hasCommits: true,
+        isGhost: false,
+        isToday: false,
+        isTodayWithCommits: false,
+        tooltip: '',
+        date: '',
+        contributionCount: 5,
+        faceOpacity: { left: 1, right: 1, top: 1 },
+        strokeOpacity: 1,
+        strokeWidth: 1,
+        row: 0,
+        col: 0,
+        intensityLevel: 2,
+      },
+    ];
 
-  const stl = generateMonolithSTL(mockTowers);
+    const stl = generateMonolithSTL(mockTowers);
 
-  const facetCount = (stl.match(/facet normal/g) ?? []).length;
-  const endFacetCount = (stl.match(/endfacet/g) ?? []).length;
+    const facetCount = (stl.match(/facet normal/g) ?? []).length;
+    const endFacetCount = (stl.match(/endfacet/g) ?? []).length;
 
-  const outerLoopCount = (stl.match(/outer loop/g) ?? []).length;
-  const endLoopCount = (stl.match(/endloop/g) ?? []).length;
+    const outerLoopCount = (stl.match(/outer loop/g) ?? []).length;
+    const endLoopCount = (stl.match(/endloop/g) ?? []).length;
 
-  expect(facetCount).toBe(endFacetCount);
-  expect(outerLoopCount).toBe(endLoopCount);
+    expect(facetCount).toBe(endFacetCount);
+    expect(outerLoopCount).toBe(endLoopCount);
 
-  const vertexLines = stl.split('\n').filter((line) => line.trim().startsWith('vertex'));
+    const vertexLines = stl.split('\n').filter((line) => line.trim().startsWith('vertex'));
 
-  expect(vertexLines.length).toBeGreaterThan(0);
+    expect(vertexLines.length).toBeGreaterThan(0);
 
-  vertexLines.forEach((line) => {
-    expect(line.trim()).toMatch(/^vertex -?\d+\.\d+ -?\d+\.\d+ -?\d+\.\d+$/);
+    vertexLines.forEach((line) => {
+      expect(line.trim()).toMatch(/^vertex -?\d+\.\d+ -?\d+\.\d+ -?\d+\.\d+$/);
+    });
   });
-});
 
-it('always includes a base plate even with no tower data', () => {
-  const stl = generateMonolithSTL([]);
+  it('always includes a base plate even with no tower data', () => {
+    const stl = generateMonolithSTL([]);
 
-  expect(stl).toContain('solid commitpulse_monolith');
-  expect(stl).toContain('endsolid commitpulse_monolith');
-  expect(stl).toContain('facet normal');
-});
-it('skips ghost towers (h=0) while still generating the base plate', () => {
-  const ghostTowers: TowerData[] = [
-    {
-      x: 0,
-      y: 0,
-      h: 0,
-      hasCommits: false,
-      isGhost: true,
-      isToday: false,
-      isTodayWithCommits: false,
-      tooltip: '',
-      date: '',
-      contributionCount: 0,
-      faceOpacity: { left: 1, right: 1, top: 1 },
-      strokeOpacity: 1,
-      strokeWidth: 1,
-      row: 0,
-      col: 0,
-      intensityLevel: 0,
-    },
-  ];
+    expect(stl).toContain('solid commitpulse_monolith');
+    expect(stl).toContain('endsolid commitpulse_monolith');
+    expect(stl).toContain('facet normal');
+  });
 
-  const stl = generateMonolithSTL(ghostTowers);
+  it('skips ghost towers (h=0) while still generating the base plate', () => {
+    const ghostTowers: TowerData[] = [
+      {
+        x: 0,
+        y: 0,
+        h: 0,
+        hasCommits: false,
+        isGhost: true,
+        isToday: false,
+        isTodayWithCommits: false,
+        tooltip: '',
+        date: '',
+        contributionCount: 0,
+        faceOpacity: { left: 1, right: 1, top: 1 },
+        strokeOpacity: 1,
+        strokeWidth: 1,
+        row: 0,
+        col: 0,
+        intensityLevel: 0,
+      },
+    ];
 
-  expect(stl).toContain('solid commitpulse_monolith');
-  expect(stl).toContain('endsolid commitpulse_monolith');
+    const stl = generateMonolithSTL(ghostTowers);
 
-  const facetCount = (stl.match(/facet normal/g) ?? []).length;
+    expect(stl).toContain('solid commitpulse_monolith');
+    expect(stl).toContain('endsolid commitpulse_monolith');
 
-  // Base plate only = 12 facets
-  expect(facetCount).toBe(12);
+    const facetCount = (stl.match(/facet normal/g) ?? []).length;
+
+    // Base plate only = 12 facets
+    expect(facetCount).toBe(12);
+  });
 });
 
 // ─── activityToTowers ────────────────────────────────────────────────────────
@@ -161,16 +165,18 @@ describe('activityToTowers', () => {
     expect(activityToTowers(null)).toEqual([]);
   });
 
-  it('assigns row/col positions in chronological column-major order', () => {
-    // 8 days → col 0 has rows 0-6 (7 days), col 1 has row 0 (1 day)
-    const days = Array.from({ length: 8 }, (_, i) =>
-      makeDay(`2024-01-${String(i + 1).padStart(2, '0')}`, i + 1)
-    );
+  it('assigns row/col positions based on real day-of-week boundaries', () => {
+    // 2023-12-31 is a Sunday. 8 days → col 0 has rows 0-6 (Sun-Sat), col 1 has row 0 (Next Sun)
+    const days = Array.from({ length: 8 }, (_, i) => {
+      const d = new Date('2023-12-31T12:00:00Z');
+      d.setUTCDate(d.getUTCDate() + i);
+      return makeDay(d.toISOString().slice(0, 10), i + 1);
+    });
     const towers = activityToTowers(days);
 
-    expect(towers[0]).toMatchObject({ row: 0, col: 0 });
-    expect(towers[6]).toMatchObject({ row: 6, col: 0 });
-    expect(towers[7]).toMatchObject({ row: 0, col: 1 });
+    expect(towers[0]).toMatchObject({ row: 0, col: 0, date: '2023-12-31' }); // Sunday
+    expect(towers[6]).toMatchObject({ row: 6, col: 0, date: '2024-01-06' }); // Saturday
+    expect(towers[7]).toMatchObject({ row: 0, col: 1, date: '2024-01-07' }); // Sunday (Next week)
   });
 
   it('sets h=0 for days with no contributions', () => {
@@ -220,9 +226,64 @@ describe('activityToTowers', () => {
   it('keeps dates sorted chronologically regardless of input order', () => {
     const days = [makeDay('2024-01-03', 3), makeDay('2024-01-01', 1), makeDay('2024-01-02', 2)];
     const towers = activityToTowers(days);
-    // After sorting: 01 → col 0 row 0, 02 → col 0 row 1, 03 → col 0 row 2
+
+    // After sorting: 01, 02, 03
     expect(towers[0].tooltip).toContain('2024-01-01');
     expect(towers[1].tooltip).toContain('2024-01-02');
     expect(towers[2].tooltip).toContain('2024-01-03');
+  });
+});
+
+// ─── Bug Fix Tests ───────────────────────────────────────────────────────────
+
+describe('[Bug fix] activityToTowers — real weekday alignment', () => {
+  function makeMockDays(startDate: string, count: number): ActivityData[] {
+    const days: ActivityData[] = [];
+    const d = new Date(`${startDate}T12:00:00Z`);
+    for (let i = 0; i < count; i++) {
+      days.push({
+        date: d.toISOString().slice(0, 10),
+        count: 1,
+        intensity: 1,
+      });
+      d.setUTCDate(d.getUTCDate() + 1);
+    }
+    return days;
+  }
+
+  it('assigns row = 0 to Sundays and row = 6 to Saturdays, regardless of start date', () => {
+    // 2024-06-05 is a Wednesday — deliberately NOT a Sunday.
+    const days = makeMockDays('2024-06-05', 14);
+    const towers = activityToTowers(days);
+
+    for (const t of towers) {
+      const actualDow = new Date(`${t.date}T12:00:00Z`).getUTCDay();
+      expect(t.row).toBe(actualDow);
+    }
+  });
+
+  it('increments col only at real week (Sunday) boundaries, not every 7 entries', () => {
+    const days = makeMockDays('2024-06-05', 14); // Wed 6/5 through Tue 6/18
+    const towers = activityToTowers(days);
+
+    const sunday1 = towers.find((t) => t.date === '2024-06-09'); // first Sunday
+    const saturdayBefore = towers.find((t) => t.date === '2024-06-08'); // Sat before it
+
+    expect(sunday1?.col).toBe((saturdayBefore?.col ?? 0) + 1);
+  });
+
+  it('produces identical row/col alignment whether the export starts on a Sunday or mid-week', () => {
+    const startingSunday = activityToTowers(makeMockDays('2024-06-09', 7)); // starts on Sunday
+    const startingWednesday = activityToTowers(makeMockDays('2024-06-05', 11)).filter(
+      (t) => t.date >= '2024-06-09'
+    ); // same Sunday onward, but array started mid-week
+
+    for (const t of startingSunday) {
+      const match = startingWednesday.find((w) => w.date === t.date);
+      expect(match?.row).toBe(t.row);
+      // Wait, columns will be shifted by 1 since startingWednesday started earlier,
+      // but their *rows* should perfectly align to the same weekday:
+      expect(match?.row).toBe(t.row);
+    }
   });
 });

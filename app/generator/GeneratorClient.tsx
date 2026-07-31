@@ -29,6 +29,11 @@ const INITIAL_STATE: GeneratorState = {
   showArticles: false,
   articlesPlatform: 'devto',
   articlesUsername: '',
+  showHeroImage: false,
+  heroImageUrl: '',
+  heroImageWidth: '450',
+  heroImageAlign: 'center',
+  heroImageAlt: 'Coding GIF',
 };
 
 export function GeneratorClient() {
@@ -38,6 +43,7 @@ export function GeneratorClient() {
     const hasContent =
       state.name.trim() ||
       state.description.trim() ||
+      (state.showHeroImage && state.heroImageUrl?.trim()) ||
       state.selectedTechs.length > 0 ||
       state.selectedSocials.some((id) => state.socialLinks[id]?.trim()) ||
       (state.showCommitPulse && state.githubUsername.trim()) ||
@@ -82,6 +88,13 @@ export function GeneratorClient() {
     });
   };
 
+  const handleApplyPreset = (presetState: Partial<GeneratorState>) => {
+    setState((prevState) => ({
+      ...prevState,
+      ...presetState,
+    }));
+  };
+
   return (
     <div className="flex flex-col lg:flex-row gap-5 xl:gap-6 items-start w-full">
       <div className="w-full lg:w-[44%] xl:w-[42%] flex-shrink-0">
@@ -89,6 +102,11 @@ export function GeneratorClient() {
           state={state}
           onNameChange={(v) => setState((s) => ({ ...s, name: v }))}
           onDescriptionChange={(v) => setState((s) => ({ ...s, description: v }))}
+          onShowHeroImageChange={(v) => setState((s) => ({ ...s, showHeroImage: v }))}
+          onHeroImageUrlChange={(v) => setState((s) => ({ ...s, heroImageUrl: v }))}
+          onHeroImageWidthChange={(v) => setState((s) => ({ ...s, heroImageWidth: v }))}
+          onHeroImageAlignChange={(v) => setState((s) => ({ ...s, heroImageAlign: v }))}
+          onHeroImageAltChange={(v) => setState((s) => ({ ...s, heroImageAlt: v }))}
           onTechsChange={(ids) =>
             setState((s) => ({ ...s, selectedTechs: Array.from(new Set(ids)) }))
           }
@@ -113,6 +131,7 @@ export function GeneratorClient() {
           onArticlesPlatformChange={(v) => setState((s) => ({ ...s, articlesPlatform: v }))}
           onArticlesUsernameChange={(v) => setState((s) => ({ ...s, articlesUsername: v }))}
           onApplyImport={handleApplyImport}
+          onApplyPreset={handleApplyPreset}
         />
       </div>
 

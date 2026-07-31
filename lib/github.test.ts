@@ -6,17 +6,9 @@ import {
   fetchUserRepos,
   fetchContributedRepos,
   getFullDashboardData,
-  generateAchievements,
-  buildCommitClock,
   clearGitHubApiCacheForTests,
-  GITHUB_CACHE_TTL_MS,
   cacheKey,
-  displayName,
-  fetchOrgMembers,
-  getOrgDashboardData,
-  getWrappedData,
   computeDeveloperScore,
-  runCappedConcurrency,
   buildProfileData,
   aggregateLanguages,
   buildInsights,
@@ -454,7 +446,8 @@ describe('fetchGitHubContributions', () => {
     const key = cacheKey('contributions', 'fallback-user');
     const cachedData = await contributionsCache.get(key);
     if (cachedData) {
-      cachedData.calendar.lastSyncedAt = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      cachedData.data.calendar.lastSyncedAt = new Date(Date.now() - 70 * 60 * 1000).toISOString();
+      cachedData.fetchedAt = Date.now() - 70 * 60 * 1000;
       await contributionsCache.set(key, cachedData, 7 * 24 * 60 * 60 * 1000);
     }
 
@@ -1840,5 +1833,65 @@ describe('cacheKey', () => {
     expect(cacheKey('profile', 'octocat', undefined, undefined, 'github')).toBe(
       'profile:octocat:org:github'
     );
+  });
+});
+
+describe('Nullable repository handling', () => {
+  beforeEach(() => {
+    vi.spyOn(global, 'fetch');
+    clearGitHubApiCacheForTests();
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('fetchContributedRepos filters out null repository nodes gracefully', async () => {
+    const mockNodes = [
+      { name: 'repo1', nameWithOwner: 'octocat/repo1' },
+      null,
+      { name: 'repo2', nameWithOwner: 'octocat/repo2' },
+    ];
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({ data: { user: { repositoriesContributedTo: { nodes: mockNodes } } } })
+    );
+
+    const result = await fetchContributedRepos('octocat', { bypassCache: true });
+    expect(result).toEqual([
+      { name: 'repo1', nameWithOwner: 'octocat/repo1' },
+      { name: 'repo2', nameWithOwner: 'octocat/repo2' },
+    ]);
+  });
+
+  it('fetchGitHubContributions filters out commitContributionsByRepository with null repository', async () => {
+    const mockCommitRepoContributions = [
+      {
+        repository: { name: 'repo1', primaryLanguage: { name: 'TypeScript' } },
+        contributions: { totalCount: 5 },
+      },
+      {
+        repository: null,
+        contributions: { totalCount: 10 },
+      },
+    ];
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: { totalContributions: 15, weeks: [] },
+              commitContributionsByRepository: mockCommitRepoContributions,
+            },
+          },
+        },
+      })
+    );
+
+    const result = await fetchGitHubContributions('octocat', { bypassCache: true });
+    expect(result.repoContributions).toEqual([
+      {
+        repository: { name: 'repo1', primaryLanguage: { name: 'TypeScript' } },
+        contributions: { totalCount: 5 },
+      },
+    ]);
   });
 });

@@ -357,7 +357,7 @@ describe('GET /api/streak', () => {
       const response = await GET(makeRequest({ user: 'octocat' }));
       const body = await response.text();
       expect(body).toContain('<title>');
-      expect(body).toContain('Stats for');
+      expect(body).toContain('streak for');
     });
 
     it('returns a small SVG when size=small', async () => {
@@ -452,8 +452,15 @@ describe('GET /api/streak', () => {
   });
 
   describe('cache-control header', () => {
-    it('caches until UTC midnight by default, using the value from getSecondsUntilUTCMidnight', async () => {
+    it('caches SVG responses with static max-age and stale-while-revalidate values', async () => {
       const response = await GET(makeRequest({ user: 'octocat' }));
+      expect(response.headers.get('Cache-Control')).toBe(
+        'public, max-age=300, stale-while-revalidate=3600'
+      );
+    });
+
+    it('caches until UTC midnight by default, using the value from getSecondsUntilUTCMidnight', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', format: 'png' }));
       expect(response.headers.get('Cache-Control')).toBe(
         'public, max-age=60, s-maxage=3600, stale-while-revalidate=59'
       );
@@ -461,7 +468,7 @@ describe('GET /api/streak', () => {
 
     it('reflects a different time value when the clock changes', async () => {
       vi.mocked(getSecondsUntilUTCMidnight).mockReturnValue(7200);
-      const response = await GET(makeRequest({ user: 'octocat' }));
+      const response = await GET(makeRequest({ user: 'octocat', format: 'png' }));
       expect(response.headers.get('Cache-Control')).toBe(
         'public, max-age=60, s-maxage=7200, stale-while-revalidate=59'
       );
@@ -1022,7 +1029,9 @@ describe('GET /api/streak', () => {
     });
 
     it('uses getSecondsUntilMidnightInTimezone (not UTC) for the cache TTL when ?tz= is set', async () => {
-      const response = await GET(makeRequest({ user: 'octocat', tz: 'America/New_York' }));
+      const response = await GET(
+        makeRequest({ user: 'octocat', tz: 'America/New_York', format: 'png' })
+      );
 
       expect(response.headers.get('Cache-Control')).toBe(
         'public, max-age=60, s-maxage=7200, stale-while-revalidate=59'
@@ -1368,7 +1377,7 @@ describe('GET /api/streak', () => {
 
   describe('theme=random cache header', () => {
     it('returns no-cache header when ?theme=random is given', async () => {
-      const response = await GET(makeRequest({ user: 'octocat', theme: 'random' }));
+      const response = await GET(makeRequest({ user: 'octocat', theme: 'random', format: 'png' }));
 
       expect(response.headers.get('Cache-Control')).toMatch(/public, max-age=60, s-maxage=/);
     });
@@ -1584,13 +1593,13 @@ describe('GET /api/streak', () => {
 
   describe('stale-while-revalidate cache header', () => {
     it('contains stale-while-revalidate=59 for normal request', async () => {
-      const response = await GET(makeRequest({ user: 'octocat' }));
+      const response = await GET(makeRequest({ user: 'octocat', format: 'png' }));
 
       expect(response.headers.get('Cache-Control')).toContain('stale-while-revalidate=59');
     });
 
     it('does NOT contain stale-while-revalidate when ?refresh=true', async () => {
-      const response = await GET(makeRequest({ user: 'octocat', refresh: 'true' }));
+      const response = await GET(makeRequest({ user: 'octocat', refresh: 'true', format: 'png' }));
 
       expect(response.headers.get('Cache-Control')).not.toContain('stale-while-revalidate=59');
     });

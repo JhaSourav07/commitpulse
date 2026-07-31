@@ -120,6 +120,10 @@
     "title": "모놀리스 미세 조정.",
     "desc": "아래의 모든 변경 사항은 실시간으로 미리보기에 업데이트됩니다. 작업이 끝나면 내보내기 스니펫을 복사하세요. 추가 단계가 필요 없습니다.",
     "live_preview": "라이브 미리보기",
+    "preview_toggle_to_light": "밝은 배경 미리보기로 전환",
+    "preview_toggle_to_dark": "어두운 배경 미리보기로 전환",
+    "preview_toggle_light_label": "밝게",
+    "preview_toggle_dark_label": "어둡게",
     "active_params": "활성 매개변수",
     "empty_preview_desc": "사용자 이름을 추가하면 배지 라이브 미리보기가 여기에 표시됩니다.",
     "controls": {
@@ -159,8 +163,11 @@
       "copy_aria_enabled": "{{format}} 내보내기 스니펫을 클립보드에 복사",
       "footer_tip": "이것을 GitHub 프로필 README.md 파일에 붙여넣으세요. 배지는 서버 측에서 렌더링되므로 스크립트가 필요하지 않습니다.",
       "tsx": "React TSX",
-      "download_svg": "Download SVG",
-      "download_png": "Download PNG"
+      "download_svg": "SVG 다운로드",
+      "download_png": "PNG 다운로드",
+      "download_webp": "WebP 다운로드",
+      "download_pdf": "PDF 다운로드",
+      "export_as": "다른 형식으로 내보내기"
     }
   },
   "dashboard": {
@@ -489,7 +496,15 @@
       "merge_rate_header": "Merge Rate",
       "reviews_header": "Reviews",
       "avg_review_header": "Avg Review Time",
-      "no_repos": "No repository data available."
+      "no_repos": "저장소 데이터가 없습니다.",
+      "velocity_title": "PR 리뷰 속도",
+      "velocity_subtitle": "저장소별로 풀 리퀘스트 리뷰가 얼마나 빠르게 진행되는지 확인",
+      "first_review": "첫 번째 리뷰",
+      "velocity_first_review": "첫 리뷰까지 걸린 시간",
+      "cycle_time": "사이클 타임",
+      "avg_review_time": "평균 리뷰 시간",
+      "fastest_merge": "가장 빠른 병합",
+      "repo_turnaround": "저장소 턴어라운드"
     },
     "enterprise": {
       "title": "Enterprise Engineering Health Dashboard",

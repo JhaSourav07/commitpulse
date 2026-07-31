@@ -11,6 +11,7 @@ import Image from 'next/image';
 interface TechnologiesSectionProps {
   selected: string[];
   onChange: (ids: string[]) => void;
+  onReset?: () => void;
 }
 
 function TechIcon({ tech, isDark }: { tech: Technology; isDark: boolean }) {
@@ -28,7 +29,11 @@ function TechIcon({ tech, isDark }: { tech: Technology; isDark: boolean }) {
   );
 }
 
-export function TechnologiesSection({ selected = [], onChange }: TechnologiesSectionProps) {
+export function TechnologiesSection({
+  selected = [],
+  onChange,
+  onReset,
+}: TechnologiesSectionProps) {
   const safeSelected = useMemo(() => (Array.isArray(selected) ? selected : []), [selected]);
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('All');

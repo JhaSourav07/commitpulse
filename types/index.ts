@@ -202,7 +202,7 @@ export interface BadgeParams {
   /** GitHub username whose contribution data will be fetched and rendered. Required. */
   user: string;
 
-  label?: boolean;
+  label?: string | boolean;
   /** GitHub username of the opponent to compare against. */
   versus?: string;
 
@@ -298,7 +298,8 @@ export interface BadgeParams {
     | 'pie'
     | 'activity_graph'
     | 'commit_clock'
-    | 'weekday';
+    | 'weekday'
+    | 'punchcard';
 
   /** Format for the monthly delta indicator. 'percent' shows %, 'absolute' shows raw count, 'both' shows both. */
   delta_format?: 'percent' | 'absolute' | 'both';

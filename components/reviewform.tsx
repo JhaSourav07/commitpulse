@@ -157,7 +157,8 @@ export default function SubmitReviewPage() {
             <div className="text-6xl mb-6">🎉</div>
             <h2 className="text-3xl font-bold mb-3">Thank You!</h2>
             <p className="text-zinc-400 text-lg">
-              Your testimonial has been received. It will be featured soon!
+              Your testimonial has been received and will be reviewed by an admin before appearing
+              on the Wall of Love.
             </p>
           </motion.div>
         ) : (

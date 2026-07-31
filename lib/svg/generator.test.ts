@@ -14,6 +14,7 @@ import {
   deterministicRandom,
   buildTowerPaths,
   generateSkylineSVG,
+  generateLanguagesSVG,
 } from './generator';
 import { escapeXML } from './sanitizer';
 import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
@@ -832,7 +833,7 @@ describe('generateSVG', () => {
       );
 
       expect(svg).toContain(
-        '<title id="cp-title-octocat">CommitPulse User Stats for octocat</title>'
+        '<title id="cp-title-octocat">GitHub streak for octocat is 5 days</title>'
       );
       expect(svg).toContain('<desc id="cp-desc-octocat">');
       expect(svg).toContain('aria-labelledby="cp-title-octocat"');
@@ -2695,9 +2696,126 @@ describe('XML Validation - All Generator Outputs', () => {
     });
   });
 
+  describe('label parameter custom title rendering', () => {
+    const baseParams = {
+      user: 'avi',
+      bg: hexColor('0d1117'),
+      text: hexColor('c9d1d9'),
+      accent: hexColor('58a6ff'),
+      speed: '8s',
+      scale: 'linear',
+    } as const;
+
+    it('renders custom label instead of uppercase username when custom label is supplied', () => {
+      const svg = generateSVG(
+        mockStats,
+        {
+          ...baseParams,
+          label: 'Team Streak',
+        },
+        mockCalendar
+      );
+
+      assertValidSVG(svg);
+      expect(svg).toContain('Team Streak');
+      expect(svg).not.toContain('AVI');
+    });
+
+    it('sanitizes custom label to prevent XSS / XML Injection', () => {
+      const svg = generateSVG(
+        mockStats,
+        {
+          ...baseParams,
+          label: '<script>alert(1)</script>',
+        },
+        mockCalendar
+      );
+
+      assertValidSVG(svg);
+      expect(svg).not.toContain('<script>');
+      expect(svg).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+    });
+
+    it('truncates custom label if it exceeds 40 characters', () => {
+      const longLabel = 'a'.repeat(50);
+      const expectedLabel = 'a'.repeat(40) + '...';
+      const svg = generateSVG(
+        mockStats,
+        {
+          ...baseParams,
+          label: longLabel,
+        },
+        mockCalendar
+      );
+
+      assertValidSVG(svg);
+      expect(svg).toContain(expectedLabel);
+      expect(svg).not.toContain(longLabel);
+    });
+
+    it('works correctly in auto-theme mode', () => {
+      const svg = generateSVG(
+        mockStats,
+        {
+          user: 'avi',
+          autoTheme: true,
+          label: 'Auto Label Title',
+        } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      assertValidSVG(svg);
+      expect(svg).toContain('Auto Label Title');
+    });
+  });
+
   function assertValidSVG(svgString: string): void {
     const doc = new DOMParser().parseFromString(svgString, 'image/svg+xml');
     const parserError = doc.querySelector('parsererror');
     expect(parserError).toBeNull();
   }
+});
+
+describe('[Bug fix] dim_weekends applies to view=languages, not just skyline/default', () => {
+  // 1. Mock StreakStats safely
+  const baseStats = {
+    totalContributions: 100,
+    firstContribution: '2024-01-01',
+    longestStreak: { start: '2024-01-01', end: '2024-01-10', length: 10 },
+    currentStreak: { start: '2024-01-05', end: '2024-01-10', length: 6 },
+  } as unknown as Parameters<typeof generateLanguagesSVG>[0];
+
+  // 2. Mock RepoContribution array safely
+  const sampleRepoContributions = [
+    {
+      repository: { primaryLanguage: { name: 'TypeScript' } },
+      contributions: { totalCount: 50 },
+    },
+    {
+      repository: { primaryLanguage: { name: 'JavaScript' } },
+      contributions: { totalCount: 20 },
+    },
+  ] as unknown as Parameters<typeof generateLanguagesSVG>[2];
+
+  it('generateLanguagesSVG includes dimmed-tower class when dim_weekends=true', () => {
+    const svg = generateLanguagesSVG(
+      baseStats,
+      { user: 'octocat', dim_weekends: true } as unknown as Parameters<
+        typeof generateLanguagesSVG
+      >[1],
+      sampleRepoContributions
+    );
+    // Explicitly check for the class attribute usage, not just the CSS definition
+    expect(svg).toContain('class="dimmed-tower"');
+  });
+
+  it('generateLanguagesSVG has no dimmed-tower class when dim_weekends is unset/false', () => {
+    const svg = generateLanguagesSVG(
+      baseStats,
+      { user: 'octocat' } as unknown as Parameters<typeof generateLanguagesSVG>[1],
+      sampleRepoContributions
+    );
+    // Explicitly check that the class is never applied to any elements
+    expect(svg).not.toContain('class="dimmed-tower"');
+  });
 });

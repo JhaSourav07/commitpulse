@@ -5,13 +5,19 @@ import { SectionCard, FieldLabel } from '../SectionCard';
 interface NameSectionProps {
   value: string;
   onChange: (v: string) => void;
+  onReset?: () => void;
 }
 
-export function NameSection({ value, onChange }: NameSectionProps) {
+export function NameSection({ value, onChange, onReset }: NameSectionProps) {
   const safeValue = value || '';
   return (
     <div id="name-section">
-      <SectionCard title="Name" description="Your display name for the README header" defaultOpen>
+      <SectionCard
+        title="Name"
+        description="Your display name for the README header"
+        defaultOpen
+        onReset={onReset}
+      >
         <FieldLabel htmlFor="editor-display-name">Display Name</FieldLabel>
         <input
           id="editor-display-name"

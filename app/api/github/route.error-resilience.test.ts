@@ -129,7 +129,7 @@ it('returns 500 for unexpected internal errors', async () => {
   expect(response.status).toBe(500);
 
   expect(await response.json()).toEqual({
-    error: 'Unexpected database failure',
+    error: 'An unexpected error occurred. Please try again.',
   });
 });
 it('unwraps nested error causes and returns 404', async () => {

@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { EditorPanel } from './EditorPanel';
 import type { GeneratorState } from '../types';
 
@@ -95,7 +94,7 @@ describe('EditorPanel — controlled input callbacks', () => {
     render(<EditorPanel state={makeState()} {...h} />);
 
     const input = screen.getByPlaceholderText(/e\.g\. Omkar/i);
-    await userEvent.type(input, 'A');
+    fireEvent.change(input, { target: { value: 'A' } });
 
     expect(h.onNameChange).toHaveBeenLastCalledWith('A');
   });
@@ -106,12 +105,12 @@ describe('EditorPanel — controlled input callbacks', () => {
     expect(screen.getByDisplayValue('Fawaz')).toBeInTheDocument();
   });
 
-  it('calls onDescriptionChange when the bio textarea changes', async () => {
+  it('calls onDescriptionChange when the bio textarea changes', () => {
     const h = makeHandlers();
     render(<EditorPanel state={makeState()} {...h} />);
 
     const textarea = screen.getByPlaceholderText(/full-stack developer/i);
-    await userEvent.type(textarea, 'H');
+    fireEvent.change(textarea, { target: { value: 'H' } });
 
     expect(h.onDescriptionChange).toHaveBeenLastCalledWith('H');
   });
@@ -194,12 +193,12 @@ describe('EditorPanel — CommitPulseSection toggle', () => {
 // ── 8 & 9. Accent colour input ────────────────────────────────────────────────
 
 describe('EditorPanel — CommitPulseSection accent colour', () => {
-  it('calls onCommitPulseAccentChange when typing a hex value', async () => {
+  it('calls onCommitPulseAccentChange when typing a hex value', () => {
     const h = makeHandlers();
     render(<EditorPanel state={makeState({ showCommitPulse: true })} {...h} />);
 
     const accentInput = screen.getByPlaceholderText('10b981');
-    await userEvent.type(accentInput, 'a');
+    fireEvent.change(accentInput, { target: { value: 'a' } });
 
     expect(h.onCommitPulseAccentChange).toHaveBeenLastCalledWith('a');
   });
@@ -234,7 +233,7 @@ describe('EditorPanel — CommitPulseSection accent colour', () => {
     expect(screen.getByText('Clear')).toBeInTheDocument();
   });
 
-  it('clicking Clear calls onCommitPulseAccentChange with an empty string', async () => {
+  it('clicking Clear calls onCommitPulseAccentChange with an empty string', () => {
     const h = makeHandlers();
     render(
       <EditorPanel
@@ -242,7 +241,7 @@ describe('EditorPanel — CommitPulseSection accent colour', () => {
         {...h}
       />
     );
-    await userEvent.click(screen.getByText('Clear'));
+    fireEvent.click(screen.getByText('Clear'));
     expect(h.onCommitPulseAccentChange).toHaveBeenCalledWith('');
   });
 });
@@ -250,24 +249,24 @@ describe('EditorPanel — CommitPulseSection accent colour', () => {
 // ── 10. SectionCard collapse ──────────────────────────────────────────────────
 
 describe('EditorPanel — SectionCard collapsible behaviour', () => {
-  it('hides the name input after the Name section header is clicked', async () => {
+  it('hides the name input after the Name section header is clicked', () => {
     const h = makeHandlers();
     render(<EditorPanel state={makeState()} {...h} />);
 
     // The Name section header button contains the title text
     const nameHeader = screen.getByRole('button', { name: /^name/i });
-    await userEvent.click(nameHeader);
+    fireEvent.click(nameHeader);
 
     expect(screen.queryByPlaceholderText(/e\.g\. Omkar/i)).toBeNull();
   });
 
-  it('reveals the name input again when the collapsed header is re-clicked', async () => {
+  it('reveals the name input again when the collapsed header is re-clicked', () => {
     const h = makeHandlers();
     render(<EditorPanel state={makeState()} {...h} />);
 
     const nameHeader = screen.getByRole('button', { name: /^name/i });
-    await userEvent.click(nameHeader); // collapse
-    await userEvent.click(nameHeader); // expand
+    fireEvent.click(nameHeader); // collapse
+    fireEvent.click(nameHeader); // expand
 
     expect(screen.getByPlaceholderText(/e\.g\. Omkar/i)).toBeInTheDocument();
   });

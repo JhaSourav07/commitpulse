@@ -65,7 +65,7 @@ describe('ThemeQuickPresets', () => {
   it('renders one button for every selectable theme', () => {
     render(<ThemeQuickPresets theme="dark" onThemeChange={vi.fn()} />);
 
-    expect(screen.getAllByRole('button')).toHaveLength(3);
+    expect(screen.getAllByRole('radio')).toHaveLength(3);
   });
 
   it('shows active theme styling', () => {

@@ -3,6 +3,8 @@
 import { NextResponse } from 'next/server';
 import { getCurrentlyPlaying } from '@/services/spotify/api';
 import { generateSpotifySVG } from '@/lib/svg/spotify';
+import { buildInlineErrorSVG } from '@/lib/svg/generator';
+import { resolveErrorTheme } from '@/lib/svg/themes';
 import { spotifyParamsSchema, coerceQueryParams } from '@/lib/validations';
 import { optimizeSVG } from '@/lib/svg/optimizer';
 import crypto from 'crypto';
@@ -15,7 +17,13 @@ const SVG_CSP_HEADER =
  */
 async function fetchImageAsBase64(url: string): Promise<string | null> {
   try {
-    const response = await fetch(url, { cache: 'force-cache' });
+    // Do not use 'force-cache' here: it caches the fetch indefinitely with
+    // no revalidation, which (combined with the outer SVG response cache)
+    // is what lets stale album artwork keep being served after the track
+    // has changed. A short revalidate window still avoids re-downloading
+    // the image on every single request, but ensures it can't be served
+    // stale for longer than the "Now Playing" data itself.
+    const response = await fetch(url, { next: { revalidate: 30 } });
     if (!response.ok) return null;
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
@@ -39,10 +47,13 @@ export async function GET(request: Request) {
       fieldErrors.formErrors[0] ??
       'Invalid parameters';
 
-    const errorSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="150" viewBox="0 0 400 150">
-      <rect width="400" height="150" fill="#2d0000" rx="8"/>
-      <text x="200" y="75" text-anchor="middle" dominant-baseline="central" fill="#ffcccc" font-family="sans-serif" font-size="13">${firstError}</text>
-    </svg>`;
+    const errTheme = resolveErrorTheme(searchParams);
+    const errorSvg = buildInlineErrorSVG(firstError, {
+      bg: errTheme.bg,
+      accent: errTheme.accent,
+      text: errTheme.text,
+      radius: errTheme.radius,
+    });
 
     return new NextResponse(errorSvg, {
       status: 400,
@@ -70,9 +81,15 @@ export async function GET(request: Request) {
   }
 
   const isRefreshRequested = params.refresh || params.bypassCache;
+  // Keep a short cache window so repeated card loads don't hammer the
+  // Spotify API, but make sure it can't stay stale for very long after
+  // the user switches tracks: a client/CDN will treat the response as
+  // fresh for 10s, and may serve a stale copy for at most another 10s
+  // while it revalidates in the background (max ~20s of staleness,
+  // versus the previous worst case of up to 60s).
   const cacheControl = isRefreshRequested
     ? 'no-cache, no-store, must-revalidate'
-    : 'public, max-age=30, s-maxage=30, stale-while-revalidate=30';
+    : 'public, max-age=10, s-maxage=10, stale-while-revalidate=10';
 
   const etag = crypto.createHash('sha256').update(svg).digest('hex');
   const weakEtag = `W/"${etag}"`;

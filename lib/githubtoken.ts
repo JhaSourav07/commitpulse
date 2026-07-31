@@ -25,7 +25,7 @@ export async function getUserGitHubToken(): Promise<string | undefined> {
   if (!jwt?.ghToken || typeof jwt.ghToken !== 'string') return undefined;
 
   try {
-    return decryptToken(jwt.ghToken);
+    return await decryptToken(jwt.ghToken);
   } catch {
     return undefined; // corrupt/expired -> use global fallback
   }

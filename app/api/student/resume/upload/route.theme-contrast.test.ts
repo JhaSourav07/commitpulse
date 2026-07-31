@@ -40,7 +40,7 @@ function makeUploadRequest(content: string | number[], type: string, name = 'res
   const form = new FormData();
   form.append('resume', file);
   return {
-    headers: new Headers(),
+    headers: new Headers({ Origin: 'https://commitpulse.vercel.app' }),
     formData: async () => form,
   } as unknown as Request;
 }
@@ -53,7 +53,7 @@ describe('POST /api/student/resume/upload - Real Route Behavior', () => {
   it('returns 400 when no file is uploaded', async () => {
     const emptyForm = new FormData();
     const request = {
-      headers: new Headers(),
+      headers: new Headers({ Origin: 'https://commitpulse.vercel.app' }),
       formData: async () => emptyForm,
     } as unknown as Request;
 
