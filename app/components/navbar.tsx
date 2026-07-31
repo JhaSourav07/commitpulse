@@ -52,6 +52,12 @@ const NAV_LINKS: NavLink[] = [
     isPrimary: false,
   },
   {
+    label: 'Contact',
+    href: '/contact',
+    isExternal: false,
+    isPrimary: false,
+  },
+  {
     label: 'GitHub Repo',
     href: 'https://github.com/JhaSourav07/commitpulse',
     isExternal: true,
@@ -259,6 +265,7 @@ export default function Navbar() {
     if (label === 'Burnout Radar') return t('navbar.burnout_radar');
     if (label === 'Customization Studio') return t('navbar.customization_studio');
     if (label === 'Generator') return t('navbar.generator');
+    if (label === 'Contact') return t('navbar.contact', { defaultValue: 'Contact' });
     return label;
   };
 
