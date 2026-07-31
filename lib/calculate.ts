@@ -160,7 +160,8 @@ export function calculateStreak(
   calendar?: ContributionCalendar | null,
   timezone: string = 'UTC',
   now: Date = new Date(),
-  grace: number = 1
+  grace: number = 1,
+  vacationDates: string[] = []
 ): StreakStats {
   const parsedGrace = typeof grace === 'number' ? grace : Number(grace);
   const numericGrace = !isNaN(parsedGrace) ? parsedGrace : 0;
@@ -190,12 +191,33 @@ export function calculateStreak(
     })
     .sort((a, b) => a.date.localeCompare(b.date));
 
+  // Determine effective today date. If today is a vacation date, shift back to the most recent non-vacation date.
+  let effectiveTodayStr = localTodayStr;
+  if (vacationDates.length > 0 && vacationDates.includes(effectiveTodayStr)) {
+    const todayDate = new Date(`${localTodayStr}T00:00:00Z`);
+    for (let i = 1; i <= 365; i++) {
+      const prev = new Date(todayDate);
+      prev.setUTCDate(prev.getUTCDate() - i);
+      const prevStr = prev.toISOString().split('T')[0];
+      if (!vacationDates.includes(prevStr)) {
+        effectiveTodayStr = prevStr;
+        break;
+      }
+    }
+  }
+
+  // Filter out vacation dates from uniqueDays
+  const nonVacationUniqueDays =
+    vacationDates.length > 0
+      ? uniqueDays.filter((d) => !vacationDates.includes(d.date))
+      : uniqueDays;
+
   let currentStreak = 0;
   let longestStreak = 0;
   let tempStreak = 0;
 
   // 1. Calculate Longest Streak (Standard loop)
-  for (const day of uniqueDays) {
+  for (const day of nonVacationUniqueDays) {
     if (day && day.contributionCount > 0) {
       tempStreak++;
       if (tempStreak > longestStreak) longestStreak = tempStreak;
@@ -205,10 +227,10 @@ export function calculateStreak(
   }
 
   // 2. Calculate Current Streak (Backwards loop with Grace Period)
-  let todayIndex = findTodayIndex(uniqueDays, timezone, now);
+  let todayIndex = nonVacationUniqueDays.findIndex((d) => d && d.date === effectiveTodayStr);
 
   if (todayIndex < 0) {
-    const lastIndex = uniqueDays.length - 1;
+    const lastIndex = nonVacationUniqueDays.length - 1;
 
     if (lastIndex < 0) {
       return {
@@ -219,11 +241,11 @@ export function calculateStreak(
       };
     }
 
-    const lastDateStr = uniqueDays[lastIndex]?.date;
+    const lastDateStr = nonVacationUniqueDays[lastIndex]?.date;
 
-    if (lastDateStr && localTodayStr > lastDateStr) {
+    if (lastDateStr && effectiveTodayStr > lastDateStr) {
       const gapDays = Math.floor(
-        (new Date(localTodayStr).getTime() - new Date(lastDateStr).getTime()) / 86400000
+        (new Date(effectiveTodayStr).getTime() - new Date(lastDateStr).getTime()) / 86400000
       );
 
       // Issue #6171:
@@ -246,14 +268,16 @@ export function calculateStreak(
   let consecutiveZeroDays = 0;
   if (todayIndex >= 0) {
     let idx = todayIndex - 1;
-    while (idx >= 0 && uniqueDays[idx].contributionCount === 0) {
+    while (idx >= 0 && nonVacationUniqueDays[idx].contributionCount === 0) {
       consecutiveZeroDays++;
       idx--;
     }
   }
 
-  const isActualToday = todayIndex >= 0 && uniqueDays[todayIndex].date === localTodayStr;
-  const todayHasCommits = todayIndex >= 0 && uniqueDays[todayIndex].contributionCount > 0;
+  const isActualToday =
+    todayIndex >= 0 && nonVacationUniqueDays[todayIndex].date === effectiveTodayStr;
+  const todayHasCommits =
+    todayIndex >= 0 && nonVacationUniqueDays[todayIndex].contributionCount > 0;
 
   // If we are looking at the actual today, and it has no commits,
   const evaluationIndex =
@@ -264,7 +288,11 @@ export function calculateStreak(
   let isStreakAlive = false;
   for (let i = 0; i <= safeGrace; i++) {
     const checkIndex = evaluationIndex - i;
-    if (checkIndex >= 0 && uniqueDays[checkIndex] && uniqueDays[checkIndex].contributionCount > 0) {
+    if (
+      checkIndex >= 0 &&
+      nonVacationUniqueDays[checkIndex] &&
+      nonVacationUniqueDays[checkIndex].contributionCount > 0
+    ) {
       isStreakAlive = true;
       break;
     }
@@ -275,12 +303,12 @@ export function calculateStreak(
     while (
       i >= evaluationIndex - safeGrace &&
       i >= 0 &&
-      uniqueDays[i] &&
-      uniqueDays[i].contributionCount === 0
+      nonVacationUniqueDays[i] &&
+      nonVacationUniqueDays[i].contributionCount === 0
     ) {
       i--;
     }
-    while (i >= 0 && uniqueDays[i] && uniqueDays[i].contributionCount > 0) {
+    while (i >= 0 && nonVacationUniqueDays[i] && nonVacationUniqueDays[i].contributionCount > 0) {
       currentStreak++;
       i--;
     }
@@ -288,13 +316,11 @@ export function calculateStreak(
     currentStreak = 0;
   }
 
-  const todayDate = uniqueDays[todayIndex]?.date ?? localTodayStr;
-
   return {
     currentStreak,
     longestStreak,
     totalContributions: calendar.totalContributions || 0,
-    todayDate,
+    todayDate: localTodayStr,
   };
 }
 

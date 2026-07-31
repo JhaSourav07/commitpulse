@@ -4,6 +4,8 @@ import { calculateStreak } from '@/lib/calculate';
 import { validateGitHubUsername } from '@/lib/validations';
 import { getClientIp } from '@/utils/getClientIp';
 import { getRateLimitHeaders, RateLimiter } from '@/lib/rate-limit';
+import dbConnect from '@/lib/mongodb';
+import { User } from '@/models/User';
 
 const userDetailsLimiter = new RateLimiter(20, 60_000, 1);
 
@@ -45,7 +47,25 @@ export async function GET(request: Request) {
 
     let stats = { currentStreak: 0, longestStreak: 0, totalContributions: 0 };
     if (contributions) {
-      const calculated = calculateStreak(contributions.calendar);
+      let vacationDates: string[] = [];
+      try {
+        if (process.env.MONGODB_URI) {
+          await dbConnect();
+          const dbUser = await User.findOne({ username: username.toLowerCase() }).lean();
+          if (dbUser?.vacationDates) {
+            vacationDates = dbUser.vacationDates;
+          }
+        }
+      } catch {
+        // non-fatal: fall back to no vacation dates
+      }
+      const calculated = calculateStreak(
+        contributions.calendar,
+        undefined,
+        undefined,
+        undefined,
+        vacationDates
+      );
       stats = {
         currentStreak: calculated.currentStreak,
         longestStreak: calculated.longestStreak,

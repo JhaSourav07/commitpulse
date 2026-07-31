@@ -48,6 +48,7 @@ import ActivityHeatmapPro from './ActivityHeatmapPro';
 import DeveloperJourneyTimeline from './DeveloperJourneyTimeline';
 import RepositoryContributionExplorer from './RepositoryContributionExplorer';
 import BotFilterToggle from './BotFilterToggle';
+import VacationModeCard from './VacationModeCard';
 
 // Define the dashboard data structure
 export interface DashboardData {
@@ -109,6 +110,7 @@ interface DashboardClientProps {
   username: string;
   compareData?: DashboardData | null;
   period: DashboardPeriod;
+  sessionUsername?: string | null;
 }
 
 export interface ProfileMetrics {
@@ -331,6 +333,7 @@ export default function DashboardClient({
   username,
   compareData = null,
   period,
+  sessionUsername = null,
 }: DashboardClientProps) {
   const isLoading = useSyncExternalStore(
     () => () => {},
@@ -728,6 +731,9 @@ export default function DashboardClient({
                   }}
                 />
                 <BotFilterToggle />
+                {sessionUsername && sessionUsername.toLowerCase() === username.toLowerCase() && (
+                  <VacationModeCard username={username} />
+                )}
                 <Achievements achievements={initialData.achievements} />
                 <ResumeProfileSection githubUsername={username} />
                 <DeploymentTracker data={initialData.deployments} />
