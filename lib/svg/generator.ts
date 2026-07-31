@@ -2023,11 +2023,12 @@ export function generateHeatmapSVG(
     .hm-today { animation: none !important; }
     .hm-scan { animation: none !important; display: none; }
   }
+  .hm-subtitle { font-family: ${statsFont}; fill: ${labelFill}; font-size: ${s(10)}px; font-weight: 400; opacity: ${labelOpacity}; }
   </style>
 
   ${renderBackgroundRect(params.hideBackground ? 'transparent' : bgFill, radius)}
 
-  ${!params.hide_title ? `<text x="${s(60)}" y="${s(30)}" class="hm-title">${truncateUsername(safeUser).toUpperCase()}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}</text>` : ''}
+  ${!params.hide_title ? `<text x="${s(60)}" y="${s(params.custom_subtitle ? 24 : 30)}" class="hm-title">${truncateUsername(safeUser).toUpperCase()}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}</text>${params.custom_subtitle ? `<text x="${s(60)}" y="${s(40)}" class="hm-subtitle">${sanitizeCustomText(params.custom_subtitle)}</text>` : ''}` : ''}
 
   ${grid}
 
@@ -2160,11 +2161,12 @@ function generateAutoThemeHeatmapSVG(
     .hm-today { animation: none !important; }
     .hm-scan { animation: none !important; display: none; }
   }
+  .hm-subtitle { font-family: ${statsFont}; fill: var(--cp-accent); font-size: ${s(10)}px; font-weight: 400; opacity: 0.7; }
   </style>
 
   <rect width="${W}" height="${H}" rx="${radius}" ${params.hideBackground ? 'fill="transparent"' : 'class="cp-bg-fill"'} />
 
-  ${!params.hide_title ? `<text x="${s(60)}" y="${s(30)}" class="hm-title">${truncateUsername(safeUser).toUpperCase()}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}</text>` : ''}
+  ${!params.hide_title ? `<text x="${s(60)}" y="${s(params.custom_subtitle ? 24 : 30)}" class="hm-title">${truncateUsername(safeUser).toUpperCase()}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}</text>${params.custom_subtitle ? `<text x="${s(60)}" y="${s(40)}" class="hm-subtitle">${sanitizeCustomText(params.custom_subtitle)}</text>` : ''}` : ''}
 
   ${grid}
 
