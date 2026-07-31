@@ -56,7 +56,11 @@ function getTimeOfDayIcon(hour: number) {
   return <Moon size={14} className="text-indigo-400" />;
 }
 
-export default function ActivityHeatmapPro({ activity, rawCommits }: ActivityHeatmapProProps) {
+export default function ActivityHeatmapPro({
+  activity,
+  commitClock,
+  rawCommits,
+}: ActivityHeatmapProProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('heatmap');
   const [timeMode, setTimeMode] = useState<'author' | 'viewer'>('author');
 
@@ -142,6 +146,15 @@ export default function ActivityHeatmapPro({ activity, rawCommits }: ActivityHea
       }));
     }
 
+    // Backward compatibility for old cached data: Use commitClock if available
+    if (commitClock && commitClock.length > 0) {
+      return commitClock.map((c, i) => ({
+        hour: i,
+        label: `${i.toString().padStart(2, '0')}:00`,
+        commits: c.commits,
+      }));
+    }
+
     // Fallback: Simulate hourly pattern from activity intensity
     return Array.from({ length: 24 }, (_, i) => {
       const pseudoRandom = ((i * 1867 + stats.average * 997) % 100) / 100;
@@ -151,7 +164,7 @@ export default function ActivityHeatmapPro({ activity, rawCommits }: ActivityHea
         commits: Math.round(pseudoRandom * stats.average * 2),
       };
     });
-  }, [rawCommits, timeMode, stats.average]);
+  }, [rawCommits, commitClock, timeMode, stats.average]);
 
   const maxHourly = Math.max(...hourlyData.map((h) => h.commits), 1);
   const maxMonthly = Math.max(...monthlyData.map((m) => m.total), 1);
