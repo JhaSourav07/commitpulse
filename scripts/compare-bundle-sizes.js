@@ -27,7 +27,7 @@ function main() {
   const prData = JSON.parse(fs.readFileSync(prPath, 'utf8'));
   const baseData = JSON.parse(fs.readFileSync(basePath, 'utf8'));
 
-  const allKeys = Array.from(new Set([...Object.keys(prData), ...Object.keys(baseData)])).sort();
+  const allKeys = Array.from(new Set([...Object.keys(prData), ...Object.keys(baseData)])).sort((a, b) => a - b);
 
   const rows = [];
   let prTotalJS = 0;
