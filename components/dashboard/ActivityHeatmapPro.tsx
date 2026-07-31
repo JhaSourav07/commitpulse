@@ -12,11 +12,15 @@ import {
   Moon,
   Sunrise,
   Sunset,
+  Globe,
+  MapPin,
 } from 'lucide-react';
+import { getAuthorLocalHour, getViewerLocalHour } from '@/utils/dateHelpers';
 
 interface ActivityHeatmapProProps {
   activity: Array<{ date: string; count: number; intensity: 0 | 1 | 2 | 3 | 4 }>;
   commitClock?: Array<{ day: string; commits: number }>;
+  rawCommits?: string[];
 }
 
 type ViewMode = 'heatmap' | 'hourly' | 'weekly' | 'monthly';
@@ -52,8 +56,9 @@ function getTimeOfDayIcon(hour: number) {
   return <Moon size={14} className="text-indigo-400" />;
 }
 
-export default function ActivityHeatmapPro({ activity, commitClock }: ActivityHeatmapProProps) {
+export default function ActivityHeatmapPro({ activity, rawCommits }: ActivityHeatmapProProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('heatmap');
+  const [timeMode, setTimeMode] = useState<'author' | 'viewer'>('author');
 
   // Compute weekly pattern from activity
   const weeklyPattern = useMemo(() => {
@@ -119,16 +124,25 @@ export default function ActivityHeatmapPro({ activity, commitClock }: ActivityHe
     };
   }, [activity]);
 
-  // Hourly distribution (simulated from commitClock or activity patterns)
+  // Hourly distribution (computed from rawCommits or fallback)
   const hourlyData = useMemo(() => {
-    if (commitClock && commitClock.length > 0) {
-      return commitClock.map((c, i) => ({
+    if (rawCommits && rawCommits.length > 0) {
+      const counts = new Array(24).fill(0);
+      rawCommits.forEach((isoDate) => {
+        const hour =
+          timeMode === 'author' ? getAuthorLocalHour(isoDate) : getViewerLocalHour(isoDate);
+        if (hour >= 0 && hour <= 23) {
+          counts[hour]++;
+        }
+      });
+      return counts.map((count, i) => ({
         hour: i,
         label: `${i.toString().padStart(2, '0')}:00`,
-        commits: c.commits,
+        commits: count,
       }));
     }
-    // Simulate hourly pattern from activity intensity
+
+    // Fallback: Simulate hourly pattern from activity intensity
     return Array.from({ length: 24 }, (_, i) => {
       const pseudoRandom = ((i * 1867 + stats.average * 997) % 100) / 100;
       return {
@@ -137,7 +151,7 @@ export default function ActivityHeatmapPro({ activity, commitClock }: ActivityHe
         commits: Math.round(pseudoRandom * stats.average * 2),
       };
     });
-  }, [commitClock, stats.average]);
+  }, [rawCommits, timeMode, stats.average]);
 
   const maxHourly = Math.max(...hourlyData.map((h) => h.commits), 1);
   const maxMonthly = Math.max(...monthlyData.map((m) => m.total), 1);
@@ -254,7 +268,35 @@ export default function ActivityHeatmapPro({ activity, commitClock }: ActivityHe
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
+            className="flex flex-col gap-4"
           >
+            <div className="flex items-center justify-end mb-2">
+              <div className="inline-flex items-center rounded-xl bg-black/5 dark:bg-white/5 p-1">
+                <button
+                  onClick={() => setTimeMode('author')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                    timeMode === 'author'
+                      ? 'bg-white dark:bg-[#1A1A1A] text-emerald-600 dark:text-emerald-400 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-black/5 dark:hover:bg-white/5'
+                  }`}
+                >
+                  <MapPin size={12} />
+                  <span>Author&apos;s Local Time</span>
+                </button>
+                <button
+                  onClick={() => setTimeMode('viewer')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                    timeMode === 'viewer'
+                      ? 'bg-white dark:bg-[#1A1A1A] text-emerald-600 dark:text-emerald-400 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-black/5 dark:hover:bg-white/5'
+                  }`}
+                >
+                  <Globe size={12} />
+                  <span>Viewer&apos;s Local Time</span>
+                </button>
+              </div>
+            </div>
+
             <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-12 gap-2">
               {hourlyData.map((h) => {
                 const height = (h.commits / maxHourly) * 100;

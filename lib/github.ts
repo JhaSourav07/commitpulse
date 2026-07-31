@@ -2693,6 +2693,7 @@ export async function getFullDashboardData(username: string, options: FetchOptio
       streakStats.longestStreak
     ),
     commitClock,
+    rawCommits: await fetchRawCommitTimestamps(username, options.token),
     popularRepos,
     pinnedRepos,
     starredRepos,
@@ -2773,36 +2774,10 @@ export async function getWrappedData(
   };
 }
 
-export async function fetchCommitHourDistribution(
+export async function fetchRawCommitTimestamps(
   username: string,
-  token?: string,
-  timezone: string = 'UTC'
-): Promise<number[]> {
-  const hourCounts = new Array(24).fill(0);
-
-  // Extracts the hour-of-day (0-23) for a commit timestamp in the given
-  // IANA timezone. Mirrors the Intl.DateTimeFormat pattern already used in
-  // utils/time.ts's getSecondsUntilMidnightInTimezone(), rather than
-  // Date.getHours()/getUTCHours() which ignore the requested timezone.
-  const getHourInTimezone = (isoDate: string, tz: string): number => {
-    try {
-      const parts = new Intl.DateTimeFormat('en-US', {
-        timeZone: tz,
-        hour: 'numeric',
-        hour12: false,
-        hourCycle: 'h23',
-      }).formatToParts(new Date(isoDate));
-      const hourPart = parts.find((p) => p.type === 'hour')?.value;
-      const hour = hourPart ? parseInt(hourPart, 10) % 24 : new Date(isoDate).getUTCHours();
-      return hour;
-    } catch {
-      // Invalid timezone string — fall back to UTC rather than throwing,
-      // consistent with how other views degrade on a bad ?tz= value.
-      return new Date(isoDate).getUTCHours();
-    }
-  };
-
-  // Fetch top repos by contribution count
+  token?: string
+): Promise<string[]> {
   const query = `
     query($login: String!) {
       user(login: $login) {
@@ -2811,9 +2786,6 @@ export async function fetchCommitHourDistribution(
             repository {
               name
               owner { login }
-            }
-            contributions {
-              totalCount
             }
           }
         }
@@ -2845,10 +2817,10 @@ export async function fetchCommitHourDistribution(
       }));
     }
   } catch {
-    // silent — return empty distribution
+    // silent
   }
 
-  if (topRepos.length === 0) return hourCounts;
+  if (topRepos.length === 0) return [];
 
   const commitQuery = `
     query($owner: String!, $name: String!) {
@@ -2858,7 +2830,9 @@ export async function fetchCommitHourDistribution(
             ... on Commit {
               history(first: 100) {
                 nodes {
-                  committedDate
+                  author {
+                    date
+                  }
                 }
               }
             }
@@ -2868,7 +2842,7 @@ export async function fetchCommitHourDistribution(
     }
   `;
 
-  await runCappedConcurrency(topRepos, 3, async ({ owner, name }) => {
+  const results = await runCappedConcurrency(topRepos, 3, async ({ owner, name }) => {
     try {
       const res = await fetchGraphQLWithRetry(
         GITHUB_GRAPHQL_URL,
@@ -2882,19 +2856,49 @@ export async function fetchCommitHourDistribution(
         undefined,
         token
       );
-      if (!res.ok) return null;
+      if (!res.ok) return [];
       const data = await res.json();
-      const nodes: { committedDate: string }[] =
+      const nodes: { author: { date: string } }[] =
         data?.data?.repository?.defaultBranchRef?.target?.history?.nodes ?? [];
-      for (const node of nodes) {
-        const hour = getHourInTimezone(node.committedDate, timezone);
-        hourCounts[hour]++;
-      }
+      return nodes.map((n) => n.author?.date).filter(Boolean);
     } catch {
-      // skip unavailable repos
+      return [];
     }
-    return null;
   });
+
+  return results.flat();
+}
+
+export async function fetchCommitHourDistribution(
+  username: string,
+  token?: string,
+  timezone: string = 'UTC'
+): Promise<number[]> {
+  const hourCounts = new Array(24).fill(0);
+
+  const getHourInTimezone = (isoDate: string, tz: string): number => {
+    try {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
+        hour: 'numeric',
+        hour12: false,
+        hourCycle: 'h23',
+      }).formatToParts(new Date(isoDate));
+      const hourPart = parts.find((p) => p.type === 'hour')?.value;
+      const hour = hourPart ? parseInt(hourPart, 10) % 24 : new Date(isoDate).getUTCHours();
+      return hour;
+    } catch {
+      return new Date(isoDate).getUTCHours();
+    }
+  };
+
+  const rawTimestamps = await fetchRawCommitTimestamps(username, token);
+  for (const dateStr of rawTimestamps) {
+    const hour = getHourInTimezone(dateStr, timezone);
+    if (hour >= 0 && hour <= 23) {
+      hourCounts[hour]++;
+    }
+  }
 
   return hourCounts;
 }
