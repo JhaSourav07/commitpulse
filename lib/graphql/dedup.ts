@@ -2,7 +2,7 @@ const pendingRequests = new Map<string, Promise<unknown>>();
 
 export function buildDedupKey(username: string, params: Record<string, unknown>): string {
   const sortedParams = Object.keys(params)
-    .sort()
+    .sort((a, b) => a - b)
     .reduce<Record<string, unknown>>((acc, k) => {
       acc[k] = params[k];
       return acc;
