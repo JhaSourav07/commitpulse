@@ -17,7 +17,13 @@ const SVG_CSP_HEADER =
  */
 async function fetchImageAsBase64(url: string): Promise<string | null> {
   try {
-    const response = await fetch(url, { cache: 'force-cache' });
+    // Do not use 'force-cache' here: it caches the fetch indefinitely with
+    // no revalidation, which (combined with the outer SVG response cache)
+    // is what lets stale album artwork keep being served after the track
+    // has changed. A short revalidate window still avoids re-downloading
+    // the image on every single request, but ensures it can't be served
+    // stale for longer than the "Now Playing" data itself.
+    const response = await fetch(url, { next: { revalidate: 30 } });
     if (!response.ok) return null;
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
@@ -75,9 +81,15 @@ export async function GET(request: Request) {
   }
 
   const isRefreshRequested = params.refresh || params.bypassCache;
+  // Keep a short cache window so repeated card loads don't hammer the
+  // Spotify API, but make sure it can't stay stale for very long after
+  // the user switches tracks: a client/CDN will treat the response as
+  // fresh for 10s, and may serve a stale copy for at most another 10s
+  // while it revalidates in the background (max ~20s of staleness,
+  // versus the previous worst case of up to 60s).
   const cacheControl = isRefreshRequested
     ? 'no-cache, no-store, must-revalidate'
-    : 'public, max-age=30, s-maxage=30, stale-while-revalidate=30';
+    : 'public, max-age=10, s-maxage=10, stale-while-revalidate=10';
 
   const etag = crypto.createHash('sha256').update(svg).digest('hex');
   const weakEtag = `W/"${etag}"`;
