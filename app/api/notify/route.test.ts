@@ -256,7 +256,7 @@ describe('POST /api/notify', () => {
     const data = await res.json();
     expect(data.success).toBe(true);
     expect(data.data.username).toBe('testuser');
-    expect(data.data.email).toBe('a***@b***.com');
+    expect(data.data.email).toBe('a***@b***');
     expect(data.managementToken).toMatch(/^cpn_/);
   });
 
@@ -336,7 +336,7 @@ describe('POST /api/notify', () => {
     const data = await res.json();
 
     expect(res.status).toBe(200);
-    expect(data.data.email).toBe('ne***@ex***.com');
+    expect(data.data.email).toBe('ne***@ex***');
     expect(data.managementToken).toBeUndefined();
     expect(verifyGitHubOwner).not.toHaveBeenCalled();
   });
@@ -504,7 +504,7 @@ describe('GET /api/notify', () => {
     expect(res.status).toBe(404);
   });
 
-  it('returns 200 with preferences when user exists', async () => {
+  it('returns only subscribed status for unauthenticated requests', async () => {
     vi.mocked(Notification.findOne).mockResolvedValue({
       username: 'testuser',
       email: 'a@b.com',
@@ -512,16 +512,58 @@ describe('GET /api/notify', () => {
       notifyOnCommit: true,
       notifyOnStreak: true,
       notifyOnMilestone: true,
+      managementTokenHash: 'some-hash',
+    } as never);
+    // Ensure no auth token is provided
+    vi.mocked(verifyGitHubOwner).mockResolvedValueOnce({
+      verified: false,
+      status: 401,
+      message: 'GitHub authentication is required.',
+    });
+
+    const url = 'http://localhost:3000/api/notify?user=testuser';
+    const req = new NextRequest(url, {
+      method: 'GET',
+      headers: {},
+    });
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.success).toBe(true);
+    expect(data.data.subscribed).toBe(true);
+    // Ensure no preference details are exposed
+    expect(data.data.email).toBeUndefined();
+    expect(data.data.frequency).toBeUndefined();
+    expect(data.data.preferences).toBeUndefined();
+  });
+
+  it('returns full preferences for authenticated requests with management token', async () => {
+    const managementToken = 'cpn_valid-management-token';
+    vi.mocked(Notification.findOne).mockResolvedValue({
+      username: 'testuser',
+      email: 'a@b.com',
+      frequency: 'daily',
+      notifyOnCommit: true,
+      notifyOnStreak: true,
+      notifyOnMilestone: true,
+      managementTokenHash: hashNotificationManagementToken(managementToken),
     } as never);
 
-    const res = await GET(makeRequest('GET', undefined, 'user=testuser'));
+    const req = new NextRequest('http://localhost:3000/api/notify?user=testuser', {
+      method: 'GET',
+      headers: { 'x-notification-token': managementToken },
+    });
+    const res = await GET(req);
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.success).toBe(true);
     expect(data.data.username).toBe('testuser');
+    expect(data.data.email).toBeDefined();
+    expect(data.data.frequency).toBe('daily');
   });
 
-  it('masks the email address in GET responses to prevent PII exposure', async () => {
+  it('masks the email address in authenticated GET responses', async () => {
+    const managementToken = 'cpn_valid-management-token';
     vi.mocked(Notification.findOne).mockResolvedValue({
       username: 'testuser',
       email: 'john.doe@gmail.com',
@@ -529,19 +571,25 @@ describe('GET /api/notify', () => {
       notifyOnCommit: true,
       notifyOnStreak: false,
       notifyOnMilestone: true,
+      managementTokenHash: hashNotificationManagementToken(managementToken),
     } as never);
 
-    const res = await GET(makeRequest('GET', undefined, 'user=testuser'));
+    const req = new NextRequest('http://localhost:3000/api/notify?user=testuser', {
+      method: 'GET',
+      headers: { 'x-notification-token': managementToken },
+    });
+    const res = await GET(req);
     const body = await res.json();
 
     expect(res.status).toBe(200);
     // Assert the exact masked output for a known input
-    expect(body.data.email).toBe('jo***@gm***.com');
+    expect(body.data.email).toBe('jo***@gm***');
     // The full email must never be returned
     expect(body.data.email).not.toBe('john.doe@gmail.com');
   });
 
-  it('masks emails without a TLD dot correctly (no trailing dot)', async () => {
+  it('masks emails without a TLD dot correctly for authenticated requests', async () => {
+    const managementToken = 'cpn_valid-management-token';
     vi.mocked(Notification.findOne).mockResolvedValue({
       username: 'localuser',
       email: 'admin@localhost',
@@ -549,9 +597,14 @@ describe('GET /api/notify', () => {
       notifyOnCommit: true,
       notifyOnStreak: true,
       notifyOnMilestone: true,
+      managementTokenHash: hashNotificationManagementToken(managementToken),
     } as never);
 
-    const res = await GET(makeRequest('GET', undefined, 'user=localuser'));
+    const req = new NextRequest('http://localhost:3000/api/notify?user=localuser', {
+      method: 'GET',
+      headers: { 'x-notification-token': managementToken },
+    });
+    const res = await GET(req);
     const body = await res.json();
 
     expect(res.status).toBe(200);

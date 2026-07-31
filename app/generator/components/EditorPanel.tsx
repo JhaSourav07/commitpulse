@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { NameSection } from './sections/NameSection';
 import { DescriptionSection } from './sections/DescriptionSection';
+import { HeroImageSection } from './sections/HeroImageSection';
 import { TechnologiesSection } from './sections/TechnologiesSection';
 import { SocialsSection } from './sections/SocialsSection';
 import { CommitPulseSection } from './sections/CommitPulseSection';
@@ -20,6 +21,11 @@ export interface EditorPanelProps {
   state: GeneratorState;
   onNameChange: (v: string) => void;
   onDescriptionChange: (v: string) => void;
+  onShowHeroImageChange?: (v: boolean) => void;
+  onHeroImageUrlChange?: (v: string) => void;
+  onHeroImageWidthChange?: (v: string) => void;
+  onHeroImageAlignChange?: (v: 'left' | 'center' | 'right') => void;
+  onHeroImageAltChange?: (v: string) => void;
   onTechsChange: (ids: string[]) => void;
   onSocialsChange: (ids: string[]) => void;
   onSocialLinkChange: (id: string, url: string) => void;
@@ -47,6 +53,11 @@ export function EditorPanel({
   state,
   onNameChange,
   onDescriptionChange,
+  onShowHeroImageChange = () => {},
+  onHeroImageUrlChange = () => {},
+  onHeroImageWidthChange = () => {},
+  onHeroImageAlignChange = () => {},
+  onHeroImageAltChange = () => {},
   onTechsChange,
   onSocialsChange,
   onSocialLinkChange,
@@ -135,6 +146,25 @@ export function EditorPanel({
         value={state.description}
         onChange={onDescriptionChange}
         onReset={() => onDescriptionChange('')}
+      />
+      <HeroImageSection
+        showHeroImage={state.showHeroImage ?? false}
+        heroImageUrl={state.heroImageUrl ?? ''}
+        heroImageWidth={state.heroImageWidth ?? '450'}
+        heroImageAlign={state.heroImageAlign ?? 'center'}
+        heroImageAlt={state.heroImageAlt ?? 'Coding GIF'}
+        onShowHeroImageChange={onShowHeroImageChange}
+        onHeroImageUrlChange={onHeroImageUrlChange}
+        onHeroImageWidthChange={onHeroImageWidthChange}
+        onHeroImageAlignChange={onHeroImageAlignChange}
+        onHeroImageAltChange={onHeroImageAltChange}
+        onReset={() => {
+          onShowHeroImageChange(false);
+          onHeroImageUrlChange('');
+          onHeroImageWidthChange('450');
+          onHeroImageAlignChange('center');
+          onHeroImageAltChange('Coding GIF');
+        }}
       />
       <TechnologiesSection
         selected={state.selectedTechs}

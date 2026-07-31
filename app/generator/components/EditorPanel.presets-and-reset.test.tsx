@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { EditorPanel } from './EditorPanel';
 import type { GeneratorState } from '../types';
 
@@ -34,6 +34,7 @@ const mockState: GeneratorState = {
 
 describe('EditorPanel Section Reset & Profile Presets', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
     vi.clearAllMocks();
     vi.stubGlobal(
       'fetch',
@@ -44,11 +45,13 @@ describe('EditorPanel Section Reset & Profile Presets', () => {
   });
 
   afterEach(() => {
+    vi.clearAllTimers();
+    vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
-  it('renders Profile Presets section and options', () => {
+  it('renders Profile Presets section and options', async () => {
     render(
       <EditorPanel
         state={mockState}
@@ -64,6 +67,9 @@ describe('EditorPanel Section Reset & Profile Presets', () => {
         onApplyPreset={vi.fn()}
       />
     );
+    await act(async () => {
+      await vi.runOnlyPendingTimersAsync();
+    });
 
     expect(screen.getByText('Profile Presets')).toBeInTheDocument();
     expect(screen.getByText('Full-Stack Developer')).toBeInTheDocument();
@@ -72,7 +78,7 @@ describe('EditorPanel Section Reset & Profile Presets', () => {
     expect(screen.getByText('Frontend Specialist & UI Engineer')).toBeInTheDocument();
   });
 
-  it('calls onApplyPreset when a preset button is clicked', () => {
+  it('calls onApplyPreset when a preset button is clicked', async () => {
     const onApplyPresetMock = vi.fn();
     render(
       <EditorPanel
@@ -89,6 +95,9 @@ describe('EditorPanel Section Reset & Profile Presets', () => {
         onApplyPreset={onApplyPresetMock}
       />
     );
+    await act(async () => {
+      await vi.runOnlyPendingTimersAsync();
+    });
 
     fireEvent.click(screen.getByText('Full-Stack Developer'));
 
@@ -100,7 +109,7 @@ describe('EditorPanel Section Reset & Profile Presets', () => {
     );
   });
 
-  it('triggers onReset when SectionCard reset button is clicked', () => {
+  it('triggers onReset when SectionCard reset button is clicked', async () => {
     const onNameChangeMock = vi.fn();
     render(
       <EditorPanel
@@ -117,6 +126,9 @@ describe('EditorPanel Section Reset & Profile Presets', () => {
         onApplyPreset={vi.fn()}
       />
     );
+    await act(async () => {
+      await vi.runOnlyPendingTimersAsync();
+    });
 
     const nameResetBtn = screen.getByTitle('Reset Name Section');
     expect(nameResetBtn).toBeInTheDocument();

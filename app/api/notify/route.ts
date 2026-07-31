@@ -21,28 +21,22 @@ const notifyWriteCache = new DistributedCache<number>(5000, 60000);
 const NOTIFY_WRITE_COOLDOWN_MS = 5 * 60 * 1000;
 
 /**
- * Masks an email address to prevent PII exposure in unauthenticated responses.
- * Example: "john.doe@gmail.com" → "jo***@gm***.com"
+ * Masks an email address for authenticated responses.
+ * Shows first 2 characters of local part and domain name, hides TLD.
+ * Example: "john.doe@gmail.com" → "jo***@gm***"
  */
-function maskEmail(email: string): string {
+function maskEmailAuthenticated(email: string): string {
   const [local, domain] = email.split('@');
-  if (!local || !domain) return '***@***.***';
+  if (!local || !domain) return '***@***';
 
   const maskedLocal = local.slice(0, Math.min(2, local.length)) + '***';
 
   const dotIndex = domain.lastIndexOf('.');
-  if (dotIndex === -1) {
-    // Domain without a TLD (e.g., "localhost") — mask without trailing dot
-    const maskedDomain = domain.slice(0, Math.min(2, domain.length)) + '***';
-    return `${maskedLocal}@${maskedDomain}`;
-  }
-
-  const domainName = domain.slice(0, dotIndex);
-  const tld = domain.slice(dotIndex + 1);
+  const domainName = dotIndex === -1 ? domain : domain.slice(0, dotIndex);
 
   const maskedDomain = domainName.slice(0, Math.min(2, domainName.length)) + '***';
 
-  return `${maskedLocal}@${maskedDomain}.${tld}`;
+  return `${maskedLocal}@${maskedDomain}`;
 }
 
 function isMongooseQuery<T>(value: unknown): value is { select: (fields: string) => Promise<T> } {
@@ -233,7 +227,7 @@ export async function POST(req: Request) {
         message: 'Notification preferences saved successfully.',
         data: {
           username: notification.username,
-          email: maskEmail(notification.email),
+          email: maskEmailAuthenticated(notification.email),
           frequency: notification.frequency,
           preferences: {
             notifyOnCommit: notification.notifyOnCommit,
@@ -419,9 +413,7 @@ export async function GET(req: Request) {
 
     await dbConnect();
 
-    const notification = await Notification.findOne({
-      username: username.toLowerCase(),
-    });
+    const notification = await findNotificationWithManagementHash(username.toLowerCase());
 
     if (!notification) {
       return NextResponse.json(
@@ -430,15 +422,45 @@ export async function GET(req: Request) {
       );
     }
 
-    // Mask the email to prevent PII exposure in unauthenticated GET responses.
-    // The full email is only accepted on POST (write) — never returned on GET (read).
+    // Check authentication: management token or GitHub owner verification
+    const providedManagementToken = getNotificationManagementToken(req);
+    let isAuthenticated = false;
+
+    // First, try management token verification
+    if (providedManagementToken && notification.managementTokenHash) {
+      isAuthenticated = verifyNotificationManagementToken(
+        providedManagementToken,
+        notification.managementTokenHash
+      );
+    }
+
+    // If not authenticated via token, try GitHub owner verification
+    if (!isAuthenticated) {
+      const ownership = await verifyGitHubOwner(req, username);
+      isAuthenticated = ownership.verified;
+    }
+
+    // For unauthenticated requests, only return whether user is subscribed
+    if (!isAuthenticated) {
+      return NextResponse.json(
+        {
+          success: true,
+          data: {
+            subscribed: true,
+          },
+        },
+        { status: 200 }
+      );
+    }
+
+    // For authenticated requests, return full details with masked email
     return NextResponse.json(
       {
         success: true,
         message: 'Notification preferences fetched successfully.',
         data: {
           username: notification.username,
-          email: maskEmail(notification.email),
+          email: maskEmailAuthenticated(notification.email),
           frequency: notification.frequency,
           preferences: {
             notifyOnCommit: notification.notifyOnCommit,
