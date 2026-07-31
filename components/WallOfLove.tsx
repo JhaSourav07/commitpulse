@@ -18,6 +18,8 @@ export interface Testimonial {
   message: string;
   platform: 'twitter' | 'github';
   accentColor: string;
+  rating?: number;
+  date?: string;
 }
 
 const TESTIMONIALS_ROW_1: Testimonial[] = [
@@ -29,6 +31,8 @@ const TESTIMONIALS_ROW_1: Testimonial[] = [
       'Just added CommitPulse to my GitHub README and the 3D monolith looks absolutely insane! 🔥 Way better than the flat contribution graph.',
     platform: 'twitter',
     accentColor: '#10b981',
+    rating: 5,
+    date: '2025-02-15',
   },
   {
     name: 'Priya Sharma',
@@ -38,6 +42,8 @@ const TESTIMONIALS_ROW_1: Testimonial[] = [
       'The isometric visualization is next level. My profile went from boring to absolutely premium in 30 seconds. Thank you CommitPulse! ✨',
     platform: 'twitter',
     accentColor: '#8b5cf6',
+    rating: 5,
+    date: '2025-02-10',
   },
   {
     name: 'Marcus Johnson',
@@ -47,6 +53,8 @@ const TESTIMONIALS_ROW_1: Testimonial[] = [
       'Been using CommitPulse for a month now. The real-time sync with GitHub is flawless and the theme engine has so many sick options.',
     platform: 'github',
     accentColor: '#06b6d4',
+    rating: 4,
+    date: '2025-01-20',
   },
   {
     name: 'Yuki Tanaka',
@@ -56,6 +64,8 @@ const TESTIMONIALS_ROW_1: Testimonial[] = [
       'This is what GitHub profiles should look like in 2025. CommitPulse turned my boring contribution graph into art. 🎨',
     platform: 'twitter',
     accentColor: '#f43f5e',
+    rating: 5,
+    date: '2025-02-01',
   },
   {
     name: 'Jordan Rivers',
@@ -65,6 +75,8 @@ const TESTIMONIALS_ROW_1: Testimonial[] = [
       "Discovered CommitPulse through a friend's profile. Immediately set it up. The Dracula theme is *chef's kiss*.",
     platform: 'github',
     accentColor: '#10b981',
+    rating: 4,
+    date: '2025-01-15',
   },
   {
     name: 'Emma Rodriguez',
@@ -74,6 +86,8 @@ const TESTIMONIALS_ROW_1: Testimonial[] = [
       'CommitPulse is the perfect motivation tool. Seeing my streak in 3D makes me want to code every single day!',
     platform: 'twitter',
     accentColor: '#f59e0b',
+    rating: 5,
+    date: '2025-02-18',
   },
 ];
 
@@ -86,6 +100,8 @@ const TESTIMONIALS_ROW_2: Testimonial[] = [
       'The customization studio is incredible. I spent an hour tweaking every little detail. My README has never looked this good.',
     platform: 'github',
     accentColor: '#06b6d4',
+    rating: 5,
+    date: '2025-02-12',
   },
   {
     name: 'Sarah Mitchell',
@@ -95,6 +111,8 @@ const TESTIMONIALS_ROW_2: Testimonial[] = [
       "Okay this is literally the coolest open-source project I've seen this year. The 3D monolith on my profile gets so many compliments!",
     platform: 'twitter',
     accentColor: '#8b5cf6',
+    rating: 5,
+    date: '2025-02-17',
   },
   {
     name: 'Raj Patel',
@@ -104,6 +122,8 @@ const TESTIMONIALS_ROW_2: Testimonial[] = [
       'From flat grid to 3D masterpiece in seconds. CommitPulse is what every developer needs on their profile. 🚀',
     platform: 'twitter',
     accentColor: '#10b981',
+    rating: 5,
+    date: '2025-01-28',
   },
   {
     name: 'Lisa Wong',
@@ -113,6 +133,8 @@ const TESTIMONIALS_ROW_2: Testimonial[] = [
       'I was skeptical at first, but the quality of the SVG output is remarkable. It looks perfect on any background. Highly recommend!',
     platform: 'github',
     accentColor: '#f43f5e',
+    rating: 4,
+    date: '2025-01-10',
   },
   {
     name: 'Omar Hassan',
@@ -122,6 +144,8 @@ const TESTIMONIALS_ROW_2: Testimonial[] = [
       'The neon theme on a dark background is absolutely stunning. CommitPulse makes your GitHub profile look like a AAA game UI.',
     platform: 'twitter',
     accentColor: '#3b82f6',
+    rating: 5,
+    date: '2025-02-05',
   },
   {
     name: 'Chloe Nguyen',
@@ -131,6 +155,8 @@ const TESTIMONIALS_ROW_2: Testimonial[] = [
       'The dashboard feature is so cool! Watching my streak grow in real time with that beautiful 3D view is incredibly motivating. 💪',
     platform: 'github',
     accentColor: '#f59e0b',
+    rating: 5,
+    date: '2025-02-14',
   },
 ];
 
@@ -158,9 +184,9 @@ function GitHubIcon() {
 }
 
 /* ─── Star Rating ─── */
-function StarRating() {
+function StarRating({ rating = 5 }: { rating?: number }) {
   return (
-    <div className="flex gap-0.5" role="img" aria-label="5 out of 5 stars">
+    <div className="flex gap-0.5" role="img" aria-label={`${rating} out of 5 stars`}>
       {[...Array(5)].map((_, i) => (
         <svg
           key={i}
@@ -168,8 +194,8 @@ function StarRating() {
           width="12"
           height="12"
           viewBox="0 0 24 24"
-          fill="#f59e0b"
-          className="drop-shadow-[0_0_3px_rgba(245,158,11,0.4)]"
+          fill={i < rating ? '#f59e0b' : '#374151'}
+          className={i < rating ? 'drop-shadow-[0_0_3px_rgba(245,158,11,0.4)]' : 'opacity-30'}
         >
           <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
         </svg>
@@ -323,7 +349,7 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
 
         {/* Stars */}
         <div className="relative z-10 mb-3">
-          <StarRating />
+          <StarRating rating={testimonial.rating ?? 5} />
         </div>
 
         {/* Message */}
@@ -479,6 +505,8 @@ interface DBReview {
   platform: 'twitter' | 'github';
   message: string;
   accentColor: string;
+  rating?: number;
+  createdAt?: string;
 }
 
 function dbReviewToTestimonial(r: DBReview): Testimonial {
@@ -489,6 +517,8 @@ function dbReviewToTestimonial(r: DBReview): Testimonial {
     message: r.message,
     platform: r.platform,
     accentColor: r.accentColor,
+    rating: r.rating ?? 5,
+    date: r.createdAt ?? '2025-01-01',
   };
 }
 
@@ -502,6 +532,12 @@ export function WallOfLove() {
   const row2Ref = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
   const [dbTestimonials, setDbTestimonials] = useState<Testimonial[]>([]);
+
+  // State for search, filter, and sort
+  const [searchQuery, setSearchQuery] = useState('');
+  const [platformFilter, setPlatformFilter] = useState<'all' | 'twitter' | 'github'>('all');
+  const [ratingFilter, setRatingFilter] = useState<'all' | '5' | '4+'>('all');
+  const [sortBy, setSortBy] = useState<'featured' | 'newest' | 'highest'>('featured');
 
   useEffect(() => {
     fetch('/api/reviews/approved')
@@ -518,6 +554,48 @@ export function WallOfLove() {
 
   const row1 = [...TESTIMONIALS_ROW_1, ...dbTestimonials.filter((_, i) => i % 2 === 0)];
   const row2 = [...TESTIMONIALS_ROW_2, ...dbTestimonials.filter((_, i) => i % 2 === 1)];
+
+  // Combine all testimonials for filtered view
+  const allTestimonials = [...TESTIMONIALS_ROW_1, ...TESTIMONIALS_ROW_2, ...dbTestimonials];
+
+  // Filter testimonials based on search query, platform & rating
+  const filteredTestimonials = allTestimonials.filter((t) => {
+    const q = searchQuery.toLowerCase().trim();
+    const matchesSearch =
+      !q ||
+      t.name.toLowerCase().includes(q) ||
+      t.handle.toLowerCase().includes(q) ||
+      t.message.toLowerCase().includes(q);
+
+    const matchesPlatform = platformFilter === 'all' || t.platform === platformFilter;
+
+    const r = t.rating ?? 5;
+    const matchesRating =
+      ratingFilter === 'all' ||
+      (ratingFilter === '5' && r === 5) ||
+      (ratingFilter === '4+' && r >= 4);
+
+    return matchesSearch && matchesPlatform && matchesRating;
+  });
+
+  // Sort testimonials
+  const sortedTestimonials = [...filteredTestimonials].sort((a, b) => {
+    if (sortBy === 'newest') {
+      return (
+        new Date(b.date || '2025-01-01').getTime() - new Date(a.date || '2025-01-01').getTime()
+      );
+    }
+    if (sortBy === 'highest') {
+      return (b.rating || 5) - (a.rating || 5);
+    }
+    return 0; // featured default order
+  });
+
+  const isFilteringOrSearching =
+    searchQuery.trim() !== '' ||
+    platformFilter !== 'all' ||
+    ratingFilter !== 'all' ||
+    sortBy !== 'featured';
 
   /* ── GSAP scroll-triggered entrance animations ── */
   useEffect(() => {
@@ -649,15 +727,131 @@ export function WallOfLove() {
         </p>
       </div>
 
-      {/* ── Marquee Rows ── */}
-      <div className="space-y-5">
-        <div ref={row1Ref} style={{ opacity: 0 }}>
-          <MarqueeRow testimonials={row1} direction="left" speed={40} />
+      {/* ── Control Bar: Search, Filter & Sort ── */}
+      <div className="mx-auto max-w-5xl px-6 mb-10 flex flex-col md:flex-row items-center justify-between gap-4">
+        {/* Search Bar */}
+        <div className="relative w-full md:w-72">
+          <input
+            type="text"
+            placeholder="Search reviews or author..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full rounded-xl border border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#0c0c0c]/80 px-4 py-2.5 pl-10 text-xs sm:text-sm text-gray-900 dark:text-white backdrop-blur-md outline-none focus:ring-2 focus:ring-purple-500 transition"
+            aria-label="Search reviews or author"
+          />
+          <svg
+            className="absolute left-3.5 top-3 h-4 w-4 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-2.5 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              aria-label="Clear search query"
+            >
+              ✕
+            </button>
+          )}
         </div>
-        <div ref={row2Ref} style={{ opacity: 0 }}>
-          <MarqueeRow testimonials={row2} direction="right" speed={45} />
+
+        {/* Filter & Sort Controls */}
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-between md:justify-end">
+          {/* Platform Filter */}
+          <div className="flex items-center rounded-xl border border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#0c0c0c]/80 p-1 backdrop-blur-md text-xs font-medium">
+            {(['all', 'twitter', 'github'] as const).map((platform) => (
+              <button
+                key={platform}
+                onClick={() => setPlatformFilter(platform)}
+                className={`px-3 py-1.5 rounded-lg capitalize transition-colors ${
+                  platformFilter === platform
+                    ? 'bg-purple-600 text-white shadow'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                {platform}
+              </button>
+            ))}
+          </div>
+
+          {/* Rating Filter */}
+          <select
+            value={ratingFilter}
+            onChange={(e) => setRatingFilter(e.target.value as 'all' | '5' | '4+')}
+            className="rounded-xl border border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#0c0c0c]/80 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 outline-none backdrop-blur-md cursor-pointer focus:ring-2 focus:ring-purple-500"
+            aria-label="Filter by rating"
+          >
+            <option value="all">All Ratings</option>
+            <option value="5">5 Stars</option>
+            <option value="4+">4+ Stars</option>
+          </select>
+
+          {/* Sort Dropdown */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as 'featured' | 'newest' | 'highest')}
+            className="rounded-xl border border-black/10 bg-white/80 dark:border-white/10 dark:bg-[#0c0c0c]/80 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 outline-none backdrop-blur-md cursor-pointer focus:ring-2 focus:ring-purple-500"
+            aria-label="Sort testimonials"
+          >
+            <option value="featured">Featured</option>
+            <option value="newest">Newest First</option>
+            <option value="highest">Highest Rated</option>
+          </select>
         </div>
       </div>
+
+      {/* ── Testimonial Display ── */}
+      {isFilteringOrSearching ? (
+        sortedTestimonials.length > 0 ? (
+          <div className="mx-auto max-w-6xl px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {sortedTestimonials.map((t, i) => (
+              <div key={`${t.handle}-${i}`} className="flex justify-center">
+                <TestimonialCard testimonial={t} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          /* Empty State */
+          <div className="text-center py-16 px-6 rounded-2xl border border-dashed border-gray-300 dark:border-gray-800 mx-auto max-w-md bg-white/40 dark:bg-[#0c0c0c]/40 backdrop-blur-md">
+            <p className="text-4xl mb-3">🔍</p>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
+              No reviews found
+            </h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+              We couldn&apos;t find any testimonials matching your search or filter criteria.
+            </p>
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setPlatformFilter('all');
+                setRatingFilter('all');
+                setSortBy('featured');
+              }}
+              className="text-xs px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition font-medium shadow-md shadow-purple-500/20"
+            >
+              Clear Filters
+            </button>
+          </div>
+        )
+      ) : (
+        /* Default Marquee Rows when no active search/filter */
+        <div className="space-y-5">
+          <div ref={row1Ref} style={{ opacity: 0 }}>
+            <MarqueeRow testimonials={row1} direction="left" speed={40} />
+          </div>
+          <div ref={row2Ref} style={{ opacity: 0 }}>
+            <MarqueeRow testimonials={row2} direction="right" speed={45} />
+          </div>
+        </div>
+      )}
 
       {/* ── Stats Bar ── */}
       <div ref={statsRef} className="mt-16 px-6" style={{ opacity: 0 }}>

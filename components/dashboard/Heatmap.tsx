@@ -43,6 +43,7 @@ export default function Heatmap({
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const [announcement, setAnnouncement] = useState<string>('');
   const { t } = useTranslation();
 
   const effectiveTimeZone = timeZone || 'UTC';
@@ -86,14 +87,31 @@ export default function Heatmap({
     return () => observer.disconnect();
   }, [naturalWidth]);
 
+  const handleCellFocus = (e: SyntheticEvent<HTMLDivElement>, day: ActivityData, index: number) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const streak = getLocalActiveStreak(validData, index);
+    const label = t(
+      day.count === 1 ? 'dashboard.heatmap.tooltip_single' : 'dashboard.heatmap.tooltip_plural',
+      { count: day.count.toString(), date: formatTooltipDate(day.date) }
+    );
+
+    setAnnouncement(label);
+    setTooltip({
+      count: day.count,
+      date: formatTooltipDate(day.date),
+      insight: getActivityInsight(day.count, day.intensity, t),
+      streak: getStreakLabel(streak, t),
+      x: rect.left + rect.width / 2,
+      y: rect.top - 10,
+    });
+  };
+
   const handleMouseEnter = (
     e: SyntheticEvent<HTMLDivElement>,
     day: ActivityData,
     index: number
   ) => {
     const rect = e.currentTarget.getBoundingClientRect();
-
-    // 3. Ensure streak calculation also uses validData
     const streak = getLocalActiveStreak(validData, index);
 
     setTooltip({
@@ -108,12 +126,72 @@ export default function Heatmap({
 
   const handleMouseLeave = () => setTooltip(null);
 
+  const handleBlur = () => {
+    setTooltip(null);
+    setAnnouncement('');
+  };
+
+  const handleKeyDown = (
+    e: React.KeyboardEvent<HTMLDivElement>,
+    wIndex: number,
+    dIndex: number
+  ) => {
+    let targetW = wIndex;
+    let targetD = dIndex;
+
+    switch (e.key) {
+      case 'ArrowUp':
+        e.preventDefault();
+        if (dIndex > 0) {
+          targetD = dIndex - 1;
+        }
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        if (dIndex < weeks[wIndex].length - 1) {
+          targetD = dIndex + 1;
+        }
+        break;
+      case 'ArrowLeft':
+        e.preventDefault();
+        if (wIndex > 0) {
+          targetW = wIndex - 1;
+          targetD = Math.min(dIndex, weeks[targetW].length - 1);
+        }
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        if (wIndex < weeks.length - 1) {
+          targetW = wIndex + 1;
+          targetD = Math.min(dIndex, weeks[targetW].length - 1);
+        }
+        break;
+      default:
+        return;
+    }
+
+    if (targetW !== wIndex || targetD !== dIndex) {
+      const targetCell = containerRef.current?.querySelector<HTMLDivElement>(
+        `[data-week="${targetW}"][data-day="${targetD}"]`
+      );
+      targetCell?.focus();
+    }
+  };
+
   const displayTitle = title || t('dashboard.heatmap.title');
   const displaySubtitle = subtitle || t('dashboard.heatmap.last_365');
   const displayEmptyMessage = emptyMessage || t('dashboard.heatmap.empty');
 
   return (
     <>
+      <div
+        className="sr-only"
+        aria-live="polite"
+        aria-atomic="true"
+        data-testid="heatmap-aria-live"
+      >
+        {announcement}
+      </div>
       <motion.div
         data-testid="heatmap-card"
         initial={{ opacity: 0, y: 20 }}
@@ -167,23 +245,27 @@ export default function Heatmap({
                   <div key={wIndex} className="flex flex-col" role="row" style={{ gap: GAP }}>
                     {week.map((day, dIndex) => {
                       const originalIndex = wIndex * 7 + dIndex;
+                      const cellLabel = t(
+                        day.count === 1
+                          ? 'dashboard.heatmap.tooltip_single'
+                          : 'dashboard.heatmap.tooltip_plural',
+                        { count: day.count.toString(), date: formatTooltipDate(day.date) }
+                      );
 
                       return (
                         <div
                           key={day.date}
                           role="gridcell"
-                          aria-label={t(
-                            day.count === 1
-                              ? 'dashboard.heatmap.tooltip_single'
-                              : 'dashboard.heatmap.tooltip_plural',
-                            { count: day.count.toString(), date: formatTooltipDate(day.date) }
-                          )}
+                          aria-label={cellLabel}
                           tabIndex={0}
+                          data-week={wIndex}
+                          data-day={dIndex}
                           onMouseEnter={(e) => handleMouseEnter(e, day, originalIndex)}
-                          onFocus={(e) => handleMouseEnter(e, day, originalIndex)}
+                          onFocus={(e) => handleCellFocus(e, day, originalIndex)}
                           onMouseLeave={handleMouseLeave}
-                          onBlur={handleMouseLeave}
-                          className={`cursor-pointer rounded-sm transition-all duration-150 hover:scale-125 hover:brightness-125 focus:outline-none focus:ring-2 focus:ring-white/70 dark:focus:ring-white ${getIntensityColor(
+                          onBlur={handleBlur}
+                          onKeyDown={(e) => handleKeyDown(e, wIndex, dIndex)}
+                          className={`cursor-pointer rounded-sm transition-all duration-150 hover:scale-125 hover:brightness-125 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 dark:focus:ring-emerald-400 dark:focus:ring-offset-black ${getIntensityColor(
                             day.intensity
                           )}`}
                           style={{ width: CELL, height: CELL }}

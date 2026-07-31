@@ -128,6 +128,7 @@ describe('ApiStreakRoute Timezone Normalization & Calendar Boundary Alignment', 
 
     expect(response.status).toBe(200);
 
+    expect(getSecondsUntilMidnightInTimezone).toHaveBeenCalledWith('Asia/Tokyo');
     expect(response.headers.get('Cache-Control')).toBe(
       'public, s-maxage=1234, stale-while-revalidate=86400'
     );

@@ -173,11 +173,15 @@ describe('CompareClient', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText(/5[,\s\u00a0]?000/)).toBeInTheDocument();
+      expect(screen.getByText(/developer achievement badges/i)).toBeInTheDocument();
     });
 
     await waitFor(() => {
-      expect(screen.getByText(/3[,\s\u00a0]?000/)).toBeInTheDocument();
+      expect(screen.getAllByText(/5[,\s\u00a0]?000/).length).toBeGreaterThan(0);
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/3[,\s\u00a0]?000/).length).toBeGreaterThan(0);
     });
   });
 

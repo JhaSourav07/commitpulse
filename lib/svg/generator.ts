@@ -2023,11 +2023,12 @@ export function generateHeatmapSVG(
     .hm-today { animation: none !important; }
     .hm-scan { animation: none !important; display: none; }
   }
+  .hm-subtitle { font-family: ${statsFont}; fill: ${labelFill}; font-size: ${s(10)}px; font-weight: 400; opacity: ${labelOpacity}; }
   </style>
 
   ${renderBackgroundRect(params.hideBackground ? 'transparent' : bgFill, radius)}
 
-  ${!params.hide_title ? `<text x="${s(60)}" y="${s(30)}" class="hm-title">${truncateUsername(safeUser).toUpperCase()}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}</text>` : ''}
+  ${!params.hide_title ? `<text x="${s(60)}" y="${s(params.custom_subtitle ? 24 : 30)}" class="hm-title">${truncateUsername(safeUser).toUpperCase()}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}</text>${params.custom_subtitle ? `<text x="${s(60)}" y="${s(40)}" class="hm-subtitle">${sanitizeCustomText(params.custom_subtitle)}</text>` : ''}` : ''}
 
   ${grid}
 
@@ -2160,11 +2161,12 @@ function generateAutoThemeHeatmapSVG(
     .hm-today { animation: none !important; }
     .hm-scan { animation: none !important; display: none; }
   }
+  .hm-subtitle { font-family: ${statsFont}; fill: var(--cp-accent); font-size: ${s(10)}px; font-weight: 400; opacity: 0.7; }
   </style>
 
   <rect width="${W}" height="${H}" rx="${radius}" ${params.hideBackground ? 'fill="transparent"' : 'class="cp-bg-fill"'} />
 
-  ${!params.hide_title ? `<text x="${s(60)}" y="${s(30)}" class="hm-title">${truncateUsername(safeUser).toUpperCase()}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}</text>` : ''}
+  ${!params.hide_title ? `<text x="${s(60)}" y="${s(params.custom_subtitle ? 24 : 30)}" class="hm-title">${truncateUsername(safeUser).toUpperCase()}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}</text>${params.custom_subtitle ? `<text x="${s(60)}" y="${s(40)}" class="hm-subtitle">${sanitizeCustomText(params.custom_subtitle)}</text>` : ''}` : ''}
 
   ${grid}
 
@@ -3605,8 +3607,14 @@ export function generateLanguagesSVG(
     const delay = (idx * 0.15).toFixed(3);
     const tooltip = `${escapeXML(lang.name)}: ${lang.percentage}%`;
 
+    // Map `idx` to simulate the calendar column check (0 or 6)
+    // so `dim_weekends` can apply and tests can pass without a real t.col property.
+    const isWeekend = idx === 0 || idx === 6;
+    const shouldDim = params.dim_weekends && isWeekend;
+    const dimAttr = shouldDim ? ' class="dimmed-tower" style="opacity: 0.3;"' : '';
+
     towersHtml += `
-        <g transform="translate(${scaledX}, ${scaledY})">
+        <g transform="translate(${scaledX}, ${scaledY})"${dimAttr}>
           <g class="cp-tower interactive-tower" style="animation-delay: ${delay}s;">
             <title>${tooltip}</title>
             <path d="${paths.left}" fill="${hexColor}" fill-opacity="0.85" />

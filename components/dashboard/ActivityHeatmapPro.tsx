@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Activity,
@@ -54,6 +54,55 @@ function getTimeOfDayIcon(hour: number) {
 
 export default function ActivityHeatmapPro({ activity, commitClock }: ActivityHeatmapProProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('heatmap');
+  const [announcement, setAnnouncement] = useState<string>('');
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const slicedActivity = useMemo(() => activity.slice(-364), [activity]);
+
+  const handleHeatmapKeyDown = (
+    e: React.KeyboardEvent<HTMLDivElement>,
+    index: number,
+    total: number
+  ) => {
+    let targetIndex = index;
+    const dIndex = index % 7;
+
+    switch (e.key) {
+      case 'ArrowUp':
+        e.preventDefault();
+        if (dIndex > 0) {
+          targetIndex = index - 1;
+        }
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        if (dIndex < 6 && index + 1 < total) {
+          targetIndex = index + 1;
+        }
+        break;
+      case 'ArrowLeft':
+        e.preventDefault();
+        if (index >= 7) {
+          targetIndex = index - 7;
+        }
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        if (index + 7 < total) {
+          targetIndex = index + 7;
+        }
+        break;
+      default:
+        return;
+    }
+
+    if (targetIndex !== index) {
+      const targetCell = containerRef.current?.querySelector<HTMLDivElement>(
+        `[data-index="${targetIndex}"]`
+      );
+      targetCell?.focus();
+    }
+  };
 
   // Compute weekly pattern from activity
   const weeklyPattern = useMemo(() => {
@@ -222,20 +271,41 @@ export default function ActivityHeatmapPro({ activity, commitClock }: ActivityHe
             exit={{ opacity: 0, y: -10 }}
             className="space-y-2"
           >
+            <div
+              className="sr-only"
+              aria-live="polite"
+              aria-atomic="true"
+              data-testid="activity-pro-aria-live"
+            >
+              {announcement}
+            </div>
             <div className="overflow-x-auto">
               <div
+                ref={containerRef}
                 className="grid gap-[3px]"
                 style={{
-                  gridTemplateColumns: `repeat(${Math.min(52, Math.ceil(activity.length / 7))}, 1fr)`,
+                  gridTemplateColumns: `repeat(${Math.min(52, Math.ceil(slicedActivity.length / 7))}, 1fr)`,
                 }}
+                role="grid"
+                aria-label="Activity heatmap grid"
               >
-                {activity.slice(-364).map((a) => (
-                  <div
-                    key={a.date}
-                    className={`w-3 h-3 rounded-[2px] ${intensityColors[a.intensity]} transition-all duration-150 hover:ring-2 hover:ring-emerald-500/50 cursor-pointer`}
-                    title={`${a.date}: ${a.count} contributions`}
-                  />
-                ))}
+                {slicedActivity.map((a, index) => {
+                  const label = `${a.count} contribution${a.count === 1 ? '' : 's'} on ${a.date}`;
+                  return (
+                    <div
+                      key={a.date}
+                      role="gridcell"
+                      tabIndex={0}
+                      aria-label={label}
+                      data-index={index}
+                      onFocus={() => setAnnouncement(label)}
+                      onBlur={() => setAnnouncement('')}
+                      onKeyDown={(e) => handleHeatmapKeyDown(e, index, slicedActivity.length)}
+                      className={`w-3 h-3 rounded-[2px] ${intensityColors[a.intensity]} transition-all duration-150 hover:ring-2 hover:ring-emerald-500/50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 dark:focus:ring-emerald-400 dark:focus:ring-offset-gray-900 cursor-pointer`}
+                      title={label}
+                    />
+                  );
+                })}
               </div>
             </div>
             <div className="flex items-center justify-end gap-1 mt-2">

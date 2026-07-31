@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Target, Edit2, Check, X } from 'lucide-react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useTranslation } from '@/context/TranslationContext';
@@ -25,11 +25,50 @@ export default function GoalTracker({ username, activity = [] }: GoalTrackerProp
   const { t } = useTranslation();
   const [isEditing, setIsEditing] = useState(false);
 
-  // Load and save goals using standard local storage key keyed by username
-  const [goals, setGoals] = useLocalStorage<UserGoals>(
-    `commitpulse:goals:${username.toLowerCase()}`,
-    DEFAULT_GOALS
-  );
+  // Local storage remains an offline fallback and also lets existing users migrate
+  // their settings when server persistence is introduced.
+  const storageKey = `commitpulse:goals:${username.toLowerCase()}`;
+  const [goals, setGoals] = useLocalStorage<UserGoals>(storageKey, DEFAULT_GOALS);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadGoals = async () => {
+      try {
+        const response = await fetch(`/api/user/goals?username=${encodeURIComponent(username)}`);
+        if (!response.ok) return;
+        const data = (await response.json()) as { goals?: UserGoals | null };
+        if (cancelled) return;
+
+        if (data.goals) {
+          setGoals(data.goals);
+          return;
+        }
+
+        // Migrate a pre-existing local setting if this user has no server setting yet.
+        const localValue = window.localStorage.getItem(storageKey);
+        if (localValue) {
+          const localGoals = JSON.parse(localValue) as UserGoals;
+          if (localGoals.monthly > 0 && localGoals.yearly > 0) {
+            await fetch(`/api/user/goals?username=${encodeURIComponent(username)}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(localGoals),
+            });
+          }
+        }
+      } catch {
+        // Local storage remains available when the API or database is unavailable.
+      }
+    };
+
+    void loadGoals();
+    return () => {
+      cancelled = true;
+    };
+    // setGoals is intentionally omitted: useLocalStorage returns a new setter on each render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey, username]);
 
   const [editMonthly, setEditMonthly] = useState(goals.monthly.toString());
   const [editYearly, setEditYearly] = useState(goals.yearly.toString());
@@ -66,10 +105,22 @@ export default function GoalTracker({ username, activity = [] }: GoalTrackerProp
     const newMonthly = Math.max(1, parseInt(editMonthly, 10) || DEFAULT_GOALS.monthly);
     const newYearly = Math.max(1, parseInt(editYearly, 10) || DEFAULT_GOALS.yearly);
 
-    setGoals({
+    const nextGoals = {
       monthly: newMonthly,
       yearly: newYearly,
-    });
+    };
+    setGoals(nextGoals);
+    void (async () => {
+      try {
+        await fetch(`/api/user/goals?username=${encodeURIComponent(username)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(nextGoals),
+        });
+      } catch {
+        // The local value has already been saved, so editing still works offline.
+      }
+    })();
     setIsEditing(false);
   };
 

@@ -65,4 +65,9 @@ export interface GeneratorState {
   themeText?: string;
   themeBorder?: string;
   themeIcon?: string;
+  showHeroImage?: boolean;
+  heroImageUrl?: string;
+  heroImageWidth?: string;
+  heroImageAlign?: 'left' | 'center' | 'right';
+  heroImageAlt?: string;
 }
