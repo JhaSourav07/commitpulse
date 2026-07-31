@@ -1,6 +1,6 @@
 'use client';
 
-import { fallbackCopyToClipboard } from '@/utils/clipboard';
+import { copyToClipboard } from '@/utils/clipboard';
 import { useCallback, useEffect, useRef, useState, Suspense, type ReactElement } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { validateGitHubUsername } from '@/lib/validations';
@@ -12,7 +12,7 @@ import { ExportPanel } from './components/ExportPanel';
 import InteractiveViewer from '@/components/InteractiveViewer';
 import { Footer } from '@/app/components/Footer';
 import DOMPurify from 'dompurify';
-import { Check, Link as LinkIcon } from 'lucide-react';
+import { Check, Link as LinkIcon, Moon, Sun } from 'lucide-react';
 import type {
   ExportFormat,
   Font,
@@ -90,6 +90,9 @@ function CustomizePageInner(): ReactElement {
   const svgCache = useFetchCache<string>();
   const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Preview background context toggle — dark mirrors GitHub dark README, light mirrors GitHub light README.
+  // This state is intentionally local and never synced to URL params.
+  const [previewBg, setPreviewBg] = useState<'dark' | 'light'>('dark');
   const trimmedUsername = username.trim();
   const hasUsername = trimmedUsername.length > 0;
   const isRandomTheme = theme === 'random';
@@ -368,23 +371,7 @@ function CustomizePageInner(): ReactElement {
     if (!hasUsername) return;
 
     try {
-      if (navigator.clipboard && window.isSecureContext) {
-        try {
-          await navigator.clipboard.writeText(exportSnippet);
-        } catch {
-          const copiedSuccessfully = fallbackCopyToClipboard(exportSnippet);
-
-          if (!copiedSuccessfully) {
-            throw new Error('Fallback clipboard copy failed.');
-          }
-        }
-      } else {
-        const copiedSuccessfully = fallbackCopyToClipboard(exportSnippet);
-
-        if (!copiedSuccessfully) {
-          throw new Error('Fallback clipboard copy failed.');
-        }
-      }
+      await copyToClipboard(exportSnippet);
 
       setCopied(true);
 
@@ -427,17 +414,7 @@ function CustomizePageInner(): ReactElement {
 
   const copyShareLink = async (): Promise<void> => {
     try {
-      if (navigator.clipboard && window.isSecureContext) {
-        try {
-          await navigator.clipboard.writeText(window.location.href);
-        } catch {
-          const copiedSuccessfully = fallbackCopyToClipboard(window.location.href);
-          if (!copiedSuccessfully) throw new Error('Fallback clipboard copy failed.');
-        }
-      } else {
-        const copiedSuccessfully = fallbackCopyToClipboard(window.location.href);
-        if (!copiedSuccessfully) throw new Error('Fallback clipboard copy failed.');
-      }
+      await copyToClipboard(window.location.href);
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
     } catch {
@@ -579,16 +556,62 @@ function CustomizePageInner(): ReactElement {
           >
             {/* Live Preview */}
             <div className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400 mb-5">
-                {t('customize.live_preview')}
-              </p>
+              <div className="flex items-center justify-between mb-5">
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400">
+                  {t('customize.live_preview')}
+                </p>
+
+                {/* Dark / Light preview background toggle */}
+                <button
+                  type="button"
+                  id="preview-bg-toggle"
+                  aria-label={
+                    previewBg === 'dark'
+                      ? t('customize.preview_toggle_to_light', {
+                          defaultValue: 'Switch to light background preview',
+                        })
+                      : t('customize.preview_toggle_to_dark', {
+                          defaultValue: 'Switch to dark background preview',
+                        })
+                  }
+                  title={
+                    previewBg === 'dark'
+                      ? t('customize.preview_toggle_to_light', {
+                          defaultValue: 'Switch to light background preview',
+                        })
+                      : t('customize.preview_toggle_to_dark', {
+                          defaultValue: 'Switch to dark background preview',
+                        })
+                  }
+                  onClick={() => setPreviewBg((prev) => (prev === 'dark' ? 'light' : 'dark'))}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-xs font-medium text-gray-600 dark:text-white/60 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 select-none"
+                >
+                  {previewBg === 'dark' ? (
+                    <Sun size={13} aria-hidden />
+                  ) : (
+                    <Moon size={13} aria-hidden />
+                  )}
+                  <span>
+                    {previewBg === 'dark'
+                      ? t('customize.preview_toggle_light_label', { defaultValue: 'Light' })
+                      : t('customize.preview_toggle_dark_label', { defaultValue: 'Dark' })}
+                  </span>
+                </button>
+              </div>
 
               {/* ─── MOVING THE INTERACTION LISTENER DIRECTLY TO THE OUTER WRAPPER CONTAINER ROW ─── */}
               <div className="group relative">
                 {/* Glow ring */}
                 <div className="absolute -inset-px bg-gradient-to-br from-emerald-500/20 to-purple-500/20 rounded-[1.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-lg pointer-events-none" />
 
-                <InteractiveViewer className="relative bg-white/60 backdrop-blur-md border border-black/10 dark:bg-black/40 dark:border-white/10 rounded-[1.25rem] flex items-center justify-center p-6 min-h-[280px]">
+                <InteractiveViewer
+                  data-preview-bg={previewBg}
+                  className={`relative backdrop-blur-md border rounded-[1.25rem] flex items-center justify-center p-6 min-h-[280px] transition-colors duration-300 ${
+                    previewBg === 'dark'
+                      ? 'bg-[#0d1117] border-white/10'
+                      : 'bg-white border-black/10'
+                  }`}
+                >
                   {/* Scanning line effect behind image */}
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-500/3 to-transparent animate-[pulse_3s_ease-in-out_infinite] pointer-events-none" />
 

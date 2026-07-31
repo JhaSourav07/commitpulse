@@ -17,7 +17,7 @@ beforeAll(() => {
 });
 
 // Mock framer-motion with proper prop propagation to preserve roles/ARIA/handlers
-/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 vi.mock('framer-motion', () => ({
   motion: {
     div: ({
@@ -33,7 +33,7 @@ vi.mock('framer-motion', () => ({
   },
   AnimatePresence: ({ children }: { children?: ReactNode }) => <>{children}</>,
 }));
-/* eslint-enable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any */
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 describe('Heatmap Accessibility Standards', () => {
   // Helper to generate properly typed mock data
@@ -130,6 +130,59 @@ describe('Heatmap Accessibility Standards', () => {
 
     // Tooltip should disappear
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
+
+  it('updates aria-live region announcements on cell focus', () => {
+    const data = [
+      { date: '2024-01-01', count: 4, intensity: 2 as const },
+      { date: '2024-01-02', count: 1, intensity: 1 as const },
+    ];
+    render(<Heatmap data={data} />);
+
+    const liveRegion = screen.getByTestId('heatmap-aria-live');
+    expect(liveRegion).toHaveAttribute('aria-live', 'polite');
+    expect(liveRegion).toHaveTextContent('');
+
+    const cells = screen.getAllByRole('gridcell');
+    fireEvent.focus(cells[0]);
+    expect(liveRegion).toHaveTextContent('4 contributions on Jan 1, 2024');
+
+    fireEvent.focus(cells[1]);
+    expect(liveRegion).toHaveTextContent('1 contribution on Jan 2, 2024');
+  });
+
+  it('navigates across grid cells using arrow keys', () => {
+    // Generate 14 days (2 weeks of 7 days)
+    const data = generateMockData(14);
+    render(<Heatmap data={data} />);
+
+    const cells = screen.getAllByRole('gridcell');
+    // Index 0: wIndex 0, dIndex 0
+    // Index 1: wIndex 0, dIndex 1
+    // Index 7: wIndex 1, dIndex 0
+    const cell0 = cells[0];
+    const cell1 = cells[1];
+    const cell7 = cells[7];
+
+    cell0.focus();
+    expect(document.activeElement).toBe(cell0);
+
+    // Press ArrowDown to move to cell (0, 1) -> index 1
+    fireEvent.keyDown(cell0, { key: 'ArrowDown' });
+    expect(document.activeElement).toBe(cell1);
+
+    // Press ArrowRight to move to cell (1, 1) -> index 8
+    const cell8 = cells[8];
+    fireEvent.keyDown(cell1, { key: 'ArrowRight' });
+    expect(document.activeElement).toBe(cell8);
+
+    // Press ArrowUp to move to cell (1, 0) -> index 7
+    fireEvent.keyDown(cell8, { key: 'ArrowUp' });
+    expect(document.activeElement).toBe(cell7);
+
+    // Press ArrowLeft to move to cell (0, 0) -> index 0
+    fireEvent.keyDown(cell7, { key: 'ArrowLeft' });
+    expect(document.activeElement).toBe(cell0);
   });
 
   it('shows empty message fallback when no data is provided or all counts are 0', () => {

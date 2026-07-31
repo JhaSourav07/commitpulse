@@ -120,6 +120,10 @@
     "title": "Ajuste o seu monólito.",
     "desc": "Cada alteração abaixo atualiza a pré-visualização em tempo real. Copie o snippet de exportação quando terminar. Nenhum passo extra necessário.",
     "live_preview": "Pré-visualização ao Vivo",
+    "preview_toggle_to_light": "Mudar para pré-visualização com fundo claro",
+    "preview_toggle_to_dark": "Mudar para pré-visualização com fundo escuro",
+    "preview_toggle_light_label": "Claro",
+    "preview_toggle_dark_label": "Escuro",
     "active_params": "Parâmetros Ativos",
     "empty_preview_desc": "A pré-visualização do emblema ao vivo aparecerá aqui assim que um nome de usuário for adicionado.",
     "controls": {
@@ -160,7 +164,10 @@
       "footer_tip": "Cole isso no README.md do perfil do GitHub. O emblema é renderizado no lado do servidor, sem necessidade de script.",
       "tsx": "React TSX",
       "download_svg": "Baixar SVG",
-      "download_png": "Baixar PNG"
+      "download_png": "Baixar PNG",
+      "download_webp": "Baixar WebP",
+      "download_pdf": "Baixar PDF",
+      "export_as": "Exportar como"
     }
   },
   "dashboard": {
@@ -177,7 +184,9 @@
       "joined": "Entrou",
       "pro_badge": "PRO",
       "pro": "PRO",
-      "share": "Compartilhar Seu Ritmo"
+      "share": "Compartilhar Seu Ritmo",
+      "username_copied": "Nome de usuário copiado!",
+      "copy_username_aria": "Copiar nome de usuário para a área de transferência"
     },
     "achievements": {
       "title": "Conquistas",
@@ -487,7 +496,15 @@
       "merge_rate_header": "Merge Rate",
       "reviews_header": "Reviews",
       "avg_review_header": "Avg Review Time",
-      "no_repos": "No repository data available."
+      "no_repos": "No repository data available.",
+      "velocity_title": "Velocidade de Revisão de PR",
+      "velocity_subtitle": "Acompanhe a rapidez das revisões de pull requests por repositório",
+      "first_review": "First Review",
+      "velocity_first_review": "Tempo até 1ª Revisão",
+      "cycle_time": "Tempo de Ciclo",
+      "avg_review_time": "Tempo Médio de Revisão",
+      "fastest_merge": "Merge Mais Rápido",
+      "repo_turnaround": "Tempo por Repositório"
     },
     "enterprise": {
       "title": "Enterprise Engineering Health Dashboard",

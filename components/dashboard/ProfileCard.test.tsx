@@ -1,6 +1,6 @@
 import type { ComponentProps, ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { fireEvent, render, screen, act } from '@testing-library/react';
 import ProfileCard from './ProfileCard';
 
 type MotionDivProps = ComponentProps<'div'> & {
@@ -22,6 +22,10 @@ vi.mock('framer-motion', () => ({
 
 vi.mock('./ShareSheet', () => ({
   default: ({ isOpen }: { isOpen: boolean }) => (isOpen ? <div>Mock ShareSheet</div> : null),
+}));
+
+vi.mock('@/utils/clipboard', () => ({
+  fallbackCopyToClipboard: vi.fn(() => true),
 }));
 
 const mockUser = {
@@ -82,5 +86,83 @@ describe('ProfileCard', () => {
     fireEvent.click(screen.getByText('Share Your Pulse'));
 
     expect(screen.getByText('Mock ShareSheet')).toBeTruthy();
+  });
+
+  describe('copy username button', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      Object.defineProperty(navigator, 'clipboard', {
+        value: {
+          writeText: vi.fn().mockResolvedValue(undefined),
+        },
+        writable: true,
+        configurable: true,
+      });
+      Object.defineProperty(window, 'isSecureContext', { value: true, writable: true });
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('renders a copy username button beside the username', () => {
+      render(<ProfileCard user={mockUser} exportData={mockExportData} />);
+      expect(screen.getByRole('button', { name: /copy username to clipboard/i })).toBeTruthy();
+    });
+
+    it('calls navigator.clipboard.writeText with the exact username on click', async () => {
+      render(<ProfileCard user={mockUser} exportData={mockExportData} />);
+      const copyBtn = screen.getByRole('button', { name: /copy username to clipboard/i });
+
+      await act(async () => {
+        fireEvent.click(copyBtn);
+      });
+
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('mayank200529');
+    });
+
+    it('shows "Username copied!" confirmation after clicking', async () => {
+      render(<ProfileCard user={mockUser} exportData={mockExportData} />);
+      const copyBtn = screen.getByRole('button', { name: /copy username to clipboard/i });
+
+      await act(async () => {
+        fireEvent.click(copyBtn);
+      });
+
+      expect(screen.getByText('Username copied!')).toBeTruthy();
+    });
+
+    it('reverts confirmation text after ~2s timeout', async () => {
+      render(<ProfileCard user={mockUser} exportData={mockExportData} />);
+      const copyBtn = screen.getByRole('button', { name: /copy username to clipboard/i });
+
+      await act(async () => {
+        fireEvent.click(copyBtn);
+      });
+
+      expect(screen.getByText('Username copied!')).toBeTruthy();
+
+      act(() => {
+        vi.advanceTimersByTime(2000);
+      });
+
+      expect(screen.queryByText('Username copied!')).toBeNull();
+    });
+
+    it('uses fallbackCopyToClipboard when navigator.clipboard is unavailable', async () => {
+      Object.assign(navigator, { clipboard: undefined });
+      Object.defineProperty(window, 'isSecureContext', { value: false, writable: true });
+
+      const { fallbackCopyToClipboard } = await import('@/utils/clipboard');
+
+      render(<ProfileCard user={mockUser} exportData={mockExportData} />);
+      const copyBtn = screen.getByRole('button', { name: /copy username to clipboard/i });
+
+      await act(async () => {
+        fireEvent.click(copyBtn);
+      });
+
+      expect(fallbackCopyToClipboard).toHaveBeenCalledWith('mayank200529');
+    });
   });
 });

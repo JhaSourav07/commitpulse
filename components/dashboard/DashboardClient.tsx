@@ -1,5 +1,6 @@
 'use client';
 
+import { copyToClipboard } from '@/utils/clipboard';
 import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -475,7 +476,7 @@ export default function DashboardClient({
           url: compareUrl,
         });
       } else {
-        await navigator.clipboard.writeText(compareUrl);
+        await copyToClipboard(compareUrl);
         toast.success('Comparison link copied!');
       }
     } catch (error) {
@@ -489,7 +490,7 @@ export default function DashboardClient({
 
   const handleShareDashboard = async () => {
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      await copyToClipboard(window.location.href);
       toast.success('Link copied to clipboard!');
     } catch {
       toast.error('Failed to copy dashboard link');
@@ -567,7 +568,7 @@ export default function DashboardClient({
     <div
       id="dashboard-root"
       data-dashboard
-      className="p-4 md:p-6 lg:p-8 min-h-screen relative bg-transparent"
+      className="p-4 md:p-6 lg:p-8 min-h-screen relative bg-transparent w-full max-w-full overflow-x-hidden"
     >
       <div
         id="generate-dashboard-btn"
@@ -583,7 +584,7 @@ export default function DashboardClient({
             </button>
           )}
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:flex lg:flex-wrap gap-3 w-full lg:w-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:flex lg:flex-wrap gap-3 w-full lg:w-auto">
           {!isCompareMode && (
             <>
               <button

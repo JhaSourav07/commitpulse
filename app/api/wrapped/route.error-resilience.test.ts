@@ -24,6 +24,10 @@ vi.mock('@/lib/svg/generator', () => ({
   generateWrappedSVG: vi.fn(),
   generateNotFoundSVG: vi.fn().mockReturnValue('<svg>not found</svg>'),
   generateRateLimitSVG: vi.fn().mockReturnValue('<svg>rate limit</svg>'),
+  buildInlineErrorSVG: vi.fn(
+    (text: string) =>
+      `<svg>mock-inline-error: ${text.replace(/[<>&'"]/g, (c: string) => (c === '<' ? '&lt;' : c === '>' ? '&gt;' : c === '&' ? '&amp;' : c === "'" ? '&apos;' : '&quot;'))}</svg>`
+  ),
 }));
 
 // Import after mocks

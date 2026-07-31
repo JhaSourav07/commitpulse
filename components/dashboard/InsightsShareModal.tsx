@@ -1,5 +1,6 @@
 'use client';
 
+import { copyToClipboard } from '@/utils/clipboard';
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Share2, X, FileCode2 } from 'lucide-react';
@@ -59,7 +60,7 @@ export default function InsightsShareModal({ isOpen, onClose, username }: Insigh
   const handleCopyMarkdown = useCallback(async () => {
     const markdown = `[![${username}'s Contribution Insights](${absoluteImageUrl})](${dashboardUrl})`;
     try {
-      await navigator.clipboard.writeText(markdown);
+      await copyToClipboard(markdown);
       toast.success('Markdown copied to clipboard!');
     } catch {
       toast.error('Failed to copy markdown');

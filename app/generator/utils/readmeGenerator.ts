@@ -135,8 +135,17 @@ export function generateReadme(state: GeneratorState): string {
       .map((id) => {
         const social = getSocialById(id);
         if (!social) return null;
-        const url = state.socialLinks[id];
-        const resolvedUrl = social.id === 'email' ? `mailto:${url.replace(/^mailto:/, '')}` : url;
+        const rawUrl = state.socialLinks[id]?.trim() || '';
+        let resolvedUrl =
+          social.id === 'email'
+            ? `mailto:${rawUrl.replace(/^mailto:/i, '')}`
+            : rawUrl.startsWith('http')
+              ? rawUrl
+              : `${social.baseUrl || ''}${rawUrl}`;
+
+        if (social.id !== 'email' && !/^https?:\/\//i.test(resolvedUrl)) {
+          resolvedUrl = `https://${resolvedUrl}`;
+        }
 
         if (social.type === 'simpleicon' && social.siSlug) {
           return [

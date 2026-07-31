@@ -6,17 +6,9 @@ import {
   fetchUserRepos,
   fetchContributedRepos,
   getFullDashboardData,
-  generateAchievements,
-  buildCommitClock,
   clearGitHubApiCacheForTests,
-  GITHUB_CACHE_TTL_MS,
   cacheKey,
-  displayName,
-  fetchOrgMembers,
-  getOrgDashboardData,
-  getWrappedData,
   computeDeveloperScore,
-  runCappedConcurrency,
   buildProfileData,
   aggregateLanguages,
   buildInsights,
@@ -454,7 +446,8 @@ describe('fetchGitHubContributions', () => {
     const key = cacheKey('contributions', 'fallback-user');
     const cachedData = await contributionsCache.get(key);
     if (cachedData) {
-      cachedData.calendar.lastSyncedAt = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      cachedData.data.calendar.lastSyncedAt = new Date(Date.now() - 70 * 60 * 1000).toISOString();
+      cachedData.fetchedAt = Date.now() - 70 * 60 * 1000;
       await contributionsCache.set(key, cachedData, 7 * 24 * 60 * 60 * 1000);
     }
 

@@ -12,8 +12,26 @@ import type { PRInsightData } from '@/services/github/pr-insights';
 // isolates DOM assertions from animation-library internals.
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }: HTMLAttributes<HTMLDivElement> & { children?: ReactNode }) => (
-      <div {...props}>{children}</div>
+    div: ({
+      children,
+      animate: _a,
+      initial: _i,
+      exit: _e,
+      transition: _tr,
+      whileHover: _wh,
+      whileTap: _wt,
+      whileFocus: _wf,
+      whileInView: _wiv,
+      onHoverStart: _ohs,
+      onHoverEnd: _ohe,
+      onAnimationStart: _oas,
+      onAnimationComplete: _oac,
+      variants: _v,
+      layout: _l,
+      layoutId: _lid,
+      ...props
+    }: HTMLAttributes<HTMLDivElement> & { children?: ReactNode; [key: string]: unknown }) => (
+      <div {...(props as HTMLAttributes<HTMLDivElement>)}>{children}</div>
     ),
   },
 }));
@@ -108,16 +126,34 @@ describe('ReviewAnalytics - Asynchronous Service Layer Mocking & Local Cache Stu
     // async module resolves.  The fallback acts as the "loading overlay".
     const pendingFallback = <div data-testid="loading-overlay">Loading analytics…</div>;
 
-    // Render the lazily-loaded component inside a Suspense boundary.
-    render(
-      <Suspense fallback={pendingFallback}>
-        <LazyReviewAnalytics data={baseData} />
-      </Suspense>
+    // Use a local un-cached lazy import so the Suspense fallback is always shown
+    // on the first render (before the module resolves).
+    let resolveLazy!: (m: { default: typeof import('./ReviewAnalytics').default }) => void;
+    const controlled = new Promise<{ default: typeof import('./ReviewAnalytics').default }>(
+      (res) => {
+        resolveLazy = res;
+      }
     );
+    const ControlledLazy = React.lazy(() => controlled);
 
-    // While the lazy module is still resolving, the fallback (pending overlay)
-    // must be visible and the real component must not yet be in the DOM.
+    // Render inside Suspense — the fallback must appear immediately.
+    const { act } = await import('@testing-library/react');
+    await act(async () => {
+      render(
+        <Suspense fallback={pendingFallback}>
+          <ControlledLazy data={baseData} />
+        </Suspense>
+      );
+    });
+
+    // While the lazy module is still resolving, the fallback must be visible.
     expect(screen.getByTestId('loading-overlay')).toBeInTheDocument();
+
+    // Now resolve the lazy module and flush React updates.
+    const realModule = await import('./ReviewAnalytics');
+    await act(async () => {
+      resolveLazy(realModule);
+    });
 
     // After resolution the real content appears and the overlay is removed.
     await waitFor(() => {

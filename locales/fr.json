@@ -120,6 +120,10 @@
     "title": "Peaufinez votre monolithe.",
     "desc": "Chaque modification ci-dessous met à jour l'aperçu en temps réel. Copiez l'extrait d'exportation lorsque vous avez terminé. Aucune étape supplémentaire requise.",
     "live_preview": "Aperçu en direct",
+    "preview_toggle_to_light": "Passer à l'aperçu sur fond clair",
+    "preview_toggle_to_dark": "Passer à l'aperçu sur fond sombre",
+    "preview_toggle_light_label": "Clair",
+    "preview_toggle_dark_label": "Sombre",
     "active_params": "Paramètres actifs",
     "empty_preview_desc": "L'aperçu en direct du badge apparaîtra ici une fois qu'un nom d'utilisateur aura été ajouté.",
     "controls": {
@@ -159,8 +163,11 @@
       "copy_aria_enabled": "Copier l'extrait d'exportation {{format}} dans le presse-papiers",
       "footer_tip": "Collez ceci dans le fichier README.md de votre profil GitHub. Le badge est généré côté serveur, aucun script n'est requis.",
       "tsx": "React TSX",
-      "download_svg": "Download SVG",
-      "download_png": "Download PNG"
+      "download_svg": "Télécharger SVG",
+      "download_png": "Télécharger PNG",
+      "download_webp": "Télécharger WebP",
+      "download_pdf": "Télécharger PDF",
+      "export_as": "Exporter sous"
     }
   },
   "dashboard": {
@@ -177,7 +184,9 @@
       "joined": "Rejoint en",
       "pro_badge": "PRO",
       "pro": "PRO",
-      "share": "Share Your Pulse"
+      "share": "Share Your Pulse",
+      "username_copied": "Nom d'utilisateur copié !",
+      "copy_username_aria": "Copier le nom d'utilisateur dans le presse-papiers"
     },
     "achievements": {
       "title": "Succès",
@@ -487,7 +496,15 @@
       "merge_rate_header": "Merge Rate",
       "reviews_header": "Reviews",
       "avg_review_header": "Avg Review Time",
-      "no_repos": "No repository data available."
+      "no_repos": "No repository data available.",
+      "velocity_title": "Vélocité de Revue de PR",
+      "velocity_subtitle": "Suivez la rapidité de revue des pull requests par dépôt",
+      "first_review": "First Review",
+      "velocity_first_review": "Délai 1ère Revue",
+      "cycle_time": "Temps de Cycle",
+      "avg_review_time": "Durée Moyenne de Revue",
+      "fastest_merge": "Fusion Plus Rapide",
+      "repo_turnaround": "Temps par Dépôt"
     },
     "enterprise": {
       "title": "Enterprise Engineering Health Dashboard",

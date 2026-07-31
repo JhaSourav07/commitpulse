@@ -70,4 +70,13 @@ describe('SVG accessibility attributes (WCAG 1.1.1)', () => {
 
     expect(svg).toMatch(/<svg[^>]*focusable="false"/);
   });
+
+  it('injects dynamic data-driven title and desc tags for screen reader accessibility', () => {
+    const svg = generateSVG(mockStats, baseParams, mockCalendar);
+
+    expect(svg).toContain('<title id="cp-title-avi">GitHub streak for avi is 5 days</title>');
+    expect(svg).toContain(
+      '<desc id="cp-desc-avi">avi has 100 total contributions, a current streak of 5 days, and a longest streak of 10 days.</desc>'
+    );
+  });
 });

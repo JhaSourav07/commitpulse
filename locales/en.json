@@ -120,6 +120,10 @@
     "title": "Fine-tune your monolith.",
     "desc": "Every change below updates the preview in real-time. Copy the export snippet when you're done. No extra steps required.",
     "live_preview": "Live Preview",
+    "preview_toggle_to_light": "Switch to light background preview",
+    "preview_toggle_to_dark": "Switch to dark background preview",
+    "preview_toggle_light_label": "Light",
+    "preview_toggle_dark_label": "Dark",
     "active_params": "Active Parameters",
     "empty_preview_desc": "The live badge preview will appear here once a username is added.",
     "controls": {
@@ -160,7 +164,10 @@
       "footer_tip": "The badge renders server-side, no script required.",
       "tsx": "React TSX",
       "download_svg": "Download SVG",
-      "download_png": "Download PNG"
+      "download_png": "Download PNG",
+      "download_webp": "Download WebP",
+      "download_pdf": "Download PDF",
+      "export_as": "Export As"
     }
   },
   "dashboard": {
@@ -177,7 +184,9 @@
       "joined": "Joined",
       "pro_badge": "PRO",
       "pro": "PRO",
-      "share": "Share Your Pulse"
+      "share": "Share Your Pulse",
+      "username_copied": "Username copied!",
+      "copy_username_aria": "Copy username to clipboard"
     },
     "achievements": {
       "title": "Achievements",
@@ -487,7 +496,15 @@
       "merge_rate_header": "Merge Rate",
       "reviews_header": "Reviews",
       "avg_review_header": "Avg Review Time",
-      "no_repos": "No repository data available."
+      "no_repos": "No repository data available.",
+      "velocity_title": "PR Review Velocity",
+      "velocity_subtitle": "Understand how quickly pull requests move through review across repositories",
+      "first_review": "First Review",
+      "velocity_first_review": "Time to 1st Review",
+      "cycle_time": "Cycle Time",
+      "avg_review_time": "Average Review Time",
+      "fastest_merge": "Fastest Merge",
+      "repo_turnaround": "Repository Turnaround"
     },
     "enterprise": {
       "title": "Enterprise Engineering Health Dashboard",

@@ -36,7 +36,7 @@ describe('ThemeQuickPresets - Error Resilience', () => {
   it('renders normally without crashing', () => {
     render(<ThemeQuickPresets theme="dark" onThemeChange={vi.fn()} />);
 
-    expect(screen.getByRole('button', { name: /apply dark theme/i })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /apply dark theme/i })).toBeInTheDocument();
   });
 
   it('recovers when child rendering throws', () => {
@@ -68,7 +68,7 @@ describe('ThemeQuickPresets - Error Resilience', () => {
 
     rerender(<ThemeQuickPresets theme="light" onThemeChange={onThemeChange} />);
 
-    expect(screen.getByRole('button', { name: /apply light theme/i })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: /apply light theme/i })).toBeInTheDocument();
   });
 
   it('logs runtime errors through the error boundary', () => {

@@ -1,9 +1,11 @@
 'use client';
+import { copyToClipboard } from '@/utils/clipboard';
 import { useState, useRef, useEffect } from 'react';
 import { toPng, toCanvas } from 'html-to-image';
 import type { DashboardExportData } from '@/types/dashboard';
-import { getDashboardUrl, getOrigin } from '@/utils/urls';
+import { getDashboardUrl } from '@/utils/urls';
 import { activityToTowers, generateMonolithSTL } from '@/lib/export3d';
+import { BADGE_BASE_URL } from '@/lib/constants';
 
 type OptionState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -44,7 +46,7 @@ function sanitizeFilenameSegment(value: string): string {
 }
 
 function buildStreakSvgUrl(username: string): string {
-  const url = new URL('/api/streak', getOrigin());
+  const url = new URL(BADGE_BASE_URL);
   url.searchParams.set('user', sanitizeUsernameForUrl(username));
   return url.toString();
 }
@@ -143,7 +145,7 @@ export function useShareActions(
   const handleCopyLink = async (): Promise<boolean> => {
     setOptionState('copy', 'loading');
     try {
-      await navigator.clipboard.writeText(getDashboardUrl(username));
+      await copyToClipboard(getDashboardUrl(username));
       setOptionState('copy', 'success');
       setTimeout(() => onClose(), 800);
       return true;
@@ -328,7 +330,7 @@ export function useShareActions(
     setOptionState('markdown', 'loading');
     try {
       const markdown = buildMarkdownExport(username);
-      await navigator.clipboard.writeText(markdown);
+      await copyToClipboard(markdown);
       setOptionState('markdown', 'success');
       setTimeout(() => onClose(), 800);
     } catch (err) {

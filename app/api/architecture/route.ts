@@ -9,12 +9,10 @@ import pLimit from 'p-limit';
 import { cloneGitHubRepository } from '@/lib/git-clone';
 import { getGitHubTokens } from '@/lib/github';
 import { formatRepoRefForLogging, sanitizeErrorForLogging } from '@/lib/sanitize-git-credentials';
-import { auth } from '@/auth';
+import { rateLimit } from '@/lib/rate-limit';
 import { getClientIp } from '@/utils/getClientIp';
 
 const execFilePromise = promisify(execFile);
-
-const REST_TIMEOUT_MS = 5000; // 5s timeout for external API requests
 
 // Per-IP concurrent clone tracking (max 3 concurrent clones per IP)
 const MAX_CONCURRENT_CLONES_PER_IP = 3;
@@ -310,12 +308,6 @@ export async function POST(req: NextRequest) {
   let tempDir = '';
   const ip = getClientIp(req);
 
-  // Require authenticated session
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-  }
-
   // Check concurrent clone limit per IP
   if (!incrementClones(ip)) {
     return NextResponse.json(
@@ -325,6 +317,15 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const ip = getClientIp(req);
+    const rateLimitResult = await rateLimit(ip, 5, 60000);
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429 }
+      );
+    }
     const { repoUrl } = await req.json();
 
     if (!repoUrl) {

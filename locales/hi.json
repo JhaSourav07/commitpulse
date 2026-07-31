@@ -120,6 +120,10 @@
     "title": "अपने मोनोलिथ को फाइन-ट्यून करें।",
     "desc": "नीचे दिया गया हर बदलाव लाइव पूर्वावलोकन को रीयल-टाइम में अपडेट करता है। काम पूरा होने पर एक्सपोर्ट स्निपेट कॉपी करें। कोई अतिरिक्त कदम नहीं।",
     "live_preview": "लाइव पूर्वावलोकन",
+    "preview_toggle_to_light": "हल्के पृष्ठभूमि पूर्वावलोकन पर स्विच करें",
+    "preview_toggle_to_dark": "गहरे पृष्ठभूमि पूर्वावलोकन पर स्विच करें",
+    "preview_toggle_light_label": "हल्का",
+    "preview_toggle_dark_label": "गहरा",
     "active_params": "सक्रिय पैरामीटर",
     "empty_preview_desc": "यूज़रनेम जोड़ने के बाद लाइव बैज पूर्वावलोकन यहां दिखाई देगा।",
     "controls": {
@@ -159,8 +163,11 @@
       "copy_aria_enabled": "निर्यात स्निपेट {{format}} क्लिपबोर्ड पर कॉपी करें",
       "footer_tip": "इसे अपनी गिटहब प्रोफ़ाइल के README.md में पेस्ट करें। बैज सर्वर-साइड रेंडर होता है, किसी स्क्रिप्ट की आवश्यकता नहीं है।",
       "tsx": "React TSX",
-      "download_svg": "Download SVG",
-      "download_png": "Download PNG"
+      "download_svg": "SVG डाउनलोड करें",
+      "download_png": "PNG डाउनलोड करें",
+      "download_webp": "WebP डाउनलोड करें",
+      "download_pdf": "PDF डाउनलोड करें",
+      "export_as": "इस रूप में निर्यात करें"
     }
   },
   "dashboard": {
@@ -177,7 +184,9 @@
       "joined": "शामिल हुए",
       "pro_badge": "प्रो",
       "pro": "PRO",
-      "share": "Share Your Pulse"
+      "share": "Share Your Pulse",
+      "username_copied": "उपयोगकर्ता नाम कॉपी हो गया!",
+      "copy_username_aria": "उपयोगकर्ता नाम क्लिपबोर्ड पर कॉपी करें"
     },
     "achievements": {
       "title": "उपलब्धियां",
@@ -487,7 +496,15 @@
       "merge_rate_header": "Merge Rate",
       "reviews_header": "Reviews",
       "avg_review_header": "Avg Review Time",
-      "no_repos": "No repository data available."
+      "no_repos": "कोई रिपॉजिटरी डेटा उपलब्ध नहीं है।",
+      "velocity_title": "PR समीक्षा गति",
+      "velocity_subtitle": "रिपॉजिटरी में पुल अनुरोधों की समीक्षा कितनी जल्दी होती है, यह समझें",
+      "first_review": "प्रथम समीक्षा",
+      "velocity_first_review": "पहली समीक्षा तक का समय",
+      "cycle_time": "चक्र समय",
+      "avg_review_time": "औसत समीक्षा समय",
+      "fastest_merge": "सबसे तेज़ मर्ज",
+      "repo_turnaround": "रिपॉजिटरी टर्नअराउंड"
     },
     "enterprise": {
       "title": "Enterprise Engineering Health Dashboard",
