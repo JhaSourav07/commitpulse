@@ -3304,3 +3304,123 @@ export async function checkGitHubHealth(): Promise<void> {
     throw new Error(getGraphQLErrorMessage(data.errors));
   }
 }
+
+export interface RawCommitActivity {
+  date: string;
+  language: string;
+  commits: number;
+}
+
+export interface RawCommitActivity {
+  date: string;
+  language: string;
+  commits: number;
+}
+
+// 1. Define the specific type for the GraphQL response
+export interface GitHubUserActivityData {
+  data?: {
+    user?: {
+      contributionsCollection?: {
+        commitContributionsByRepository?: Array<{
+          repository?: {
+            primaryLanguage?: {
+              name: string;
+            } | null;
+          } | null;
+          contributions?: {
+            nodes?: Array<{
+              occurredAt?: string;
+              commitCount?: number;
+            }>;
+          } | null;
+        }>;
+      };
+    };
+  };
+  errors?: unknown;
+}
+
+/**
+ * Fetches raw per-repository, per-day commit data to determine learning curves.
+ * Integrates with existing API resilience, rate limiting, and retry mechanics.
+ */
+export async function fetchGithubUserActivity(
+  username: string,
+  options: FetchOptions = {}
+): Promise<GitHubUserActivityData> {
+  const query = `
+    query($login: String!) {
+      user(login: $login) {
+        contributionsCollection {
+          commitContributionsByRepository(maxRepositories: 50) {
+            repository {
+              primaryLanguage {
+                name
+              }
+            }
+            contributions(first: 100) {
+              nodes {
+                occurredAt
+                commitCount
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  const res = await fetchGraphQLWithRetry(
+    GITHUB_GRAPHQL_URL,
+    {
+      method: 'POST',
+      headers: getHeaders(options.token),
+      body: JSON.stringify({ query, variables: { login: username } }),
+      cache: 'no-store',
+      signal: options.signal,
+    },
+    0,
+    undefined,
+    options.token
+  );
+
+  if (!res.ok) {
+    throwIfRateLimited(res);
+    throw new Error(`GitHub API error: ${res.status}`);
+  }
+
+  const data = (await res.json()) as GitHubUserActivityData;
+  if (data.errors) {
+    throw new Error(getGraphQLErrorMessage(data.errors));
+  }
+
+  return data;
+}
+
+/**
+ * Transforms the deeply nested GraphQL response into a flat array of daily commit activities.
+ */
+// 2. Replace 'any' with the new GitHubUserActivityData type
+export function transformToRawActivity(githubData: GitHubUserActivityData): RawCommitActivity[] {
+  const activities: RawCommitActivity[] = [];
+  const repos =
+    githubData?.data?.user?.contributionsCollection?.commitContributionsByRepository || [];
+
+  for (const repoData of repos) {
+    const language = repoData?.repository?.primaryLanguage?.name || 'Unknown';
+    const nodes = repoData?.contributions?.nodes || [];
+
+    for (const contribution of nodes) {
+      if (!contribution?.occurredAt) continue;
+
+      activities.push({
+        date: contribution.occurredAt.split('T')[0],
+        language,
+        commits: contribution.commitCount || 0,
+      });
+    }
+  }
+
+  return activities;
+}
