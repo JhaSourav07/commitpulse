@@ -28,9 +28,20 @@ export function activityToTowers(activity: ActivityData[]): TowerData[] {
   const MAX_HEIGHT_MM = 30; // tallest tower in mm
   const MIN_BUMP_MM = 1; // minimum visible bump for days with ≥1 contribution
 
-  const towers = sorted.map((day, idx) => {
-    const col = Math.floor(idx / 7); // week column
-    const row = idx % 7; // day-of-week row
+  // Track the week column explicitly (not idx/7), since row is now
+  // anchored to real weekday rather than array position — mirrors the
+  // same Sunday-boundary logic used by lib/calculate.ts's
+  // chunkDaysIntoWeeks(), so the STL export's grid matches the real
+  // 2D badge's grid (computeTowers() in lib/svg/layout.ts).
+  let col = 0;
+  let lastRow = -1;
+
+  const towers = sorted.map((day) => {
+    const row = new Date(`${day.date}T12:00:00Z`).getUTCDay(); // 0=Sun...6=Sat
+    if (lastRow !== -1 && row <= lastRow) {
+      col++;
+    }
+    lastRow = row;
 
     // Linear scale: proportional height clamped to MAX_HEIGHT_MM
     const heightMM =

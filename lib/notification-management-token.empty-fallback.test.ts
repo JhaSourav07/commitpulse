@@ -26,19 +26,25 @@ describe('notification management token empty / missing inputs', () => {
   });
 
   describe('hashNotificationManagementToken', () => {
-    it('returns a 64-character hex string for a valid token', () => {
+    it('returns a valid bcrypt hash for a valid token', () => {
       const hash = hashNotificationManagementToken('cpn_testtoken123');
-      expect(hash).toMatch(/^[a-f0-9]{64}$/);
+      expect(hash).toMatch(/^\$2[ab]\$\d{2}\$.{53}$/);
     });
 
-    it('returns a deterministic hash for the same input', () => {
+    it('produces non-deterministic hashes for the same input (random salt)', () => {
       const token = 'cpn_sometokenvalue';
-      expect(hashNotificationManagementToken(token)).toBe(hashNotificationManagementToken(token));
+      const hash1 = hashNotificationManagementToken(token);
+      const hash2 = hashNotificationManagementToken(token);
+      // bcrypt generates a random salt each time, so hashes differ
+      expect(hash1).not.toBe(hash2);
+      // But both are valid bcrypt hashes
+      expect(hash1).toMatch(/^\$2[ab]\$\d{2}\$.{53}$/);
+      expect(hash2).toMatch(/^\$2[ab]\$\d{2}\$.{53}$/);
     });
 
     it('hashes an empty string without throwing', () => {
       const hash = hashNotificationManagementToken('');
-      expect(hash).toMatch(/^[a-f0-9]{64}$/);
+      expect(hash).toMatch(/^\$2[ab]\$\d{2}\$.{53}$/);
     });
   });
 
@@ -143,12 +149,12 @@ describe('notification management token empty / missing inputs', () => {
       expect(verifyNotificationManagementToken(token, '')).toBe(false);
     });
 
-    it('returns false when storedHash is not a valid 64-char hex string', () => {
+    it('returns false when storedHash is not a valid bcrypt hash', () => {
       const token = createNotificationManagementToken();
-      expect(verifyNotificationManagementToken(token, 'not-hex')).toBe(false);
+      expect(verifyNotificationManagementToken(token, 'not-a-bcrypt-hash')).toBe(false);
       expect(verifyNotificationManagementToken(token, 'zz' + '0'.repeat(62))).toBe(false);
-      expect(verifyNotificationManagementToken(token, '0'.repeat(63))).toBe(false);
-      expect(verifyNotificationManagementToken(token, '0'.repeat(65))).toBe(false);
+      expect(verifyNotificationManagementToken(token, '$2a$12$short')).toBe(false);
+      expect(verifyNotificationManagementToken(token, 'plain-text-hash')).toBe(false);
     });
 
     it('returns true for a valid round-trip token verification', () => {

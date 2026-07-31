@@ -120,6 +120,10 @@
     "title": "Ajusta tu monolito.",
     "desc": "Cada cambio a continuación actualiza la previsualización en tiempo real. Copia el fragmento de exportación cuando termines. Sin pasos adicionales.",
     "live_preview": "Previsualización en vivo",
+    "preview_toggle_to_light": "Cambiar a vista previa de fondo claro",
+    "preview_toggle_to_dark": "Cambiar a vista previa de fondo oscuro",
+    "preview_toggle_light_label": "Claro",
+    "preview_toggle_dark_label": "Oscuro",
     "active_params": "Parámetros activos",
     "empty_preview_desc": "La previsualización en vivo de la insignia aparecerá aquí una vez que se agregue un usuario.",
     "controls": {
@@ -492,7 +496,15 @@
       "merge_rate_header": "Merge Rate",
       "reviews_header": "Reviews",
       "avg_review_header": "Avg Review Time",
-      "no_repos": "No repository data available."
+      "no_repos": "No repository data available.",
+      "velocity_title": "Velocidad de Revisión de PR",
+      "velocity_subtitle": "Comprende qué tan rápido avanzan las revisiones en los repositorios",
+      "first_review": "First Review",
+      "velocity_first_review": "Tiempo a 1ª Revisión",
+      "cycle_time": "Tiempo de Ciclo",
+      "avg_review_time": "Tiempo Promedio de Revisión",
+      "fastest_merge": "Fusión Más Rápida",
+      "repo_turnaround": "Tiempo por Repositorio"
     },
     "enterprise": {
       "title": "Enterprise Engineering Health Dashboard",

@@ -21,6 +21,14 @@ vi.mock('lucide-react', () => ({
   Coffee: () => <div data-testid="icon-coffee" />,
   Trophy: () => <div data-testid="icon-trophy" />,
   Sparkles: () => <div data-testid="icon-sparkles" />,
+  ChevronLeft: () => <div data-testid="icon-chevron-left" />,
+  ChevronRight: () => <div data-testid="icon-chevron-right" />,
+  Download: () => <div data-testid="icon-download" />,
+  Share2: () => <div data-testid="icon-share" />,
+  Check: () => <div data-testid="icon-check" />,
+  Clock: () => <div data-testid="icon-clock" />,
+  Award: () => <div data-testid="icon-award" />,
+  Globe: () => <div data-testid="icon-globe" />,
 }));
 
 const createWrappedService = () => {

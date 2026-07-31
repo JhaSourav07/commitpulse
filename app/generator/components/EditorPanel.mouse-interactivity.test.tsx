@@ -80,8 +80,9 @@ describe('EditorPanel Component Interactivity Tests', () => {
         onApplyImport={mockOnApplyImport}
       />
     );
+    // Advance past any debounce/setTimeout timers and flush resulting microtasks
     await act(async () => {
-      await vi.runOnlyPendingTimersAsync();
+      await vi.advanceTimersByTimeAsync(500);
     });
   };
 
@@ -133,6 +134,7 @@ describe('EditorPanel Component Interactivity Tests', () => {
 
     const clearBtn = screen.getByRole('button', { name: 'Clear' });
     await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
       fireEvent.click(clearBtn);
     });
 
@@ -186,6 +188,7 @@ describe('EditorPanel Component Interactivity Tests', () => {
     // Simulate mobile touchstart gesture
     let touchStartRes = false;
     await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
       touchStartRes = fireEvent.touchStart(switchBtn);
     });
     expect(touchStartRes).toBe(true);

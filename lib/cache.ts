@@ -288,6 +288,19 @@ export class TTLCache<T> {
    */
   clear(): void {
     this.store.clear();
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+  }
+
+  private evictExpired(): void {
+    const now = Date.now();
+    for (const [key, item] of this.store) {
+      if (now > item.expiresAt) {
+        this.store.delete(key);
+      }
+    }
   }
 
   size(): number {
