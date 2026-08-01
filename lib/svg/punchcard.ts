@@ -99,6 +99,9 @@ export function generatePunchcardSVG(
   <defs>
     <style>
       @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap");
+      @media (prefers-reduced-motion: reduce) {
+        *, ::before, ::after { animation: none !important; transition: none !important; }
+      }
     </style>
   </defs>
   ${params.hideBackground ? '' : `<rect width="${WIDTH}" height="${HEIGHT}" fill="#${bg}" rx="${rx}"/>`}

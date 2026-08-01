@@ -5,6 +5,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { themes, AUTO_THEME_LIGHT, AUTO_THEME_DARK, getNormalizedThemeKey } from './themes';
+import { getContrastRatio } from './sanitizer';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -275,5 +276,17 @@ describe('getNormalizedThemeKey', () => {
   it('falls back to default if input is an object or number', () => {
     expect(getNormalizedThemeKey({} as unknown)).toBe('default');
     expect(getNormalizedThemeKey(123 as unknown)).toBe('default');
+  });
+});
+
+describe('WCAG AA Color Contrast Standards', () => {
+  it('ensures text vs bg contrast ratio meets WCAG AA standards (>= 4.5:1) for preset themes', () => {
+    for (const [name, theme] of Object.entries(themes)) {
+      const ratio = getContrastRatio(theme.text, theme.bg);
+      expect(
+        ratio,
+        `Theme "${name}" text vs bg contrast ratio ${ratio.toFixed(2)}:1 must be >= 4.5:1`
+      ).toBeGreaterThanOrEqual(4.5);
+    }
   });
 });

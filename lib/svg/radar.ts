@@ -142,9 +142,14 @@ export function generateRadarSVG(
     dataPoints += `${x},${y} `;
   }
 
+  const isAnimationDisabled = params.animations === false || params.disable_animations === true;
+  const animationStyle = isAnimationDisabled
+    ? ''
+    : `style="animation: ${CSS_PREFIX}-pulse 3s infinite alternate;"`;
+
   const dataPolygonSVG = `
     <g filter="url(#${CSS_PREFIX}-glow)">
-      <polygon points="${dataPoints.trim()}" fill="#${accentColor}" fill-opacity="0.25" stroke="#${accentColor}" stroke-width="2" style="animation: ${CSS_PREFIX}-pulse 3s infinite alternate;" />
+      <polygon points="${dataPoints.trim()}" fill="#${accentColor}" fill-opacity="0.25" stroke="#${accentColor}" stroke-width="2" ${animationStyle} />
     </g>`;
 
   // CSS Animations
@@ -152,6 +157,9 @@ export function generateRadarSVG(
     @keyframes ${CSS_PREFIX}-pulse {
       0% { filter: drop-shadow(0 0 2px #${accentColor}); opacity: 0.9; }
       100% { filter: drop-shadow(0 0 8px #${accentColor}); opacity: 1; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after { animation: none !important; transition: none !important; }
     }
   `;
 

@@ -577,6 +577,17 @@ const baseStreakParamsSchema = z.object({
     .string()
     .optional()
     .transform((val) => val === 'true' || val === '1'),
+  animations: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (val === undefined) return undefined;
+      return val === 'true' || val === '1';
+    }),
+  disable_animations: z
+    .string()
+    .optional()
+    .transform((val) => val === 'true' || val === '1'),
 
   // Glow effect — on by default. Accepts 'true'/'1' (true) or 'false' (false).
   glow: z.string().optional().transform(toGlowFlag).default(true),
