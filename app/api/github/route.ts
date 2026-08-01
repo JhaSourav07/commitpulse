@@ -39,20 +39,6 @@ function getSafeRootCause(error: unknown): unknown {
   return currentErr;
 }
 
-function getSafeErrorMessage(error: unknown): string {
-  const rootCause = getSafeRootCause(error);
-
-  if (rootCause instanceof Error && rootCause.message) {
-    return rootCause.message;
-  }
-
-  if (error instanceof Error && error.message) {
-    return error.message;
-  }
-
-  return 'Unknown error';
-}
-
 function logSecurityEvent(event: string, details: Record<string, unknown>) {
   logger.warn('Security event', {
     type: 'SECURITY_EVENT',
@@ -100,7 +86,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const { username, refresh, bypassCache: bypassCacheParam } = parseResult.data;
+  const { username, refresh, bypassCache: bypassCacheParam, org, excludeBots } = parseResult.data;
   // Treat either ?refresh=true or ?bypassCache=true as a cache-bypass request
   const isRefreshRequested = refresh || bypassCacheParam;
 
@@ -159,6 +145,8 @@ export async function GET(request: Request) {
     const data = await getFullDashboardData(username, {
       bypassCache: shouldBypassCache,
       signal: controller.signal,
+      org,
+      excludeBots,
     });
 
     // 4. Stale-While-Revalidate background refresh for normal cached requests
@@ -172,7 +160,7 @@ export async function GET(request: Request) {
 
     const cacheControl = shouldBypassCache
       ? 'no-cache, no-store, must-revalidate'
-      : 's-maxage=3600, stale-while-revalidate=86400';
+      : 's-maxage=1, stale-while-revalidate=59';
 
     const cacheStatus = shouldBypassCache ? 'MISS' : 'HIT';
 
@@ -247,10 +235,14 @@ export async function GET(request: Request) {
       );
     }
 
-    // Default fallback
-    const errMessage = getSafeErrorMessage(error);
+    // Default fallback — log full detail server-side; never forward raw error
+    // strings to callers (fixes: information-leak via unhandled 500 responses).
+    logger.error('Unhandled error in GET /api/github', { error });
 
-    return NextResponse.json({ error: errMessage }, { status: 500 });
+    return NextResponse.json(
+      { error: 'An unexpected error occurred. Please try again.' },
+      { status: 500 }
+    );
   } finally {
     clearTimeout(timeoutId);
   }

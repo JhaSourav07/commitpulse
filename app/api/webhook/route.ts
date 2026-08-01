@@ -3,11 +3,10 @@ import crypto from 'crypto';
 import { rateLimit, getRateLimitHeaders } from '@/lib/rate-limit';
 import { getClientIp } from '@/utils/getClientIp';
 import { logger } from '@/lib/logger';
+import { parseWebhookEvent, cacheEvent, evaluateAlerts } from '@/services/github/webhook-handler';
 
 const MAX_PAYLOAD_SIZE = 1024 * 1024; // 1MB
 const SIGNATURE_PREFIX = 'sha256=';
-const SHA256_HEX_LENGTH = 64;
-const READ_CHUNK_SIZE = 64 * 1024; // 64KB chunks
 
 function getWebhookSecret(): string | null {
   const secret = process.env.GITHUB_WEBHOOK_SECRET?.trim();
@@ -28,51 +27,7 @@ function verifyWebhookSignature(bodyText: string, signature: string, secret: str
   const expected = Buffer.from(expectedHex, 'hex');
   const received = Buffer.from(signatureHex, 'hex');
 
-  return (
-    received.length === SHA256_HEX_LENGTH / 2 &&
-    expected.length === received.length &&
-    crypto.timingSafeEqual(expected, received)
-  );
-}
-
-async function readBodyWithLimit(
-  body: ReadableStream<Uint8Array> | null,
-  maxBytes: number
-): Promise<{ ok: true; body: string } | { ok: false; status: number; error: string }> {
-  if (!body) {
-    return { ok: false, status: 400, error: 'Empty request body' };
-  }
-
-  const reader = body.getReader();
-  const chunks: Uint8Array[] = [];
-  let totalBytes = 0;
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      totalBytes += value.length;
-      if (totalBytes > maxBytes) {
-        reader.cancel();
-        return { ok: false, status: 413, error: 'Payload too large' };
-      }
-      chunks.push(value);
-    }
-  } catch {
-    reader.cancel();
-    return { ok: false, status: 400, error: 'Invalid payload' };
-  }
-
-  const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
-  const merged = new Uint8Array(totalLength);
-  let offset = 0;
-  for (const chunk of chunks) {
-    merged.set(chunk, offset);
-    offset += chunk.length;
-  }
-
-  return { ok: true, body: new TextDecoder().decode(merged) };
+  return expected.length === received.length && crypto.timingSafeEqual(expected, received);
 }
 
 export async function POST(req: Request) {
@@ -94,12 +49,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Webhook secret is not configured' }, { status: 500 });
   }
 
-  // 2. Payload Validation — streaming read with enforced size limit
-  const bodyResult = await readBodyWithLimit(req.body, MAX_PAYLOAD_SIZE);
-  if (!bodyResult.ok) {
-    return NextResponse.json({ error: bodyResult.error }, { status: bodyResult.status });
+  // 2. Payload Validation — read body with size limit
+  const contentLength = Number(req.headers.get('content-length') ?? 0);
+  if (contentLength > MAX_PAYLOAD_SIZE) {
+    return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
   }
-  const bodyText = bodyResult.body;
+
+  const bodyText = await req.text();
+  if (!bodyText || bodyText.length > MAX_PAYLOAD_SIZE) {
+    return NextResponse.json(
+      { error: bodyText ? 'Payload too large' : 'Empty request body' },
+      { status: bodyText ? 413 : 400 }
+    );
+  }
 
   // 3. Signature Verification
   const signature = req.headers.get('x-hub-signature-256');
@@ -111,16 +73,56 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
   }
 
-  // Valid payload, proceed...
+  // 4. Parse the event payload
+  let payload: Record<string, unknown>;
   try {
-    JSON.parse(bodyText);
+    payload = JSON.parse(bodyText);
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  // Handle payload...
-  return NextResponse.json(
-    { success: true, message: 'Webhook received securely' },
-    { status: 200 }
-  );
+  // 5. Process the webhook event — parse, cache, and evaluate alerts
+  try {
+    const event = parseWebhookEvent(payload as Parameters<typeof parseWebhookEvent>[0]);
+
+    if (!event) {
+      logger.info('Webhook received but not a CI/CD event', {
+        route: '/api/webhook',
+        event: payload.event,
+      });
+      return NextResponse.json(
+        { success: true, message: 'Event acknowledged (not a CI/CD event)' },
+        { status: 200 }
+      );
+    }
+
+    // Cache the event for analytics and reporting
+    await cacheEvent(event);
+
+    // Evaluate and send alerts if configured
+    await evaluateAlerts(event);
+
+    logger.info('Webhook event processed successfully', {
+      route: '/api/webhook',
+      type: event.type,
+      repository: event.repository,
+      status: event.status,
+    });
+
+    return NextResponse.json(
+      {
+        success: true,
+        event: {
+          type: event.type,
+          repository: event.repository,
+          status: event.status,
+          timestamp: event.timestamp,
+        },
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    logger.error('Webhook processing error', { route: '/api/webhook', error });
+    return NextResponse.json({ error: 'Failed to process webhook' }, { status: 500 });
+  }
 }

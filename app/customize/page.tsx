@@ -1,8 +1,8 @@
 'use client';
 
-import { fallbackCopyToClipboard } from '@/utils/clipboard';
+import { copyToClipboard } from '@/utils/clipboard';
 import { useCallback, useEffect, useRef, useState, Suspense, type ReactElement } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { validateGitHubUsername } from '@/lib/validations';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -12,6 +12,7 @@ import { ExportPanel } from './components/ExportPanel';
 import InteractiveViewer from '@/components/InteractiveViewer';
 import { Footer } from '@/app/components/Footer';
 import DOMPurify from 'dompurify';
+import { Check, Link as LinkIcon, Moon, Sun } from 'lucide-react';
 import type {
   ExportFormat,
   Font,
@@ -22,11 +23,13 @@ import type {
   Language,
   Timezone,
 } from './types';
+import { THEME_KEYS } from './types';
 
 import { useDebounce } from '@/hooks/useDebounce';
 import useFetchCache from '@/hooks/useFetchCache';
-import { getExportSnippet, buildQueryParams, streakErrorMessage } from './utils';
+import { getExportSnippet, buildQueryParams, streakErrorMessage, exportConfig } from './utils';
 import { useTranslation } from '@/context/TranslationContext';
+import type { CustomizeOptions } from './types';
 
 function readNumericSearchParam(
   searchParams: URLSearchParams,
@@ -80,17 +83,20 @@ function CustomizePageInner(): ReactElement {
   const [timezone, setTimezone] = useState<Timezone>('UTC');
   const [exportFormat, setExportFormat] = useState<ExportFormat>('markdown');
   const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [copyStatusMessage, setCopyStatusMessage] = useState('');
   const copyResetTimeoutRef = useRef<number | null>(null);
   const [svgContent, setSvgContent] = useState<string>('');
   const svgCache = useFetchCache<string>();
   const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Preview background context toggle — dark mirrors GitHub dark README, light mirrors GitHub light README.
+  // This state is intentionally local and never synced to URL params.
+  const [previewBg, setPreviewBg] = useState<'dark' | 'light'>('dark');
   const trimmedUsername = username.trim();
   const hasUsername = trimmedUsername.length > 0;
   const isRandomTheme = theme === 'random';
 
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   // On mount: initialize state from URL search params
@@ -140,20 +146,6 @@ function CustomizePageInner(): ReactElement {
     };
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
-        const input = document.querySelector<HTMLInputElement>('#username-input');
-        if (!input || document.activeElement === input) return;
-        event.preventDefault();
-        input.focus();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
   // Clear custom hex overrides when switching to virtual themes because
   // fixed colors conflict with their palette-selection behavior.
   const handleThemeChange = useCallback((newTheme: string): void => {
@@ -168,6 +160,61 @@ function CustomizePageInner(): ReactElement {
       setTextHex('');
     }
   }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
+
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        const input = document.querySelector<HTMLInputElement>('#username-input');
+        if (!input || document.activeElement === input) return;
+        event.preventDefault();
+        input.focus();
+        return;
+      }
+
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'c') {
+        if (window.getSelection()?.toString().length) return;
+        event.preventDefault();
+        const copyBtn = document.querySelector<HTMLButtonElement>('#copy-markdown-btn');
+        if (copyBtn) copyBtn.click();
+        return;
+      }
+
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+        event.preventDefault();
+        const downloadBtn = document.querySelector<HTMLButtonElement>('#download-svg-btn');
+        if (downloadBtn && !downloadBtn.disabled) downloadBtn.click();
+        return;
+      }
+
+      if (event.key === 'Escape') {
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+        return;
+      }
+
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        event.preventDefault();
+        const currentIndex = THEME_KEYS.indexOf(theme as (typeof THEME_KEYS)[number]);
+        if (currentIndex === -1) return;
+
+        let nextIndex = event.key === 'ArrowLeft' ? currentIndex - 1 : currentIndex + 1;
+        if (nextIndex < 0) nextIndex = THEME_KEYS.length - 1;
+        if (nextIndex >= THEME_KEYS.length) nextIndex = 0;
+
+        handleThemeChange(THEME_KEYS[nextIndex]);
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [theme, handleThemeChange]);
 
   const queryString = buildQueryParams({
     username,
@@ -324,23 +371,7 @@ function CustomizePageInner(): ReactElement {
     if (!hasUsername) return;
 
     try {
-      if (navigator.clipboard && window.isSecureContext) {
-        try {
-          await navigator.clipboard.writeText(exportSnippet);
-        } catch {
-          const copiedSuccessfully = fallbackCopyToClipboard(exportSnippet);
-
-          if (!copiedSuccessfully) {
-            throw new Error('Fallback clipboard copy failed.');
-          }
-        }
-      } else {
-        const copiedSuccessfully = fallbackCopyToClipboard(exportSnippet);
-
-        if (!copiedSuccessfully) {
-          throw new Error('Fallback clipboard copy failed.');
-        }
-      }
+      await copyToClipboard(exportSnippet);
 
       setCopied(true);
 
@@ -381,6 +412,16 @@ function CustomizePageInner(): ReactElement {
     }
   };
 
+  const copyShareLink = async (): Promise<void> => {
+    try {
+      await copyToClipboard(window.location.href);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    } catch {
+      setCopiedLink(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-transparent text-white font-sans overflow-x-hidden">
       {/* Ambient background */}
@@ -396,36 +437,49 @@ function CustomizePageInner(): ReactElement {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="flex items-center gap-4 mb-8"
+          className="flex items-center justify-between mb-8"
         >
-          <Link
-            href="/"
-            id="back-to-home-link"
-            className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-black dark:text-white/55 dark:hover:text-white transition-colors group"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
+          <div className="flex items-center gap-4">
+            <Link
+              href="/"
+              id="back-to-home-link"
+              className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-black dark:text-white/55 dark:hover:text-white transition-colors group"
             >
-              <path d="M19 12H5M12 5l-7 7 7 7" />
-            </svg>
-            {t('customize.back_to_home')}
-          </Link>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M19 12H5M12 5l-7 7 7 7" />
+              </svg>
+              {t('customize.back_to_home')}
+            </Link>
 
-          <div className="h-4 w-px bg-white/10" />
+            <div className="h-4 w-px bg-white/10" />
 
-          <div>
-            <span className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400">
-              {t('customize_cta.studio_badge')}
-            </span>
+            <div>
+              <span className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400">
+                {t('customize_cta.studio_badge')}
+              </span>
+            </div>
           </div>
+
+          <button
+            type="button"
+            onClick={copyShareLink}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-xs font-medium text-gray-600 dark:text-white/60 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+          >
+            {copiedLink ? <Check size={14} /> : <LinkIcon size={14} />}
+            {copiedLink
+              ? t('customize.top_bar.copied_link', { defaultValue: 'Copied!' })
+              : t('customize.top_bar.share_link', { defaultValue: 'Share Link' })}
+          </button>
         </motion.div>
 
         {/* ── Page heading ─────────────────────────────────────────────────── */}
@@ -502,16 +556,62 @@ function CustomizePageInner(): ReactElement {
           >
             {/* Live Preview */}
             <div className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400 mb-5">
-                {t('customize.live_preview')}
-              </p>
+              <div className="flex items-center justify-between mb-5">
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400">
+                  {t('customize.live_preview')}
+                </p>
+
+                {/* Dark / Light preview background toggle */}
+                <button
+                  type="button"
+                  id="preview-bg-toggle"
+                  aria-label={
+                    previewBg === 'dark'
+                      ? t('customize.preview_toggle_to_light', {
+                          defaultValue: 'Switch to light background preview',
+                        })
+                      : t('customize.preview_toggle_to_dark', {
+                          defaultValue: 'Switch to dark background preview',
+                        })
+                  }
+                  title={
+                    previewBg === 'dark'
+                      ? t('customize.preview_toggle_to_light', {
+                          defaultValue: 'Switch to light background preview',
+                        })
+                      : t('customize.preview_toggle_to_dark', {
+                          defaultValue: 'Switch to dark background preview',
+                        })
+                  }
+                  onClick={() => setPreviewBg((prev) => (prev === 'dark' ? 'light' : 'dark'))}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-xs font-medium text-gray-600 dark:text-white/60 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 select-none"
+                >
+                  {previewBg === 'dark' ? (
+                    <Sun size={13} aria-hidden />
+                  ) : (
+                    <Moon size={13} aria-hidden />
+                  )}
+                  <span>
+                    {previewBg === 'dark'
+                      ? t('customize.preview_toggle_light_label', { defaultValue: 'Light' })
+                      : t('customize.preview_toggle_dark_label', { defaultValue: 'Dark' })}
+                  </span>
+                </button>
+              </div>
 
               {/* ─── MOVING THE INTERACTION LISTENER DIRECTLY TO THE OUTER WRAPPER CONTAINER ROW ─── */}
               <div className="group relative">
                 {/* Glow ring */}
                 <div className="absolute -inset-px bg-gradient-to-br from-emerald-500/20 to-purple-500/20 rounded-[1.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-lg pointer-events-none" />
 
-                <InteractiveViewer className="relative bg-white/60 backdrop-blur-md border border-black/10 dark:bg-black/40 dark:border-white/10 rounded-[1.25rem] flex items-center justify-center p-6 min-h-[280px]">
+                <InteractiveViewer
+                  data-preview-bg={previewBg}
+                  className={`relative backdrop-blur-md border rounded-[1.25rem] flex items-center justify-center p-6 min-h-[280px] transition-colors duration-300 ${
+                    previewBg === 'dark'
+                      ? 'bg-[#0d1117] border-white/10'
+                      : 'bg-white border-black/10'
+                  }`}
+                >
                   {/* Scanning line effect behind image */}
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-500/3 to-transparent animate-[pulse_3s_ease-in-out_infinite] pointer-events-none" />
 
@@ -652,6 +752,62 @@ function CustomizePageInner(): ReactElement {
               username={trimmedUsername}
               onFormatChange={setExportFormat}
               onCopy={copyExportSnippet}
+              onExportConfig={() => {
+                exportConfig({
+                  username,
+                  theme,
+                  bgHex,
+                  bgType,
+                  bgStart,
+                  bgEnd,
+                  bgAngle,
+                  accentHex,
+                  textHex,
+                  scale,
+                  speed,
+                  font,
+                  year,
+                  radius,
+                  size,
+                  hideTitle,
+                  hideBackground,
+                  hideStats,
+                  viewMode,
+                  deltaFormat,
+                  badgeWidth,
+                  badgeHeight,
+                  grace,
+                  language,
+                  timezone,
+                });
+              }}
+              onImportConfig={(opts: CustomizeOptions) => {
+                setUsername(opts.username);
+                handleThemeChange(opts.theme);
+                setBgHex(opts.bgHex);
+                setBgType(opts.bgType);
+                setBgStart(opts.bgStart);
+                setBgEnd(opts.bgEnd);
+                setBgAngle(opts.bgAngle);
+                setAccentHex(opts.accentHex);
+                setTextHex(opts.textHex);
+                setScale(opts.scale);
+                setSpeed(opts.speed);
+                setFont(opts.font);
+                setYear(opts.year);
+                setRadius(opts.radius);
+                setSize(opts.size);
+                setHideTitle(opts.hideTitle);
+                setHideBackground(opts.hideBackground);
+                setHideStats(opts.hideStats);
+                setViewMode(opts.viewMode);
+                setDeltaFormat(opts.deltaFormat);
+                setBadgeWidth(opts.badgeWidth);
+                setBadgeHeight(opts.badgeHeight);
+                setGrace(opts.grace);
+                setLanguage(opts.language);
+                setTimezone(opts.timezone);
+              }}
             />
 
             {/* URL breakdown */}

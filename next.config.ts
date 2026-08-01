@@ -25,6 +25,7 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
+    dangerouslyAllowSVG: true,
     remotePatterns: [
       {
         protocol: 'https',
@@ -33,6 +34,14 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'github.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.simpleicons.org',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.jsdelivr.net',
       },
     ],
   },

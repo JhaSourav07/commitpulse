@@ -37,6 +37,24 @@
     "privacy": "Política de Privacidad",
     "terms": "Términos de Uso"
   },
+  "faq": {
+    "q1": "What is CommitPulse?",
+    "a1": "CommitPulse turns your public GitHub contribution history into customizable SVG badges, dashboards, and 3D-style visualizations for your profile README.",
+    "q2": "How does CommitPulse get my GitHub data?",
+    "a2": "CommitPulse reads public contribution data from GitHub, then renders it as streak stats, heatmaps, comparison views, and shareable badge images.",
+    "q3": "Is CommitPulse completely free?",
+    "a3": "Yes. CommitPulse is free and open source. You can use the hosted badge generator or self-host your own instance.",
+    "q4": "Can I customize the badge?",
+    "a4": "Yes. You can choose themes, colors, views, layout dimensions, grace periods, timezone behavior, and other URL parameters.",
+    "q5": "Why does my contribution count differ from GitHub?",
+    "a5": "GitHub and CommitPulse may calculate time boundaries differently. CommitPulse uses UTC-aware caching and supports timezone options to keep streak calculations consistent.",
+    "q6": "Do private contributions count?",
+    "a6": "Private contributions can only appear when your GitHub profile settings allow private contribution visibility. Otherwise, CommitPulse can only show public activity.",
+    "q7": "Can I self-host CommitPulse?",
+    "a7": "Yes. You can clone the repository, configure the required environment variables, and deploy it on Vercel or another compatible platform.",
+    "q8": "How can I contribute to the project?",
+    "a8": "We welcome contributions. Check the GitHub repository for open issues, read the contribution guidelines, and pick a beginner-friendly issue to start."
+  },
   "landing": {
     "empty_username_warning": "Ingresa un usuario de GitHub para copiar el enlace de tu insignia.",
     "max_length_warning": "Límite de usuario de GitHub alcanzado (máximo 39 caracteres)",
@@ -102,6 +120,10 @@
     "title": "Ajusta tu monolito.",
     "desc": "Cada cambio a continuación actualiza la previsualización en tiempo real. Copia el fragmento de exportación cuando termines. Sin pasos adicionales.",
     "live_preview": "Previsualización en vivo",
+    "preview_toggle_to_light": "Cambiar a vista previa de fondo claro",
+    "preview_toggle_to_dark": "Cambiar a vista previa de fondo oscuro",
+    "preview_toggle_light_label": "Claro",
+    "preview_toggle_dark_label": "Oscuro",
     "active_params": "Parámetros activos",
     "empty_preview_desc": "La previsualización en vivo de la insignia aparecerá aquí una vez que se agregue un usuario.",
     "controls": {
@@ -141,8 +163,11 @@
       "copy_aria_enabled": "Copiar fragmento de exportación {{format}} al portapapeles",
       "footer_tip": "Pega esto en el README.md de tu perfil de GitHub. La insignia se genera en el servidor, no requiere scripts.",
       "tsx": "React TSX",
-      "download_svg": "Download SVG",
-      "download_png": "Download PNG"
+      "download_svg": "Descargar SVG",
+      "download_png": "Descargar PNG",
+      "download_webp": "Descargar WebP",
+      "download_pdf": "Descargar PDF",
+      "export_as": "Exportar como"
     }
   },
   "dashboard": {
@@ -159,7 +184,9 @@
       "joined": "Unido en",
       "pro_badge": "PRO",
       "pro": "PRO",
-      "share": "Compartir tu Pulse"
+      "share": "Compartir tu Pulse",
+      "username_copied": "¡Nombre de usuario copiado!",
+      "copy_username_aria": "Copiar nombre de usuario al portapapeles"
     },
     "achievements": {
       "title": "Logros",
@@ -469,7 +496,15 @@
       "merge_rate_header": "Merge Rate",
       "reviews_header": "Reviews",
       "avg_review_header": "Avg Review Time",
-      "no_repos": "No repository data available."
+      "no_repos": "No repository data available.",
+      "velocity_title": "Velocidad de Revisión de PR",
+      "velocity_subtitle": "Comprende qué tan rápido avanzan las revisiones en los repositorios",
+      "first_review": "First Review",
+      "velocity_first_review": "Tiempo a 1ª Revisión",
+      "cycle_time": "Tiempo de Ciclo",
+      "avg_review_time": "Tiempo Promedio de Revisión",
+      "fastest_merge": "Fusión Más Rápida",
+      "repo_turnaround": "Tiempo por Repositorio"
     },
     "enterprise": {
       "title": "Enterprise Engineering Health Dashboard",

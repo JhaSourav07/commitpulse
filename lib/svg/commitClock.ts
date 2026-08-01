@@ -1,16 +1,68 @@
-// lib/svg/commitClock.ts
+/**
+ * lib/svg/commitClock.ts
+ *
+ * Renders a 24-hour polar "commit clock" SVG — a circular visualisation that
+ * shows commit frequency by hour of day. Each of the 24 slices represents one
+ * hour (0=midnight .. 23=11 PM). The slice radius scales proportionally with
+ * the number of commits in that hour relative to the peak hour. The peak hour
+ * is highlighted with a thicker stroke and the inner circle displays the
+ * username and key streak statistics.
+ *
+ * The SVG uses polar coordinates centered at (CX, CY) with an inner void of
+ * radius INNER_R to create a ring effect. Slices are drawn as annular wedges
+ * (paths) built from two arcs and two radial lines.
+ *
+ * @module
+ */
 
 import type { BadgeParams, StreakStats } from '../../types';
 import { escapeXML, sanitizeHexColor } from './sanitizer';
 import { truncateUsername, getSizeScale } from './generator';
 
+/** SVG canvas width in viewBox units. Scaled by getSizeScale() at render time. */
 const WIDTH = 500;
+
+/** SVG canvas height in viewBox units. Scaled by getSizeScale() at render time. */
 const HEIGHT = 300;
+
+/** X coordinate of the polar ring center. */
 const CX = 160;
+
+/** Y coordinate of the polar ring center. */
 const CY = 155;
+
+/** Inner radius of the commit clock ring (the "hole" in the donut). */
 const INNER_R = 45;
+
+/** Outer radius of the longest commit-hour slice (used for peak hour). */
 const OUTER_MAX_R = 120;
 
+/**
+ * Renders a 24-hour commit clock SVG for the given user.
+ *
+ * The SVG is a polar ring split into 24 equal wedges (one per hour). Each wedge's
+ * outer radius scales linearly with `hourCounts[h]` relative to the peak hour, creating
+ * a visual "pulse" of the user's commit activity. The inner circle displays the
+ * username, total commits, and streak statistics.
+ *
+ * @param hourCounts - An array of 24 integers where `hourCounts[h]` is the number
+ *   of commits made during hour `h` (0 = midnight, 23 = 11 PM). Hours with no commits
+ *   render with a minimal visible slice at INNER_R.
+ * @param stats - Streak statistics used to populate the inner statistics panel.
+ *   Required fields: `currentStreak`, `longestStreak`.
+ * @param params - Badge rendering parameters. Controls background, text color, accent
+ *   color, size scale, corner radius, and the optional hideBackground flag.
+ * @returns A complete, self-contained SVG string suitable for embedding in a response
+ *   or rendering on the server. No external stylesheets or fonts are required.
+ *
+ * @example
+ * ```ts
+ * const hourCounts = new Array(24).fill(0);
+ * hourCounts[9] = 5;  // 5 commits at 9 AM
+ * hourCounts[14] = 12; // peak at 2 PM
+ * const svg = generateCommitClockSVG(hourCounts, stats, { user: 'octocat', size: 'medium' });
+ * ```
+ */
 export function generateCommitClockSVG(
   hourCounts: number[],
   stats: StreakStats,
@@ -21,7 +73,9 @@ export function generateCommitClockSVG(
   const bg = sanitizeHexColor(params.bg, '0d1117');
   const text = sanitizeHexColor(Array.isArray(params.accent) ? undefined : params.text, 'c9d1d9');
   const accent = sanitizeHexColor(
-    Array.isArray(params.accent) ? params.accent[0] : params.accent,
+    // Use the last color when a multi-color accent array is supplied, matching
+    // the convention already used by lib/svg/generator.ts's 9 call sites.
+    Array.isArray(params.accent) ? params.accent[params.accent.length - 1] : params.accent,
     '58a6ff'
   );
 

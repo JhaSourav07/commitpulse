@@ -796,4 +796,9 @@ function buildDependencyGraph(): Record<string, GraphNode> {
   return graph;
 }
 
+/**
+ * A static graph of technology dependencies and recommendations, built at startup.
+ * Maps each technology ID to a list of related technologies with scores and reasoning.
+ * Used by the generator to suggest stack configurations.
+ */
 export const DEPENDENCY_GRAPH: Record<string, GraphNode> = buildDependencyGraph();

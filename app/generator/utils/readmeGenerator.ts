@@ -1,5 +1,6 @@
 import { getTechById } from '../data/technologies';
 import { getSocialById } from '../data/socials';
+import { validateSocialHandle, sanitizeSocialUrl } from './urlSanitizer';
 import type { GeneratorState } from '../types';
 
 const BADGE_BASE = 'https://commitpulse.vercel.app/api/streak';
@@ -83,6 +84,28 @@ export function generateReadme(state: GeneratorState): string {
     sections.push(`<div align="center">\n\n<p>${description}</p>\n\n</div>`);
   }
 
+  // 1.5 Hero Image Section
+  if (state.showHeroImage && state.heroImageUrl?.trim()) {
+    const url = state.heroImageUrl.trim();
+    const align = state.heroImageAlign || 'center';
+    const alt = state.heroImageAlt?.trim() || 'Coding GIF';
+    const width = state.heroImageWidth?.trim();
+
+    const imgLines: string[] = [
+      `<p align="${align}">`,
+      '  <img',
+      `    src="${url}"`,
+      `    alt="${alt}"`,
+    ];
+
+    if (width) {
+      imgLines.push(`    width="${width}"`);
+    }
+
+    imgLines.push('  />', '</p>');
+    sections.push(imgLines.join('\n'));
+  }
+
   // Inject top graphs
   if (state.graphPlacement === 'top' && graphsMarkdown) {
     sections.push(graphsMarkdown);
@@ -126,7 +149,12 @@ export function generateReadme(state: GeneratorState): string {
   }
 
   // 3. Socials Section
-  const activeSocials = state.selectedSocials.filter((id) => state.socialLinks[id]?.trim());
+  const activeSocials = state.selectedSocials.filter((id) => {
+    const val = state.socialLinks[id];
+    if (!val?.trim()) return false;
+    const sanitized = sanitizeSocialUrl(id, val);
+    return validateSocialHandle(id, sanitized);
+  });
 
   if (activeSocials.length > 0) {
     const socialLines: string[] = ['## 🌐 Connect With Me', '', '<div align="center">'];
@@ -135,8 +163,18 @@ export function generateReadme(state: GeneratorState): string {
       .map((id) => {
         const social = getSocialById(id);
         if (!social) return null;
-        const url = state.socialLinks[id];
-        const resolvedUrl = social.id === 'email' ? `mailto:${url.replace(/^mailto:/, '')}` : url;
+        const val = state.socialLinks[id] || '';
+        const sanitized = sanitizeSocialUrl(id, val);
+        let resolvedUrl =
+          social.id === 'email'
+            ? `mailto:${sanitized.replace(/^mailto:/i, '')}`
+            : sanitized.startsWith('http')
+              ? sanitized
+              : `${social.baseUrl || ''}${sanitized}`;
+
+        if (social.id !== 'email' && !/^https?:\/\//i.test(resolvedUrl)) {
+          resolvedUrl = `https://${resolvedUrl}`;
+        }
 
         if (social.type === 'simpleicon' && social.siSlug) {
           return [
@@ -209,6 +247,41 @@ export function generateReadme(state: GeneratorState): string {
     ];
 
     sections.push(spotlightLines.join('\n'));
+  }
+
+  // 6. Articles Section
+  if (state.showArticles && state.articlesUsername?.trim()) {
+    const username = state.articlesUsername.trim();
+    const platform = state.articlesPlatform || 'devto';
+    const params = new URLSearchParams({ user: username, platform });
+
+    // Optional: inherit the global accent color if set
+    if (state.commitPulseAccent) {
+      const cleaned = state.commitPulseAccent.replace(/^#/, '');
+      if (/^[0-9a-fA-F]{6}$/.test(cleaned)) {
+        params.set('accent', cleaned);
+      }
+    }
+
+    const articlesBadgeUrl = `https://commitpulse.vercel.app/api/articles?${params.toString()}`;
+    const blogUrl =
+      platform === 'devto'
+        ? `https://dev.to/${username}`
+        : `https://${username.replace('.hashnode.dev', '')}.hashnode.dev/`;
+
+    const altText = `Latest Articles from ${platform === 'devto' ? 'Dev.to' : 'Hashnode'}`;
+
+    const articlesLines = [
+      '## 📝 Latest Articles',
+      '',
+      '<div align="center">',
+      '',
+      `[![${altText}](${articlesBadgeUrl})](${blogUrl})`,
+      '',
+      '</div>',
+    ];
+
+    sections.push(articlesLines.join('\n'));
   }
 
   // Inject bottom graphs

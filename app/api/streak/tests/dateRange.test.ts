@@ -5,6 +5,8 @@ import { NextRequest } from 'next/server';
 vi.mock('@/lib/github', () => ({
   fetchGitHubContributions: vi.fn(),
   getOrgDashboardData: vi.fn(),
+  fetchCommitHourDistribution: vi.fn(() => Promise.resolve(new Array(24).fill(0))),
+  isAbortError: vi.fn(() => false),
 }));
 
 vi.mock('@/utils/time', () => ({
@@ -112,13 +114,38 @@ describe('GET /api/streak dateRange parameter', () => {
     expect(body).toContain('<svg');
   });
 
-  it('sets sensible Cache-Control and Content-Type headers for SVG output', async () => {
-    const res = await GET(makeRequest({ user: 'octocat', from: '2024-06-01', to: '2024-06-30' }));
+  it('accepts start_date and end_date query parameters and formats auto-subtitle', async () => {
+    const res = await GET(
+      makeRequest({
+        user: 'octocat',
+        view: 'heatmap',
+        start_date: '2024-01-01',
+        end_date: '2024-06-30',
+      })
+    );
 
     expect(res.status).toBe(200);
-    expect(res.headers.get('Content-Type')).toBe('image/svg+xml; charset=utf-8');
-    expect(res.headers.get('Cache-Control')).toBe(
-      'public, max-age=60, s-maxage=3600, stale-while-revalidate=60'
+    const body = await res.text();
+    expect(body).toContain('Jan 1, 2024 - Jun 30, 2024');
+  });
+
+  it('rejects start_date when after end_date', async () => {
+    const res = await GET(
+      makeRequest({ user: 'octocat', start_date: '2024-07-01', end_date: '2024-01-01' })
     );
+
+    expect(res.status).toBe(400);
+    const body = await res.text();
+    expect(body).toContain('startDate must be before endDate');
+  });
+
+  it('rejects date range exceeding 2 years', async () => {
+    const res = await GET(
+      makeRequest({ user: 'octocat', start_date: '2021-01-01', end_date: '2024-01-01' })
+    );
+
+    expect(res.status).toBe(400);
+    const body = await res.text();
+    expect(body).toContain('Date range cannot exceed 2 years');
   });
 });

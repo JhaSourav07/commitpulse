@@ -44,15 +44,22 @@ describe('Footer — Accessibility & Screen Reader Compliance', () => {
   it('renders social links with descriptive aria-labels for screen readers', () => {
     render(<Footer />);
 
-    expect(screen.getByRole('link', { name: 'CommitPulse on GitHub' })).toBeInTheDocument();
+    // Social links now appear twice: once in the Connect column (with text) and once in the bottom bar icon strip.
+    // getAllByRole prevents the 'Found multiple elements' error.
+    const githubLinks = screen.getAllByRole('link', { name: 'CommitPulse on GitHub' });
+    expect(githubLinks.length).toBeGreaterThanOrEqual(1);
+    expect(githubLinks[0]).toHaveAttribute('href', 'https://github.com/JhaSourav07/commitpulse');
 
     expect(screen.getByRole('link', { name: 'Creator Sourav Jha on GitHub' })).toBeInTheDocument();
 
-    expect(screen.getByRole('link', { name: 'Join CommitPulse on Discord' })).toBeInTheDocument();
+    const discordLinks = screen.getAllByRole('link', { name: 'Join CommitPulse on Discord' });
+    expect(discordLinks.length).toBeGreaterThanOrEqual(1);
 
-    expect(screen.getByRole('link', { name: 'Creator on X' })).toBeInTheDocument();
+    const xLinks = screen.getAllByRole('link', { name: 'Creator on X' });
+    expect(xLinks.length).toBeGreaterThanOrEqual(1);
 
-    expect(screen.getByRole('link', { name: 'Creator on LinkedIn' })).toBeInTheDocument();
+    const linkedinLinks = screen.getAllByRole('link', { name: 'Creator on LinkedIn' });
+    expect(linkedinLinks.length).toBeGreaterThanOrEqual(1);
   });
 
   it('applies visible focus ring classes to all interactive links', () => {

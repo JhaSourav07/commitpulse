@@ -220,7 +220,7 @@ describe('Standard route behavior', () => {
     const body = await response.json();
 
     expect(response.status).toBe(500);
-    expect(body.error).toContain('Database offline');
+    expect(body.error).toBe('An unexpected error occurred. Please try again.');
   });
 
   it('returns 500 instead of hanging when an error cause chain is circular', async () => {
@@ -243,6 +243,19 @@ describe('Standard route behavior', () => {
     const body = await response.json();
 
     expect(response.status).toBe(500);
-    expect(body.error).toBe('Circular cause root');
+    expect(body.error).toBe('An unexpected error occurred. Please try again.');
+  });
+
+  it('parses valid org parameter and passes it to getFullDashboardData', async () => {
+    const response = await GET(makeRequest({ username: 'octocat', org: 'github' }));
+    expect(response.status).toBe(200);
+    expect(getFullDashboardData).toHaveBeenCalledWith(
+      'octocat',
+      expect.objectContaining({
+        bypassCache: false,
+        org: 'github',
+        signal: expect.any(AbortSignal),
+      })
+    );
   });
 });

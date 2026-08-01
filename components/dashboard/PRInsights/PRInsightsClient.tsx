@@ -5,7 +5,9 @@ import type { PRInsightData } from '@/services/github/pr-insights';
 import TopMetricsRow from './TopMetricsRow';
 import PRTrendChart from './PRTrendChart';
 import PRStatusDistribution from './PRStatusDistribution';
+import PRSizeDistribution from './PRSizeDistribution';
 import ReviewAnalytics from './ReviewAnalytics';
+import PRReviewVelocity from './PRReviewVelocity';
 import RepoPerformanceTable from './RepoPerformanceTable';
 import Highlights from './Highlights';
 import { Loader2 } from 'lucide-react';
@@ -47,7 +49,7 @@ export default function PRInsightsClient({ username }: { username: string }) {
           setData(JSON.parse(cached));
           setLoading(false);
           return; // Skip fetch if cached, or you could do SWR style and still fetch. The requirement says "before triggering database retrievals".
-        } catch (e) {
+        } catch {
           // ignore cache parse error
         }
       }
@@ -128,7 +130,16 @@ export default function PRInsightsClient({ username }: { username: string }) {
           </div>
         </div>
 
-        <Highlights highlights={data.highlights} />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2">
+            <PRSizeDistribution data={data} />
+          </div>
+          <div>
+            <Highlights highlights={data.highlights} />
+          </div>
+        </div>
+
+        <PRReviewVelocity data={data} />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <ReviewAnalytics data={data} />

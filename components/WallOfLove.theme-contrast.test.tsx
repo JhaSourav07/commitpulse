@@ -2,6 +2,14 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { WallOfLove } from './WallOfLove';
 
+vi.stubGlobal(
+  'fetch',
+  vi.fn().mockResolvedValue({
+    ok: true,
+    json: () => Promise.resolve({ success: true, reviews: [] }),
+  })
+);
+
 vi.mock('gsap', () => {
   const mockGsap = {
     registerPlugin: vi.fn(),

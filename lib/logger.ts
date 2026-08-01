@@ -2,8 +2,38 @@ type Context = Record<string, unknown>;
 
 const isProduction = process.env.NODE_ENV === 'production';
 
-// Define sensitive keys that should be masked
-const SENSITIVE_KEYS = ['token', 'key', 'secret', 'password', 'authorization', 'cookie', 'email'];
+// Global request ID context (set by middleware)
+let currentRequestId: string | null = null;
+
+export function setRequestId(requestId: string): void {
+  currentRequestId = requestId;
+}
+
+export function getRequestId(): string | null {
+  return currentRequestId;
+}
+
+export function clearRequestId(): void {
+  currentRequestId = null;
+}
+
+/**
+ * List of case-insensitive key substrings that identify sensitive data.
+ * Used by `redact()` to mask values in log output.
+ * Exported so callers can reuse the same detection logic.
+ *
+ * @example
+ * const isSensitive = SENSITIVE_KEYS.some((k) => fieldName.toLowerCase().includes(k));
+ */
+export const SENSITIVE_KEYS = [
+  'token',
+  'key',
+  'secret',
+  'password',
+  'authorization',
+  'cookie',
+  'email',
+] as const;
 
 /**
  * Recursively scans and redacts sensitive information from an object.
@@ -46,6 +76,7 @@ function logProduction(level: 'warn' | 'error', msg: string, ctx: Context = {}):
     level,
     msg,
     timestamp: createTimestamp(),
+    requestId: currentRequestId,
     ...redactedCtx,
   };
 
@@ -61,6 +92,12 @@ function logDevelopment(
 
   // Also redact in development to prevent accidental terminal exposure
   const redactedCtx = redact(ctx);
+
+  // Add request ID to context if available
+  if (currentRequestId) {
+    redactedCtx.requestId = currentRequestId;
+  }
+
   const contextString =
     Object.keys(redactedCtx).length > 0 ? ` ${JSON.stringify(redactedCtx)}` : '';
 

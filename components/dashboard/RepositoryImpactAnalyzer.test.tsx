@@ -24,6 +24,7 @@ vi.mock('framer-motion', () => ({
 // Helper to create dates relative to today
 function getRelativeDateString(monthsAgo: number): string {
   const d = new Date();
+  d.setDate(1);
   d.setMonth(d.getMonth() - monthsAgo);
   return d.toISOString();
 }

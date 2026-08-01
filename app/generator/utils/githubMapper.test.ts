@@ -17,7 +17,7 @@ describe('mapGitHubData', () => {
     expect(result.name).toBe('John Doe');
     expect(result.description).toBe('A software engineer');
     expect(result.selectedSocials).toContain('twitter');
-    expect(result.socialLinks['twitter']).toBe('https://x.com/johndoe');
+    expect(result.socialLinks['twitter']).toBe('johndoe');
     expect(result.selectedSocials).toContain('website');
     expect(result.socialLinks['website']).toBe('https://johndoe.com');
     expect(result.selectedSocials).toContain('email');
@@ -57,9 +57,9 @@ describe('mapGitHubData', () => {
     const result = mapGitHubData(user, [], socialAccounts);
 
     expect(result.selectedSocials).toContain('linkedin');
-    expect(result.socialLinks['linkedin']).toBe('https://linkedin.com/in/johndoe');
+    expect(result.socialLinks['linkedin']).toBe('johndoe');
     expect(result.selectedSocials).toContain('twitch');
-    expect(result.socialLinks['twitch']).toBe('https://twitch.tv/johndoe');
+    expect(result.socialLinks['twitch']).toBe('johndoe');
   });
 
   it('maps repository languages correctly', () => {

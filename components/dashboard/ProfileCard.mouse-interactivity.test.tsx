@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import React, { useState } from 'react';
 import ProfileCard from './ProfileCard';
 import type { UserProfile, DashboardExportData } from '@/types/dashboard';
@@ -74,6 +74,10 @@ vi.mock('./ShareSheet', () => {
     default: mockShareSheet,
   };
 });
+
+vi.mock('@/utils/clipboard', () => ({
+  fallbackCopyToClipboard: vi.fn(() => true),
+}));
 
 interface InteractiveProfileCardWrapperProps {
   user: UserProfile;
@@ -232,5 +236,58 @@ describe('ProfileCard Mouse Interactivity & Event Propagation', () => {
 
     fireEvent.mouseLeave(target);
     expect(screen.queryByTestId('interactive-tooltip')).toBeNull();
+  });
+
+  // Case 6: Copy username button click copies username to clipboard
+  describe('copy username button click behavior', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      Object.defineProperty(navigator, 'clipboard', {
+        value: {
+          writeText: vi.fn().mockResolvedValue(undefined),
+        },
+        writable: true,
+        configurable: true,
+      });
+      Object.defineProperty(window, 'isSecureContext', { value: true, writable: true });
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('Case 6: clicking copy username button calls clipboard.writeText with the username', async () => {
+      render(<ProfileCard user={mockUser} exportData={mockExportData} />);
+      const copyBtn = screen.getByRole('button', { name: /copy username to clipboard/i });
+
+      await act(async () => {
+        fireEvent.click(copyBtn);
+      });
+
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('mayank200529');
+    });
+
+    it('Case 7: copy username button shows Check icon after click and reverts after timeout', async () => {
+      render(<ProfileCard user={mockUser} exportData={mockExportData} />);
+      const copyBtn = screen.getByRole('button', { name: /copy username to clipboard/i });
+
+      await act(async () => {
+        fireEvent.click(copyBtn);
+      });
+
+      // After click, the aria-label should reflect copied state
+      expect(copyBtn).toHaveAttribute('aria-label', 'Username copied!');
+
+      // Confirmation text should be visible
+      expect(screen.getByText('Username copied!')).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(2000);
+      });
+
+      // After timeout, should revert to uncopied state
+      expect(copyBtn).toHaveAttribute('aria-label', 'Copy username to clipboard');
+      expect(screen.queryByText('Username copied!')).toBeNull();
+    });
   });
 });

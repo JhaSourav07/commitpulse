@@ -1,5 +1,6 @@
 import 'server-only';
 import { DistributedCache } from './cache';
+import logger from '@/lib/logger';
 
 interface RateLimitResult {
   success: boolean;
@@ -120,20 +121,53 @@ async function getCountFromRedis(url: string, token: string, key: string): Promi
 }
 
 /**
+ * Returns whether the in-memory rate limit fallback is allowed.
+ *
+ * In production, rate limiting requires a distributed backend (Upstash Redis /
+ * Vercel KV) because each serverless invocation is an isolated process with its
+ * own in-memory state — an in-memory fallback would be effectively useless.
+ *
+ * To opt-in to in-memory rate limiting in production (NOT recommended), set
+ * `DANGEROUSLY_ALLOW_IN_MEMORY_RATE_LIMIT=true`. This should only be used
+ * temporarily during initial deployment before KV is configured.
+ *
+ * In development/test, in-memory fallback is always allowed.
+ */
+export function isInMemoryRateLimitAllowed(): boolean {
+  // Always allow in development/test
+  if (process.env.NODE_ENV !== 'production') return true;
+
+  // In production, only allow if explicitly opted-in
+  return process.env.DANGEROUSLY_ALLOW_IN_MEMORY_RATE_LIMIT === 'true';
+}
+
+/**
+ * Checks whether the distributed rate limiting backend (Upstash Redis / Vercel KV)
+ * is configured. Returns true only if both KV_REST_API_URL and KV_REST_API_TOKEN
+ * are set.
+ */
+function isDistributedBackendConfigured(): boolean {
+  return !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+}
+
+/**
  * Rate limiter to prevent basic DoS/spam (Denial of Wallet).
  *
  * When Upstash Redis / Vercel KV is configured (KV_REST_API_URL + KV_REST_API_TOKEN
  * environment variables), rate limit state is persisted across restarts and shared
  * across all serverless instances via atomic INCR + EXPIRE operations.
  *
- * Falls back to an in-memory TTL cache when KV is not configured. In this mode,
- * state resets on cold start / server restart, but it is highly effective at
- * stopping aggressive single-instance spikes during normal operation.
+ * In production, if KV is not configured, requests are REJECTED (fail closed)
+ * to prevent denial-of-service / denial-of-wallet attacks. Set
+ * `DANGEROUSLY_ALLOW_IN_MEMORY_RATE_LIMIT=true` to opt-in to in-memory fallback
+ * in production (NOT recommended — each serverless invocation has isolated state).
+ *
+ * In development/test, in-memory fallback is always available.
  *
  * @see https://upstash.com/docs/rate-limiting/quickstart for KV setup instructions.
  */
 export class RateLimiter {
-  private cache: DistributedCache<{ count: number; resetAt: number }>;
+  private cache: DistributedCache<number>;
   private limit: number;
   private windowMs: number;
   private allowlist = new Set<string>();
@@ -148,7 +182,7 @@ export class RateLimiter {
   constructor(limit = 5, windowMs = 60000, maxSize = 10000) {
     this.limit = limit;
     this.windowMs = windowMs;
-    this.cache = new DistributedCache<{ count: number; resetAt: number }>(maxSize, windowMs);
+    this.cache = new DistributedCache<number>(maxSize, windowMs);
   }
 
   /**
@@ -182,8 +216,6 @@ export class RateLimiter {
       return { success: false, limit: this.limit, remaining: 0, reset: Date.now() + this.windowMs };
 
     const now = Date.now();
-    const url = process.env.KV_REST_API_URL;
-    const token = process.env.KV_REST_API_TOKEN;
 
     // ------------------------------------------------------------------
     // Redis path — atomic Lua EVAL (replaces the old INCR+EXPIRE pipeline)
@@ -194,7 +226,9 @@ export class RateLimiter {
     // The Lua script collapses check+increment+expire into one atomic unit
     // so no other command can interleave.
     // ------------------------------------------------------------------
-    if (url && token) {
+    if (isDistributedBackendConfigured()) {
+      const url = process.env.KV_REST_API_URL!;
+      const token = process.env.KV_REST_API_TOKEN!;
       const windowSeconds = Math.floor(this.windowMs / 1000);
       const result = await evalRateLimitScript(
         url,
@@ -215,7 +249,35 @@ export class RateLimiter {
         };
       }
 
-      console.error('RateLimiter KV error, falling back to memory');
+      // KV is configured but the request failed — fail closed
+      logger.error('RateLimiter KV request failed — rejecting to prevent bypass', {
+        component: 'RateLimiter',
+        ip,
+      });
+      return {
+        success: false,
+        limit: this.limit,
+        remaining: 0,
+        reset: now + this.windowMs,
+      };
+    }
+
+    // ------------------------------------------------------------------
+    // In-memory fallback — only allowed in development or with explicit opt-in.
+    // In production without KV, fail closed to prevent denial-of-service.
+    // ------------------------------------------------------------------
+    if (!isInMemoryRateLimitAllowed()) {
+      logger.warn('Rate limiting unavailable (KV not configured) — rejecting request', {
+        component: 'RateLimiter',
+        ip,
+        hint: 'Set KV_REST_API_URL + KV_REST_API_TOKEN for distributed rate limiting, or DANGEROUSLY_ALLOW_IN_MEMORY_RATE_LIMIT=true for development.',
+      });
+      return {
+        success: false,
+        limit: this.limit,
+        remaining: 0,
+        reset: now + this.windowMs,
+      };
     }
 
     const count = await this.cache.incr(`ratelimit:${ip}`, this.windowMs);
@@ -288,18 +350,27 @@ export class RateLimiter {
    * console.log(`You have ${left} requests left.`);
    */
   async remaining(ip: string): Promise<number> {
-    const url = process.env.KV_REST_API_URL;
-    const token = process.env.KV_REST_API_TOKEN;
-
-    if (url && token) {
-      const count = await getCountFromRedis(url, token, `ratelimit_class:${ip}`);
+    if (isDistributedBackendConfigured()) {
+      const count = await getCountFromRedis(
+        process.env.KV_REST_API_URL!,
+        process.env.KV_REST_API_TOKEN!,
+        `ratelimit_class:${ip}`
+      );
       if (count !== null) {
         return Math.max(0, this.limit - count);
       }
-      console.error('RateLimiter remaining() KV error, falling back to memory');
+      logger.error('RateLimiter remaining() KV request failed', {
+        component: 'RateLimiter',
+        ip,
+      });
     }
 
-    const cached = ((await this.cache.get(`ratelimit:${ip}`)) as unknown as number) ?? 0;
+    // In-memory fallback — only allowed in development or with explicit opt-in.
+    if (!isInMemoryRateLimitAllowed()) {
+      return 0; // Fail closed: report no remaining requests
+    }
+
+    const cached = (await this.cache.get(`ratelimit:${ip}`)) ?? 0;
 
     return Math.max(0, this.limit - cached);
   }
@@ -367,16 +438,20 @@ export async function rateLimit(
 
   const cacheKey = `ratelimit:${namespace}:${ip}`;
   const now = Date.now();
-  const url = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
 
   // ------------------------------------------------------------------
   // Redis path — atomic Lua EVAL (replaces the old INCR+EXPIRE pipeline)
   // See comment in RateLimiter.checkWithResult for full explanation.
   // ------------------------------------------------------------------
-  if (url && token) {
+  if (isDistributedBackendConfigured()) {
     const windowSeconds = Math.floor(windowMs / 1000);
-    const result = await evalRateLimitScript(url, token, cacheKey, limit, windowSeconds);
+    const result = await evalRateLimitScript(
+      process.env.KV_REST_API_URL!,
+      process.env.KV_REST_API_TOKEN!,
+      cacheKey,
+      limit,
+      windowSeconds
+    );
 
     if (result !== null) {
       const [allowed, count, ttl] = result;
@@ -389,7 +464,35 @@ export async function rateLimit(
       };
     }
 
-    console.error('Rate limit KV error, falling back to memory');
+    // KV is configured but the request failed — fail closed
+    logger.error('Rate limit KV request failed — rejecting to prevent bypass', {
+      component: 'rateLimit',
+      ip,
+    });
+    return {
+      success: false,
+      limit,
+      remaining: 0,
+      reset: now + windowMs,
+    };
+  }
+
+  // ------------------------------------------------------------------
+  // In-memory fallback — only allowed in development or with explicit opt-in.
+  // In production without KV, fail closed to prevent denial-of-service.
+  // ------------------------------------------------------------------
+  if (!isInMemoryRateLimitAllowed()) {
+    logger.warn('Rate limiting unavailable (KV not configured) — rejecting request', {
+      component: 'rateLimit',
+      ip,
+      hint: 'Set KV_REST_API_URL + KV_REST_API_TOKEN for distributed rate limiting, or DANGEROUSLY_ALLOW_IN_MEMORY_RATE_LIMIT=true for development.',
+    });
+    return {
+      success: false,
+      limit,
+      remaining: 0,
+      reset: now + windowMs,
+    };
   }
 
   const count = await trackers.incr(cacheKey, windowMs);

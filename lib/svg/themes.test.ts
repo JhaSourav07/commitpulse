@@ -41,11 +41,11 @@ describe('themes object', () => {
 // ── Theme count ───────────────────────────────────────────────────────────────
 
 describe('theme count', () => {
-  it('contains exactly 29 preset themes matching THEMES.md documentation', () => {
+  it('contains exactly 35 preset themes matching THEMES.md documentation', () => {
     // If this fails, either a theme was added to themes.ts without updating
     // THEMES.md, or a theme was removed without updating the docs.
     // Update this count when intentionally adding/removing themes.
-    expect(themeNames).toHaveLength(32);
+    expect(themeNames).toHaveLength(35);
   });
 
   it('contains all expected theme keys', () => {
@@ -81,6 +81,10 @@ describe('theme count', () => {
       'monokai',
       'midnight_ocean',
       'india',
+      'catppuccin_mocha',
+      'one_dark',
+      'enterprise',
+      'ayu_mirage',
     ];
     for (const key of expectedKeys) {
       expect(themeNames).toContain(key);
@@ -257,5 +261,19 @@ describe('getNormalizedThemeKey', () => {
   it('returns default fallback gracefully when theme parameter is undefined or null', () => {
     expect(getNormalizedThemeKey(undefined)).toBe('default');
     expect(getNormalizedThemeKey(null)).toBe('default');
+  });
+
+  it('safely handles array inputs by picking the first valid element', () => {
+    expect(getNormalizedThemeKey(['dark', 'light'])).toBe('dark');
+    expect(getNormalizedThemeKey(['  neon  ', 'ocean'])).toBe('neon');
+  });
+
+  it('falls back to default if array is empty', () => {
+    expect(getNormalizedThemeKey([])).toBe('default');
+  });
+
+  it('falls back to default if input is an object or number', () => {
+    expect(getNormalizedThemeKey({} as unknown)).toBe('default');
+    expect(getNormalizedThemeKey(123 as unknown)).toBe('default');
   });
 });

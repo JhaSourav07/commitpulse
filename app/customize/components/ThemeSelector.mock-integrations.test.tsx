@@ -173,4 +173,42 @@ describe('ThemeSelector - Async Mock Integrations (Variation 11)', () => {
     expect(localStorageSetSpy).not.toHaveBeenCalled();
     expect(screen.getByRole('combobox')).toHaveValue('auto');
   });
+
+  it('6. Service Failure Path: verifies fallback behavior when the service returns a non-200 OK status', async () => {
+    fetchSpy.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+    } as Response);
+
+    render(<AsyncThemeIntegration />);
+
+    const select = screen.getByRole('combobox');
+    fireEvent.change(select, { target: { value: 'sunset' } });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('error-fallback')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    expect(localStorageSetSpy).not.toHaveBeenCalled();
+    expect(screen.getByRole('combobox')).toHaveValue('auto');
+  });
+
+  it('7. Cache Edge Case: verifies fallback behavior when localStorage quota is exceeded', async () => {
+    localStorageSetSpy.mockImplementationOnce(() => {
+      throw new Error('QuotaExceededError');
+    });
+
+    render(<AsyncThemeIntegration />);
+
+    const select = screen.getByRole('combobox');
+    fireEvent.change(select, { target: { value: 'neon' } });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('error-fallback')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    expect(screen.getByRole('combobox')).toHaveValue('auto');
+  });
 });

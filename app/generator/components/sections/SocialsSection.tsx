@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { Search, X, ExternalLink } from 'lucide-react';
 import { SOCIALS, SOCIAL_CATEGORIES } from '../../data/socials';
 import { SectionCard, FieldLabel } from '../SectionCard';
+import { validateSocialHandle } from '../../utils/urlSanitizer';
 import type { Social } from '../../types';
 import Image from 'next/image';
 
@@ -12,6 +13,7 @@ interface SocialsSectionProps {
   socialLinks: Record<string, string>;
   onSelectedChange: (ids: string[]) => void;
   onLinkChange: (id: string, url: string) => void;
+  onReset?: () => void;
 }
 
 function SocialIcon({ social, isDark }: { social: Social; isDark: boolean }) {
@@ -33,6 +35,7 @@ export function SocialsSection({
   socialLinks,
   onSelectedChange,
   onLinkChange,
+  onReset,
 }: SocialsSectionProps) {
   const safeSelected = Array.isArray(selected) ? selected : [];
   const safeSocialLinks = socialLinks || {};
@@ -75,6 +78,7 @@ export function SocialsSection({
         description="Add links to your profiles"
         badge={safeSelected.length}
         defaultOpen
+        onReset={onReset}
       >
         <div
           role="tablist"
@@ -111,6 +115,7 @@ export function SocialsSection({
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-white/30 pointer-events-none"
               />
               <input
+                aria-label="Search platforms..."
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -283,6 +288,7 @@ export function SocialsSection({
                   if (!social) return null;
                   const val = safeSocialLinks[id] ?? '';
                   const hasLink = !!val.trim();
+                  const isValid = !hasLink || validateSocialHandle(id, val);
 
                   return (
                     <div key={id}>
@@ -305,7 +311,11 @@ export function SocialsSection({
                         {hasLink && (
                           <a
                             href={
-                              social.id === 'email' ? `mailto:${val.replace(/^mailto:/, '')}` : val
+                              social.id === 'email'
+                                ? `mailto:${val.replace(/^mailto:/i, '')}`
+                                : val.startsWith('http')
+                                  ? val
+                                  : `${social.baseUrl}${val}`
                             }
                             target="_blank"
                             rel="noopener noreferrer"
@@ -324,11 +334,18 @@ export function SocialsSection({
                           onChange={(e) => onLinkChange(id, e.target.value)}
                           placeholder={social.placeholder}
                           className={`w-full rounded-xl border px-3 py-2 text-xs text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/25 bg-gray-50 dark:bg-white/5 focus:outline-none focus:ring-2 transition-colors ${
-                            hasLink
-                              ? 'border-emerald-500/30 focus:ring-emerald-500/30'
-                              : 'border-gray-200 dark:border-white/10 focus:ring-emerald-500/40'
+                            !isValid
+                              ? 'border-red-500/50 focus:ring-red-500/30'
+                              : hasLink
+                                ? 'border-emerald-500/30 focus:ring-emerald-500/30'
+                                : 'border-gray-200 dark:border-white/10 focus:ring-emerald-500/40'
                           }`}
                         />
+                        {!isValid && (
+                          <p className="mt-1 text-[10px] text-red-500 dark:text-red-400">
+                            Invalid handle or URL format. Spaces and path traversal are not allowed.
+                          </p>
+                        )}
                       </div>
                     </div>
                   );

@@ -10,6 +10,7 @@ import type {
   GraphLink,
 } from '@/types';
 import { calculateStreak, aggregateCalendars, convertLocalToUtc } from '@/lib/calculate';
+import { isBotAuthor } from './bot-filter';
 import { DistributedCache } from '@/lib/cache';
 import { LANGUAGE_COLORS } from '@/lib/svg/languageColors';
 import { CONTRIBUTION_MILESTONES, STREAK_MILESTONES } from './svg/constants';
@@ -33,10 +34,18 @@ export interface GitHubRepo {
   participation?: number[];
 }
 
-const MAX_RETRIES = Number(process.env.GITHUB_MAX_RETRIES ?? '3');
-const BASE_DELAY_MS = Number(process.env.GITHUB_BASE_DELAY_MS ?? '500');
-const MAX_RETRY_DELAY_MS = Number(process.env.GITHUB_MAX_RETRY_DELAY_MS ?? '5000');
+/** Maximum number of retry attempts for GitHub API calls. Configurable via GITHUB_MAX_RETRIES env var (default: 3). */
+export const MAX_RETRIES = Number(process.env.GITHUB_MAX_RETRIES ?? '3');
+/** Base delay in milliseconds before the first retry. Configurable via GITHUB_BASE_DELAY_MS env var (default: 500). */
+export const BASE_DELAY_MS = Number(process.env.GITHUB_BASE_DELAY_MS ?? '500');
+/** Maximum delay in milliseconds between retries. Configurable via GITHUB_MAX_RETRY_DELAY_MS env var (default: 5000). */
+export const MAX_RETRY_DELAY_MS = Number(process.env.GITHUB_MAX_RETRY_DELAY_MS ?? '5000');
 
+/**
+ * Calculates a jittered backoff delay for retry logic.
+ * @param attempt - The zero-based retry attempt number.
+ * @returns The delay in milliseconds with random jitter applied.
+ */
 export function getJitteredBackoff(attempt: number): number {
   const base = BASE_DELAY_MS * Math.pow(2, attempt);
   const jitter = 0.5 + Math.random() * 0.5;
@@ -100,6 +109,38 @@ const MAX_GRAPHQL_REPOSITORY_RESULTS = 500;
 let currentTokenIndex = 0;
 const rateLimitedTokens = new Map<string, number>();
 const tokenStats = new Map<string, { remaining: number; resetTime: number }>();
+
+// Issue #7380: Promise-based mutex serializing every read-modify-write of
+// currentTokenIndex.  Because getGitHubToken and the 401/429 handlers run
+// across `await` boundaries, two concurrent async requests can otherwise
+// interleave between reading currentTokenIndex and writing it back — corrupting
+// the value (e.g. letting it exceed tokens.length or skipping a healthy token).
+// The lock guarantees only one caller mutates the index at a time.  getGitHubToken
+// itself is synchronous and therefore already atomic, but the handlers below run
+// asynchronously and must take the lock before touching the shared index.
+let tokenIndexLock: Promise<void> = Promise.resolve();
+
+function withTokenIndexLock<T>(fn: () => T | Promise<T>): Promise<T> {
+  const acquire = tokenIndexLock;
+  let release!: () => void;
+  const released = new Promise<void>((r) => {
+    release = r;
+  });
+  tokenIndexLock = released.then(() => undefined);
+
+  return acquire.then(() => {
+    try {
+      return Promise.resolve(fn()).finally(release);
+    } catch (err) {
+      release();
+      throw err;
+    }
+  });
+}
+
+export function getTokenIndexLockForTests() {
+  return tokenIndexLock;
+}
 
 // Issue #7213: Per-token pending refresh promise to deduplicate concurrent rotations.
 // When multiple concurrent requests detect an expired token, only one triggers
@@ -210,16 +251,20 @@ export async function fetchWithRetry(
   const isGitHubRequest = urlStr.includes('api.github.com');
   let currentToken = '';
 
+  let requestOptions: RequestInit = options;
+
   if (isGitHubRequest) {
     try {
       currentToken = userToken || getGitHubToken();
-      // Ensure your headers instantiation copies existing layout keys safely
-      options.headers = {
-        ...options.headers,
-        Authorization: `bearer ${currentToken}`,
+
+      const headers = new Headers(options.headers);
+      headers.set('Authorization', `Bearer ${currentToken}`);
+
+      requestOptions = {
+        ...options,
+        headers,
       };
     } catch (e) {
-      // Problem 3 Fix: Never swallow or compromise a structural RateLimitError instance
       if (e instanceof RateLimitError) {
         throw e;
       }
@@ -240,7 +285,7 @@ export async function fetchWithRetry(
   let didThrow = false;
 
   try {
-    res = await fetch(url, { ...options, signal: controller.signal });
+    res = await fetch(url, { ...requestOptions, signal: controller.signal });
   } catch (err: unknown) {
     fetchError = err;
     didThrow = true;
@@ -260,7 +305,7 @@ export async function fetchWithRetry(
     }
     const delay = getJitteredBackoff(attempt);
     await new Promise((resolve) => setTimeout(resolve, delay));
-    return fetchWithRetry(url, options, attempt + 1, timeoutMs, userToken);
+    return fetchWithRetry(url, requestOptions, attempt + 1, timeoutMs, userToken);
   }
 
   if (!res) throw new Error('GitHub API request failed without a response');
@@ -304,7 +349,7 @@ export async function fetchWithRetry(
     if (attempt < MAX_RETRIES && tokens.length > 1) {
       const delay = getJitteredBackoff(attempt);
       await new Promise((resolve) => setTimeout(resolve, delay));
-      return fetchWithRetry(url, options, attempt + 1, timeoutMs, userToken);
+      return fetchWithRetry(url, requestOptions, attempt + 1, timeoutMs, userToken);
     }
   }
 
@@ -325,10 +370,14 @@ export async function fetchWithRetry(
       }
       rateLimitedTokens.set(currentToken, resetTime);
       tokenStats.set(currentToken, { remaining: 0, resetTime });
-      const tokens = getGitHubTokens();
-      if (tokens.length > 1) {
-        currentTokenIndex = (currentTokenIndex + 1) % tokens.length;
-      }
+      // Issue #7380: advance the rotation index under the mutex so concurrent
+      // rate-limit handlers cannot both read then write the same value.
+      await withTokenIndexLock(() => {
+        const tokens = getGitHubTokens();
+        if (tokens.length > 1) {
+          currentTokenIndex = (currentTokenIndex + 1) % tokens.length;
+        }
+      });
     }
 
     if (attempt >= MAX_RETRIES) return res;
@@ -356,7 +405,7 @@ export async function fetchWithRetry(
     }
 
     await new Promise((resolve) => setTimeout(resolve, delay));
-    return fetchWithRetry(url, options, attempt + 1, timeoutMs, userToken);
+    return fetchWithRetry(url, requestOptions, attempt + 1, timeoutMs, userToken);
   }
 
   // Only retry on 5xx — all other statuses are returned immediately
@@ -365,7 +414,7 @@ export async function fetchWithRetry(
 
   const delay = getJitteredBackoff(attempt);
   await new Promise((resolve) => setTimeout(resolve, delay));
-  return fetchWithRetry(url, options, attempt + 1, timeoutMs, userToken);
+  return fetchWithRetry(url, requestOptions, attempt + 1, timeoutMs, userToken);
 }
 
 const GRAPHQL_INJECTION_PATTERNS: RegExp[] = [
@@ -562,6 +611,8 @@ type FetchOptions = {
   to?: string;
   rangeLabel?: string;
   signal?: AbortSignal;
+  org?: string;
+  excludeBots?: boolean;
   // Authenticated user's OAuth token. When set, GitHub calls use THIS token
   // (the user's personal rate-limit quota) instead of the global PAT pool.
   token?: string;
@@ -569,7 +620,12 @@ type FetchOptions = {
 
 export const GITHUB_CACHE_TTL_MS = Number(process.env.GITHUB_CACHE_TTL_MS ?? String(5 * 60 * 1000));
 
-export const contributionsCache = new DistributedCache<ExtendedContributionData>(1000);
+export interface CachedContributions {
+  data: ExtendedContributionData;
+  fetchedAt: number;
+}
+
+export const contributionsCache = new DistributedCache<CachedContributions>(1000);
 const profileCache = new DistributedCache<GitHubUserProfile>(1000);
 const reposCache = new DistributedCache<GitHubRepo[]>(500);
 const contributedReposCache = new DistributedCache<ContributedRepo[]>(500);
@@ -623,26 +679,36 @@ function sanitizeRepo(repo: GitHubRepo): GitHubRepo {
 export function cacheKey(
   kind: 'contributions' | 'profile' | 'repos' | 'repos:contributed',
   username: string,
-  year?: string
+  year?: string,
+  to?: string,
+  org?: string
 ): string;
 export function cacheKey(
   kind: 'contributions' | 'profile' | 'repos' | 'repos:contributed',
   username: string,
   from?: string,
-  to?: string
+  to?: string,
+  org?: string
 ): string;
 export function cacheKey(
   kind: 'contributions' | 'profile' | 'repos' | 'repos:contributed',
   username: string,
   yearOrFrom?: string,
-  to?: string
+  to?: string,
+  org?: string
 ): string {
+  let keyStr = '';
   if (yearOrFrom && to) {
-    return `${kind}:${username.toLowerCase()}:${yearOrFrom.substring(0, 10)}:${to.substring(0, 10)}`;
+    keyStr = `${kind}:${username.toLowerCase()}:${yearOrFrom.substring(0, 10)}:${to.substring(0, 10)}`;
+  } else if (yearOrFrom) {
+    keyStr = `${kind}:${username.toLowerCase()}:${yearOrFrom.substring(0, 4)}`;
+  } else {
+    keyStr = `${kind}:${username.toLowerCase()}`;
   }
-  return yearOrFrom
-    ? `${kind}:${username.toLowerCase()}:${yearOrFrom.substring(0, 4)}`
-    : `${kind}:${username.toLowerCase()}`;
+  if (org) {
+    keyStr += `:org:${org.toLowerCase()}`;
+  }
+  return keyStr;
 }
 
 export function clearGitHubApiCacheForTests(): void {
@@ -651,9 +717,12 @@ export function clearGitHubApiCacheForTests(): void {
   reposCache.clear();
   contributedReposCache.clear();
   rateLimitedTokens.clear();
+  orgNodeIdCache.clear();
   tokenStats.clear();
   pendingRefreshPromises.clear();
   currentTokenIndex = 0;
+  // Issue #7380: reset the mutex so tests start from a clean (unlocked) state.
+  tokenIndexLock = Promise.resolve();
   globalCircuitBreakerOpenUntil = 0;
 }
 
@@ -776,10 +845,14 @@ export async function handleTokenExpiration(token: string): Promise<void> {
 
   const refreshPromise = (async () => {
     rateLimitedTokens.set(token, Date.now() + 24 * 60 * 60 * 1000);
-    const tokens = getGitHubTokens();
-    if (tokens.length > 1) {
-      currentTokenIndex = (currentTokenIndex + 1) % tokens.length;
-    }
+    // Issue #7380: advance the rotation index under the mutex so concurrent
+    // expiration handlers cannot both read then write the same value.
+    await withTokenIndexLock(() => {
+      const tokens = getGitHubTokens();
+      if (tokens.length > 1) {
+        currentTokenIndex = (currentTokenIndex + 1) % tokens.length;
+      }
+    });
   })();
 
   pendingRefreshPromises.set(token, refreshPromise);
@@ -791,7 +864,7 @@ export async function handleTokenExpiration(token: string): Promise<void> {
   }
 }
 
-const getHeaders = (userToken?: string) => ({
+export const getHeaders = (userToken?: string) => ({
   Authorization: `bearer ${userToken || getGitHubToken()}`,
   'Content-Type': 'application/json',
 });
@@ -836,17 +909,10 @@ export async function fetchGitHubContributions(
   username: string,
   options: FetchOptions = {}
 ): Promise<ExtendedContributionData> {
-  const key = cacheKey('contributions', username, options.from, options.to);
+  const key = cacheKey('contributions', username, options.from, options.to, options.org);
   const LONG_CACHE_TTL = Number(
     process.env.GITHUB_LONG_CACHE_TTL_MS ?? String(7 * 24 * 60 * 60 * 1000)
   );
-
-  const shouldFetch = (cached: ExtendedContributionData) => {
-    const now = Date.now();
-    return cached?.calendar.lastSyncedAt
-      ? now - new Date(cached.calendar.lastSyncedAt).getTime() > GITHUB_CACHE_TTL_MS
-      : true;
-  };
 
   const loadWithTimeout = async (): Promise<ExtendedContributionData> => {
     const controller = new AbortController();
@@ -902,83 +968,50 @@ export async function fetchGitHubContributions(
     return pending;
   };
 
-  if (options.signal) {
-    if (options.bypassCache || options.forceRefresh) {
-      try {
-        return await loadWithTimeout();
-      } catch (err: unknown) {
-        if (shouldFallbackOnError(err)) {
-          const staleData = await contributionsCache.get(key);
-          if (staleData) {
-            logger.warn('GitHub API fetch failed, falling back to stale cache', {
-              component: 'GitHub API',
-              username,
-              error: err,
-            });
-            return {
-              ...staleData,
-              isOfflineFallback: true,
-            };
-          }
-          return getMockContributions();
-        }
-        throw err;
-      }
+  const revalidateInBackground = (username: string, cacheKey: string) => {
+    const quota = quotaMonitor.getQuota();
+    if (quota.remaining < 100) {
+      logger.warn('Background revalidation paused due to low GitHub API quota', {
+        username,
+        remaining: quota.remaining,
+      });
+      return;
     }
-    const cached = await contributionsCache.get(key);
-    if (cached !== null && !shouldFetch(cached)) {
-      return cached;
-    }
-    try {
-      return await loadWithTimeout();
-    } catch (err: unknown) {
-      if (shouldFallbackOnError(err)) {
-        const staleData = await contributionsCache.get(key);
-        if (staleData) {
-          logger.warn('GitHub API fetch failed, falling back to stale cache', {
-            component: 'GitHub API',
-            username,
-            error: err,
-          });
-          return {
-            ...staleData,
-            isOfflineFallback: true,
-          };
-        }
-        return getMockContributions();
-      }
-      throw err;
-    }
-  }
 
-  if (options.bypassCache || options.forceRefresh) {
-    try {
-      const result = await coalescedLoad();
-      if (options.forceRefresh) {
-        await contributionsCache.set(key, result, LONG_CACHE_TTL);
+    (async () => {
+      try {
+        const fresh = await coalescedLoad();
+        await contributionsCache.set(
+          cacheKey,
+          { data: fresh, fetchedAt: Date.now() },
+          LONG_CACHE_TTL
+        );
+      } catch (err: unknown) {
+        logger.error('Background revalidation failed', { username, error: err });
       }
-      return result;
-    } catch (err: unknown) {
-      if (shouldFallbackOnError(err)) {
-        const staleData = await contributionsCache.get(key);
-        if (staleData) {
-          console.warn(
-            `[GitHub API] Fetch failed or timed out for "${username}", falling back to stale cache:`,
-            err
-          );
-          return {
-            ...staleData,
-            isOfflineFallback: true,
-          };
-        }
-        return getMockContributions();
+    })();
+  };
+
+  if (!options.bypassCache && !options.forceRefresh) {
+    const cached = await contributionsCache.get(key);
+    if (cached) {
+      const age = Date.now() - cached.fetchedAt;
+      if (age < 60000) {
+        return cached.data;
       }
-      throw err;
+      if (age < 3600000) {
+        revalidateInBackground(username, key);
+        return cached.data;
+      }
     }
   }
 
   try {
-    return await contributionsCache.getOrSet(key, coalescedLoad, LONG_CACHE_TTL, shouldFetch);
+    const result = await coalescedLoad();
+    if (!options.bypassCache || options.forceRefresh) {
+      await contributionsCache.set(key, { data: result, fetchedAt: Date.now() }, LONG_CACHE_TTL);
+    }
+    return result;
   } catch (err: unknown) {
     if (shouldFallbackOnError(err)) {
       const staleData = await contributionsCache.get(key);
@@ -989,7 +1022,7 @@ export async function fetchGitHubContributions(
           error: err,
         });
         return {
-          ...staleData,
+          ...staleData.data,
           isOfflineFallback: true,
         };
       }
@@ -999,15 +1032,68 @@ export async function fetchGitHubContributions(
   }
 }
 
+const orgNodeIdCache = new Map<string, string>();
+
+async function fetchOrgNodeId(orgName: string, signal?: AbortSignal): Promise<string> {
+  const cacheKey = orgName.toLowerCase();
+  if (orgNodeIdCache.has(cacheKey)) {
+    return orgNodeIdCache.get(cacheKey)!;
+  }
+
+  const query = `
+    query($login: String!) {
+      organization(login: $login) {
+        id
+      }
+    }
+  `;
+
+  const res = await fetchGraphQLWithRetry(GITHUB_GRAPHQL_URL, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({
+      query,
+      variables: { login: orgName },
+    }),
+    cache: 'no-store',
+    signal,
+  });
+
+  if (!res.ok) {
+    throwIfRateLimited(res);
+    const bodyText = await res.text().catch(() => '');
+    throw new Error(
+      `Failed to fetch organization ID for "${orgName}". Status: ${res.status}. Response: ${bodyText || '<empty>'}`
+    );
+  }
+
+  const data = await res.json();
+  if (data.errors) {
+    throw new Error(getGraphQLErrorMessage(data.errors));
+  }
+
+  const id = data.data?.organization?.id;
+  if (!id) {
+    throw new Error(`Organization "${orgName}" not found`);
+  }
+
+  orgNodeIdCache.set(cacheKey, id);
+  return id;
+}
+
 async function fetchContributionsUncached(
   username: string,
   key: string,
   options: FetchOptions
 ): Promise<ExtendedContributionData> {
+  let organizationId: string | undefined = undefined;
+  if (options.org) {
+    organizationId = await fetchOrgNodeId(options.org, options.signal);
+  }
   const query = `
-      query($login: String!, $from: DateTime, $to: DateTime) {
+      query($login: String!, $from: DateTime, $to: DateTime, $orgId: ID) {
         user(login: $login) {
-          contributionsCollection(from: $from, to: $to) {
+          contributionsCollection(from: $from, to: $to, organizationID: $orgId) {
             totalPullRequestContributions
             totalIssueContributions
             totalPullRequestReviewContributions
@@ -1045,7 +1131,7 @@ async function fetchContributionsUncached(
       headers: getHeaders(options.token),
       body: JSON.stringify({
         query,
-        variables: { login: username, from: options.from, to: options.to },
+        variables: { login: username, from: options.from, to: options.to, orgId: organizationId },
       }),
       cache: 'no-store',
       signal: options.signal,
@@ -1098,6 +1184,10 @@ async function fetchContributionsUncached(
       `[CommitPulse API] Empty profile or null repository nodes discovered for user "${username}". Falling back to baseline collection.`
     );
     repoContributions = [];
+  } else {
+    repoContributions = repoContributions.filter(
+      (c) => c && c.repository !== null && c.repository !== undefined
+    );
   }
   // 🔼 END OF CHANGE 🔼
 
@@ -1434,7 +1524,10 @@ export async function getOrgDashboardData(
     throw new Error('This endpoint is strictly for organizations.');
   if (membersOrError instanceof Error) throw membersOrError;
 
-  const members = membersOrError;
+  let members = membersOrError;
+  if (options.excludeBots) {
+    members = members.filter((member) => !isBotAuthor(member));
+  }
 
   // Limit active members to protect shared token rate limit and improve response times
   const activeMembers = members.slice(0, ORG_MEMBER_LIMIT);
@@ -1728,8 +1821,11 @@ export async function fetchContributedRepos(
 
       const connection = data?.data?.user?.repositoriesContributedTo;
       const nodes = connection?.nodes ?? [];
+      const validNodes = nodes.filter(
+        (node): node is ContributedRepo => node !== null && node !== undefined
+      );
 
-      allRepos.push(...nodes);
+      allRepos.push(...validNodes);
 
       const pageInfo = connection?.pageInfo;
 
@@ -1890,6 +1986,7 @@ export interface PopularRepo {
   forkCount: number;
   url: string;
   createdAt: string;
+  updatedAt?: string;
   primaryLanguage: { name: string; color: string } | null;
 }
 
@@ -1906,6 +2003,7 @@ export async function fetchPinnedRepos(username: string, token?: string): Promis
               forkCount
               url
               createdAt
+              updatedAt
               primaryLanguage {
                 name
                 color
@@ -1949,6 +2047,7 @@ async function fetchPopularRepos(username: string, token?: string): Promise<Popu
             forkCount
             url
             createdAt
+            updatedAt
             primaryLanguage {
               name
               color
@@ -1991,6 +2090,7 @@ async function fetchStarredRepos(username: string, token?: string): Promise<Popu
             forkCount
             url
             createdAt
+            updatedAt
             primaryLanguage {
               name
               color
@@ -2265,8 +2365,10 @@ export async function getFullDashboardData(username: string, options: FetchOptio
 
   const langCounts: Record<string, number> = {};
   repoContributions.forEach((c) => {
-    const l = c.repository.primaryLanguage?.name;
-    if (l) langCounts[l] = (langCounts[l] || 0) + c.contributions.totalCount;
+    const l = c?.repository?.primaryLanguage?.name;
+    if (l && c?.contributions?.totalCount) {
+      langCounts[l] = (langCounts[l] || 0) + c.contributions.totalCount;
+    }
   });
   const total = Object.values(langCounts).reduce((a, b) => a + b, 0);
   const languages = Object.entries(langCounts)
@@ -2600,12 +2702,28 @@ export async function getWrappedData(
     to,
     bypassCache: options?.bypassCache ?? false,
     signal: options?.signal,
+    org: options?.org,
     token: options?.token,
   };
 
-  const [userData, repos] = await Promise.all([
+  const prevYear = (parseInt(normalizedYear, 10) - 1).toString();
+  const prevFrom = convertLocalToUtc(parseInt(prevYear, 10), 1, 1, 0, 0, 0, timezone);
+  const prevTo = convertLocalToUtc(parseInt(prevYear, 10), 12, 31, 23, 59, 59, timezone);
+  const prevFetchOptions: FetchOptions = {
+    ...fetchOptions,
+    from: prevFrom,
+    to: prevTo,
+  };
+
+  const [userData, prevUserData, hourDistribution] = await Promise.all([
     fetchGitHubContributions(username, fetchOptions),
-    fetchUserRepos(username, fetchOptions),
+    fetchGitHubContributions(username, prevFetchOptions).catch(() => ({
+      calendar: { totalContributions: 0, weeks: [] },
+      repoContributions: [],
+    })),
+    fetchCommitHourDistribution(username, options?.token, timezone).catch(() =>
+      new Array(24).fill(0)
+    ),
   ]);
   const calendar = userData.calendar;
   const allDays = calendar.weeks.flatMap((w) => w.contributionDays);
@@ -2635,11 +2753,107 @@ export async function getWrappedData(
   const weekendRatio =
     totalContributions > 0 ? Math.round((weekendTotal / totalContributions) * 100) : 0;
 
+  const streakStats = calculateStreak(calendar, timezone);
+  const longestStreak = streakStats.longestStreak;
+
+  const previousYearContributions = prevUserData?.calendar?.totalContributions || 0;
+  const diff = totalContributions - previousYearContributions;
+  const contributionGrowth =
+    previousYearContributions > 0
+      ? Math.round((diff / previousYearContributions) * 100)
+      : totalContributions > 0
+        ? 100
+        : 0;
+
+  const mostActiveRepos = (userData.repoContributions || [])
+    .map((rc) => ({
+      name: rc.repository.name,
+      commits: rc.contributions.totalCount,
+    }))
+    .sort((a, b) => b.commits - a.commits)
+    .slice(0, 5);
+
   const langCounts: Record<string, number> = {};
-  for (const repo of repos) {
-    if (repo.language) langCounts[repo.language] = (langCounts[repo.language] || 0) + 1;
+  for (const rc of userData.repoContributions || []) {
+    const lang = rc.repository.primaryLanguage?.name;
+    if (lang) {
+      langCounts[lang] = (langCounts[lang] || 0) + rc.contributions.totalCount;
+    }
   }
-  const topLanguage = Object.entries(langCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'Unknown';
+  const totalLangContributions = Object.values(langCounts).reduce((a, b) => a + b, 0);
+  const primaryLanguages = Object.entries(langCounts)
+    .map(([name, count]) => ({
+      name,
+      percentage:
+        totalLangContributions > 0 ? Math.round((count / totalLangContributions) * 100) : 0,
+      color: LANGUAGE_COLORS[name] ?? '#a855f7',
+    }))
+    .sort((a, b) => b.percentage - a.percentage)
+    .slice(0, 5);
+
+  const topLanguage = primaryLanguages[0]?.name || 'Unknown';
+
+  const weekdayCounts = new Array(7).fill(0);
+  for (const day of allDays) {
+    if (!day || !day.date) continue;
+    const dow = new Date(day.date + 'T12:00:00Z').getUTCDay();
+    weekdayCounts[dow] += day.contributionCount;
+  }
+  const DAYS_OF_WEEK = [
+    'Sunday',
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+  ];
+  const maxDayIndex = weekdayCounts.reduce(
+    (maxIdx, currentVal, currentIdx, arr) => (currentVal > arr[maxIdx] ? currentIdx : maxIdx),
+    0
+  );
+  const mostProductiveDay = DAYS_OF_WEEK[maxDayIndex];
+
+  const maxVal = Math.max(...hourDistribution);
+  const mostActiveHour = maxVal > 0 ? hourDistribution.indexOf(maxVal) : 12;
+
+  const milestones = [
+    {
+      name: 'First 100 Contributions',
+      description: 'Crossed 100 contributions in a single year.',
+      unlocked: totalContributions >= 100,
+    },
+    {
+      name: 'Century Contributor',
+      description: 'Crossed 500 contributions in a single year.',
+      unlocked: totalContributions >= 500,
+    },
+    {
+      name: 'Elite Developer',
+      description: 'Crossed 1000 contributions in a single year.',
+      unlocked: totalContributions >= 1000,
+    },
+    {
+      name: 'Grandmaster Contributor',
+      description: 'Crossed 2500 contributions in a single year.',
+      unlocked: totalContributions >= 2500,
+    },
+    {
+      name: 'Consistent Coder',
+      description: 'Achieved a contribution streak of 7+ days.',
+      unlocked: longestStreak >= 7,
+    },
+    {
+      name: 'Unstoppable Streak',
+      description: 'Achieved a contribution streak of 30+ days.',
+      unlocked: longestStreak >= 30,
+    },
+    {
+      name: 'Dev Dedicated',
+      description: 'Achieved a contribution streak of 100+ days.',
+      unlocked: longestStreak >= 100,
+    },
+  ];
 
   return {
     totalContributions,
@@ -2649,14 +2863,45 @@ export async function getWrappedData(
     weekendRatio,
     topLanguage,
     calendar,
+    longestStreak,
+    previousYearContributions,
+    contributionGrowth,
+    mostActiveRepos,
+    primaryLanguages,
+    milestones,
+    mostProductiveDay,
+    mostActiveHour,
   };
 }
 
 export async function fetchCommitHourDistribution(
   username: string,
-  token?: string
+  token?: string,
+  timezone: string = 'UTC'
 ): Promise<number[]> {
   const hourCounts = new Array(24).fill(0);
+
+  // Extracts the hour-of-day (0-23) for a commit timestamp in the given
+  // IANA timezone. Mirrors the Intl.DateTimeFormat pattern already used in
+  // utils/time.ts's getSecondsUntilMidnightInTimezone(), rather than
+  // Date.getHours()/getUTCHours() which ignore the requested timezone.
+  const getHourInTimezone = (isoDate: string, tz: string): number => {
+    try {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
+        hour: 'numeric',
+        hour12: false,
+        hourCycle: 'h23',
+      }).formatToParts(new Date(isoDate));
+      const hourPart = parts.find((p) => p.type === 'hour')?.value;
+      const hour = hourPart ? parseInt(hourPart, 10) % 24 : new Date(isoDate).getUTCHours();
+      return hour;
+    } catch {
+      // Invalid timezone string — fall back to UTC rather than throwing,
+      // consistent with how other views degrade on a bad ?tz= value.
+      return new Date(isoDate).getUTCHours();
+    }
+  };
 
   // Fetch top repos by contribution count
   const query = `
@@ -2695,10 +2940,17 @@ export async function fetchCommitHourDistribution(
       const data = await res.json();
       const repos =
         data?.data?.user?.contributionsCollection?.commitContributionsByRepository ?? [];
-      topRepos = repos.map((r: { repository: { owner: { login: string }; name: string } }) => ({
-        owner: r.repository.owner.login,
-        name: r.repository.name,
-      }));
+      topRepos = repos
+        .filter(
+          (
+            r: { repository: { owner: { login: string } | null; name: string } | null } | null
+          ): r is { repository: { owner: { login: string }; name: string } } =>
+            !!(r && r.repository && r.repository.owner && r.repository.owner.login)
+        )
+        .map((r: { repository: { owner: { login: string }; name: string } }) => ({
+          owner: r.repository.owner.login,
+          name: r.repository.name,
+        }));
     }
   } catch {
     // silent — return empty distribution
@@ -2743,7 +2995,7 @@ export async function fetchCommitHourDistribution(
       const nodes: { committedDate: string }[] =
         data?.data?.repository?.defaultBranchRef?.target?.history?.nodes ?? [];
       for (const node of nodes) {
-        const hour = new Date(node.committedDate).getUTCHours();
+        const hour = getHourInTimezone(node.committedDate, timezone);
         hourCounts[hour]++;
       }
     } catch {
@@ -2753,6 +3005,147 @@ export async function fetchCommitHourDistribution(
   });
 
   return hourCounts;
+}
+
+export async function fetchCommitPunchCard(
+  username: string,
+  token?: string,
+  timezone: string = 'UTC'
+): Promise<number[][]> {
+  // 7 days (Mon-Sun), 24 hours
+  const punchCard: number[][] = Array.from({ length: 7 }, () => new Array(24).fill(0));
+
+  const getDayAndHourInTimezone = (isoDate: string, tz: string): { day: number; hour: number } => {
+    try {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
+        weekday: 'short',
+        hour: 'numeric',
+        hour12: false,
+        hourCycle: 'h23',
+      }).formatToParts(new Date(isoDate));
+
+      const hourPart = parts.find((p) => p.type === 'hour')?.value;
+      const hour = hourPart ? parseInt(hourPart, 10) % 24 : new Date(isoDate).getUTCHours();
+
+      const weekdayPart = parts.find((p) => p.type === 'weekday')?.value;
+      // Map to 0-6 where 0 = Monday, 6 = Sunday
+      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      let day = days.indexOf(weekdayPart ?? 'Mon');
+      if (day === -1) {
+        const utcDay = new Date(isoDate).getUTCDay();
+        day = utcDay === 0 ? 6 : utcDay - 1;
+      }
+
+      return { day, hour };
+    } catch {
+      const d = new Date(isoDate);
+      const utcDay = d.getUTCDay();
+      return {
+        day: utcDay === 0 ? 6 : utcDay - 1,
+        hour: d.getUTCHours(),
+      };
+    }
+  };
+
+  const query = `
+    query($login: String!) {
+      user(login: $login) {
+        contributionsCollection {
+          commitContributionsByRepository(maxRepositories: 5) {
+            repository {
+              name
+              owner { login }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  let topRepos: { owner: string; name: string }[] = [];
+  try {
+    const res = await fetchGraphQLWithRetry(
+      GITHUB_GRAPHQL_URL,
+      {
+        method: 'POST',
+        headers: getHeaders(token),
+        body: JSON.stringify({ query, variables: { login: username } }),
+        cache: 'no-store',
+      },
+      0,
+      undefined,
+      token
+    );
+    if (res.ok) {
+      const data = await res.json();
+      const repos =
+        data?.data?.user?.contributionsCollection?.commitContributionsByRepository ?? [];
+      topRepos = repos
+        .filter(
+          (
+            r: { repository: { owner: { login: string } | null; name: string } | null } | null
+          ): r is { repository: { owner: { login: string }; name: string } } =>
+            !!(r && r.repository && r.repository.owner && r.repository.owner.login)
+        )
+        .map((r: { repository: { owner: { login: string }; name: string } }) => ({
+          owner: r.repository.owner.login,
+          name: r.repository.name,
+        }));
+    }
+  } catch {
+    // silent
+  }
+
+  if (topRepos.length === 0) return punchCard;
+
+  const commitQuery = `
+    query($owner: String!, $name: String!) {
+      repository(owner: $owner, name: $name) {
+        defaultBranchRef {
+          target {
+            ... on Commit {
+              history(first: 100) {
+                nodes {
+                  committedDate
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  await runCappedConcurrency(topRepos, 3, async ({ owner, name }) => {
+    try {
+      const res = await fetchGraphQLWithRetry(
+        GITHUB_GRAPHQL_URL,
+        {
+          method: 'POST',
+          headers: getHeaders(token),
+          body: JSON.stringify({ query: commitQuery, variables: { owner, name } }),
+          cache: 'no-store',
+        },
+        0,
+        undefined,
+        token
+      );
+      if (!res.ok) return null;
+      const data = await res.json();
+      const nodes: { committedDate: string }[] =
+        data?.data?.repository?.defaultBranchRef?.target?.history?.nodes ?? [];
+      for (const node of nodes) {
+        const { day, hour } = getDayAndHourInTimezone(node.committedDate, timezone);
+        punchCard[day][hour]++;
+      }
+    } catch {
+      // skip
+    }
+    return null;
+  });
+
+  return punchCard;
 }
 
 export async function runCappedConcurrency<T, R>(
@@ -2883,4 +3276,31 @@ function getMockRepo(repoName: string): GitHubRepo {
     forks_count: 0,
     participation: [],
   };
+}
+
+export async function checkGitHubHealth(): Promise<void> {
+  const query = `
+    query {
+      viewer {
+        login
+      }
+    }
+  `;
+
+  const response = await fetchWithRetry(GITHUB_GRAPHQL_URL, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ query }),
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error(`GitHub API returned ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  if (data.errors) {
+    throw new Error(getGraphQLErrorMessage(data.errors));
+  }
 }
