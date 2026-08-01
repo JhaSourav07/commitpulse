@@ -22,6 +22,11 @@ describe('EditorPanel Type Compiler Validation', () => {
       showArticles?: boolean;
       articlesPlatform?: 'devto' | 'hashnode';
       articlesUsername?: string;
+      showHeroImage?: boolean;
+      heroImageUrl?: string;
+      heroImageWidth?: string;
+      heroImageAlign?: 'left' | 'center' | 'right';
+      heroImageAlt?: string;
     }>();
   });
 
