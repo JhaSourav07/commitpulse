@@ -153,7 +153,7 @@ describe('SuggestRepoModal', () => {
     });
 
     const submitBtn = screen.getByRole('button', { name: 'Submit Suggestion' });
-    
+
     await act(async () => {
       fireEvent.click(submitBtn);
     });

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { X, GitPullRequest, AlertCircle } from 'lucide-react';
 
 export interface SuggestRepoModalProps {
@@ -16,16 +16,24 @@ export default function SuggestRepoModal({ isOpen, onClose, onSubmit }: SuggestR
   const [errorMsg, setErrorMsg] = useState('');
   const modalRef = useRef<HTMLDivElement>(null);
 
+  const handleClose = useCallback(() => {
+    setRepoUrl('');
+    setReason('');
+    setErrorMsg('');
+    setIsSubmitting(false);
+    onClose();
+  }, [onClose]);
+
   useEffect(() => {
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') handleClose();
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, handleClose]);
 
   useEffect(() => {
     if (isOpen) {
@@ -33,10 +41,6 @@ export default function SuggestRepoModal({ isOpen, onClose, onSubmit }: SuggestR
       modalRef.current?.focus();
     } else {
       document.body.style.overflow = '';
-      setRepoUrl('');
-      setReason('');
-      setErrorMsg('');
-      setIsSubmitting(false);
     }
     return () => {
       document.body.style.overflow = '';
@@ -73,7 +77,7 @@ export default function SuggestRepoModal({ isOpen, onClose, onSubmit }: SuggestR
       if (onSubmit) {
         await onSubmit({ repoUrl: repoUrl.trim(), reason: reason.trim() });
       }
-      onClose();
+      handleClose();
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Failed to submit repository suggestion.');
     } finally {
@@ -91,7 +95,7 @@ export default function SuggestRepoModal({ isOpen, onClose, onSubmit }: SuggestR
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
+        onClick={handleClose}
         aria-hidden="true"
       />
 
@@ -111,7 +115,7 @@ export default function SuggestRepoModal({ isOpen, onClose, onSubmit }: SuggestR
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             aria-label="Close suggest repository modal"
             className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-white/10 transition-colors"
           >
@@ -189,7 +193,7 @@ export default function SuggestRepoModal({ isOpen, onClose, onSubmit }: SuggestR
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-black/10 dark:border-white/10">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors"
             >
               Cancel
