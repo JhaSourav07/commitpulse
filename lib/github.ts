@@ -629,6 +629,10 @@ export const contributionsCache = new DistributedCache<CachedContributions>(1000
 const profileCache = new DistributedCache<GitHubUserProfile>(1000);
 const reposCache = new DistributedCache<GitHubRepo[]>(500);
 const contributedReposCache = new DistributedCache<ContributedRepo[]>(500);
+const popularReposCache = new DistributedCache<PopularRepo[]>(500);
+const pinnedReposCache = new DistributedCache<PopularRepo[]>(500);
+const starredReposCache = new DistributedCache<PopularRepo[]>(500);
+const deploymentsCache = new DistributedCache<import('../types/dashboard').DeploymentData[]>(500);
 
 interface GitHubUserProfile {
   login: string;
@@ -677,21 +681,45 @@ function sanitizeRepo(repo: GitHubRepo): GitHubRepo {
 }
 
 export function cacheKey(
-  kind: 'contributions' | 'profile' | 'repos' | 'repos:contributed',
+  kind:
+    | 'contributions'
+    | 'profile'
+    | 'repos'
+    | 'repos:contributed'
+    | 'popular'
+    | 'pinned'
+    | 'starred'
+    | 'deployments',
   username: string,
   year?: string,
   to?: string,
   org?: string
 ): string;
 export function cacheKey(
-  kind: 'contributions' | 'profile' | 'repos' | 'repos:contributed',
+  kind:
+    | 'contributions'
+    | 'profile'
+    | 'repos'
+    | 'repos:contributed'
+    | 'popular'
+    | 'pinned'
+    | 'starred'
+    | 'deployments',
   username: string,
   from?: string,
   to?: string,
   org?: string
 ): string;
 export function cacheKey(
-  kind: 'contributions' | 'profile' | 'repos' | 'repos:contributed',
+  kind:
+    | 'contributions'
+    | 'profile'
+    | 'repos'
+    | 'repos:contributed'
+    | 'popular'
+    | 'pinned'
+    | 'starred'
+    | 'deployments',
   username: string,
   yearOrFrom?: string,
   to?: string,
@@ -716,6 +744,10 @@ export function clearGitHubApiCacheForTests(): void {
   profileCache.clear();
   reposCache.clear();
   contributedReposCache.clear();
+  popularReposCache.clear();
+  pinnedReposCache.clear();
+  starredReposCache.clear();
+  deploymentsCache.clear();
   rateLimitedTokens.clear();
   orgNodeIdCache.clear();
   tokenStats.clear();
@@ -1984,12 +2016,62 @@ export interface PopularRepo {
 }
 
 export async function fetchPinnedRepos(username: string, token?: string): Promise<PopularRepo[]> {
-  const query = `
-    query($login: String!) {
-      user(login: $login) {
-        pinnedItems(first: 6, types: REPOSITORY) {
-          nodes {
-            ... on Repository {
+  const key = cacheKey('pinned', username);
+  const load = async () => {
+    const query = `
+      query($login: String!) {
+        user(login: $login) {
+          pinnedItems(first: 6, types: REPOSITORY) {
+            nodes {
+              ... on Repository {
+                name
+                description
+                stargazerCount
+                forkCount
+                url
+                createdAt
+                updatedAt
+                primaryLanguage {
+                  name
+                  color
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+    try {
+      const res = await fetchWithRetry(
+        GITHUB_GRAPHQL_URL,
+        {
+          method: 'POST',
+          headers: getHeaders(token),
+          body: JSON.stringify({ query, variables: { login: username } }),
+          cache: 'no-store',
+        },
+        0,
+        undefined,
+        token
+      );
+      if (!res.ok) return [];
+      const data = await res.json();
+      return (data?.data?.user?.pinnedItems?.nodes ?? []) as PopularRepo[];
+    } catch {
+      return [];
+    }
+  };
+  return await pinnedReposCache.getOrSet(key, load, GITHUB_CACHE_TTL_MS);
+}
+
+async function fetchPopularRepos(username: string, token?: string): Promise<PopularRepo[]> {
+  const key = cacheKey('popular', username);
+  const load = async () => {
+    const query = `
+      query($login: String!) {
+        user(login: $login) {
+          repositories(first: 6, orderBy: { field: STARGAZERS, direction: DESC }, ownerAffiliations: OWNER, isFork: false) {
+            nodes {
               name
               description
               stargazerCount
@@ -2005,113 +2087,75 @@ export async function fetchPinnedRepos(username: string, token?: string): Promis
           }
         }
       }
+    `;
+    try {
+      const res = await fetchWithRetry(
+        GITHUB_GRAPHQL_URL,
+        {
+          method: 'POST',
+          headers: getHeaders(token),
+          body: JSON.stringify({ query, variables: { login: username } }),
+          cache: 'no-store',
+        },
+        0,
+        undefined,
+        token
+      );
+      if (!res.ok) return [];
+      const data = await res.json();
+      return (data?.data?.user?.repositories?.nodes ?? []) as PopularRepo[];
+    } catch {
+      return [];
     }
-  `;
-  try {
-    const res = await fetchWithRetry(
-      GITHUB_GRAPHQL_URL,
-      {
-        method: 'POST',
-        headers: getHeaders(token),
-        body: JSON.stringify({ query, variables: { login: username } }),
-        cache: 'no-store',
-      },
-      0,
-      undefined,
-      token
-    );
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data?.data?.user?.pinnedItems?.nodes ?? []) as PopularRepo[];
-  } catch {
-    return [];
-  }
-}
-
-async function fetchPopularRepos(username: string, token?: string): Promise<PopularRepo[]> {
-  const query = `
-    query($login: String!) {
-      user(login: $login) {
-        repositories(first: 6, orderBy: { field: STARGAZERS, direction: DESC }, ownerAffiliations: OWNER, isFork: false) {
-          nodes {
-            name
-            description
-            stargazerCount
-            forkCount
-            url
-            createdAt
-            updatedAt
-            primaryLanguage {
-              name
-              color
-            }
-          }
-        }
-      }
-    }
-  `;
-  try {
-    const res = await fetchWithRetry(
-      GITHUB_GRAPHQL_URL,
-      {
-        method: 'POST',
-        headers: getHeaders(token),
-        body: JSON.stringify({ query, variables: { login: username } }),
-        cache: 'no-store',
-      },
-      0,
-      undefined,
-      token
-    );
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data?.data?.user?.repositories?.nodes ?? []) as PopularRepo[];
-  } catch {
-    return [];
-  }
+  };
+  return await popularReposCache.getOrSet(key, load, GITHUB_CACHE_TTL_MS);
 }
 
 async function fetchStarredRepos(username: string, token?: string): Promise<PopularRepo[]> {
-  const query = `
-    query($login: String!) {
-      user(login: $login) {
-        starredRepositories(first: 6, orderBy: { field: STARRED_AT, direction: DESC }) {
-          nodes {
-            name
-            description
-            stargazerCount
-            forkCount
-            url
-            createdAt
-            updatedAt
-            primaryLanguage {
+  const key = cacheKey('starred', username);
+  const load = async () => {
+    const query = `
+      query($login: String!) {
+        user(login: $login) {
+          starredRepositories(first: 6, orderBy: { field: STARRED_AT, direction: DESC }) {
+            nodes {
               name
-              color
+              description
+              stargazerCount
+              forkCount
+              url
+              createdAt
+              updatedAt
+              primaryLanguage {
+                name
+                color
+              }
             }
           }
         }
       }
+    `;
+    try {
+      const res = await fetchWithRetry(
+        GITHUB_GRAPHQL_URL,
+        {
+          method: 'POST',
+          headers: getHeaders(token),
+          body: JSON.stringify({ query, variables: { login: username } }),
+          cache: 'no-store',
+        },
+        0,
+        undefined,
+        token
+      );
+      if (!res.ok) return [];
+      const data = await res.json();
+      return (data?.data?.user?.starredRepositories?.nodes ?? []) as PopularRepo[];
+    } catch {
+      return [];
     }
-  `;
-  try {
-    const res = await fetchWithRetry(
-      GITHUB_GRAPHQL_URL,
-      {
-        method: 'POST',
-        headers: getHeaders(token),
-        body: JSON.stringify({ query, variables: { login: username } }),
-        cache: 'no-store',
-      },
-      0,
-      undefined,
-      token
-    );
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data?.data?.user?.starredRepositories?.nodes ?? []) as PopularRepo[];
-  } catch {
-    return [];
-  }
+  };
+  return await starredReposCache.getOrSet(key, load, GITHUB_CACHE_TTL_MS);
 }
 
 /* ==========================================================================
@@ -2232,66 +2276,70 @@ async function fetchDeploymentTrackerData(
   limit = 3,
   token?: string
 ): Promise<import('../types/dashboard').DeploymentData[]> {
-  // Only consider non-fork repos, most-recently-pushed first (reposData is
-  // already sorted by `pushed` from fetchUserRepos). Check a slightly larger
-  // candidate pool than `limit` since some repos won't have any deployments.
-  const candidates = reposData.filter((r) => !r.fork).slice(0, limit * 4);
-  if (candidates.length === 0) return [];
+  const key = cacheKey('deployments', username);
+  const load = async () => {
+    // Only consider non-fork repos, most-recently-pushed first (reposData is
+    // already sorted by `pushed` from fetchUserRepos). Check a slightly larger
+    // candidate pool than `limit` since some repos won't have any deployments.
+    const candidates = reposData.filter((r) => !r.fork).slice(0, limit * 4);
+    if (candidates.length === 0) return [];
 
-  const results = await Promise.all(
-    candidates.map(async (repo) => {
-      const owner = repo.owner?.login || username;
-      const [workflowRun, deploymentInfo] = await Promise.all([
-        fetchLatestWorkflowRun(owner, repo.name, token),
-        fetchLatestDeployment(owner, repo.name, token),
-      ]);
+    const results = await Promise.all(
+      candidates.map(async (repo) => {
+        const owner = repo.owner?.login || username;
+        const [workflowRun, deploymentInfo] = await Promise.all([
+          fetchLatestWorkflowRun(owner, repo.name, token),
+          fetchLatestDeployment(owner, repo.name, token),
+        ]);
 
-      // Skip repos with no shipping signal at all
-      if (!workflowRun && !deploymentInfo) return null;
+        // Skip repos with no shipping signal at all
+        if (!workflowRun && !deploymentInfo) return null;
 
-      const liveUrl = deploymentInfo?.deploymentStatus?.environment_url || repo.homepage || null;
+        const liveUrl = deploymentInfo?.deploymentStatus?.environment_url || repo.homepage || null;
 
-      const status = workflowRun
-        ? mapConclusionToStatus(workflowRun.status, workflowRun.conclusion)
-        : deploymentInfo?.deploymentStatus
-          ? deploymentInfo.deploymentStatus.state === 'success'
-            ? 'success'
-            : deploymentInfo.deploymentStatus.state === 'failure' ||
-                deploymentInfo.deploymentStatus.state === 'error'
-              ? 'failure'
-              : deploymentInfo.deploymentStatus.state === 'pending' ||
-                  deploymentInfo.deploymentStatus.state === 'in_progress'
-                ? 'in_progress'
-                : 'unknown'
-          : 'unknown';
+        const status = workflowRun
+          ? mapConclusionToStatus(workflowRun.status, workflowRun.conclusion)
+          : deploymentInfo?.deploymentStatus
+            ? deploymentInfo.deploymentStatus.state === 'success'
+              ? 'success'
+              : deploymentInfo.deploymentStatus.state === 'failure' ||
+                  deploymentInfo.deploymentStatus.state === 'error'
+                ? 'failure'
+                : deploymentInfo.deploymentStatus.state === 'pending' ||
+                    deploymentInfo.deploymentStatus.state === 'in_progress'
+                  ? 'in_progress'
+                  : 'unknown'
+            : 'unknown';
 
-      const deployedAt =
-        deploymentInfo?.deploymentStatus?.created_at ||
-        deploymentInfo?.deployment.created_at ||
-        workflowRun?.created_at ||
-        null;
+        const deployedAt =
+          deploymentInfo?.deploymentStatus?.created_at ||
+          deploymentInfo?.deployment.created_at ||
+          workflowRun?.created_at ||
+          null;
 
-      const deployment: import('../types/dashboard').DeploymentData = {
-        repoName: repo.name,
-        repoUrl: `https://github.com/${owner}/${repo.name}`,
-        liveUrl,
-        status,
-        deployedAt,
-        environment: deploymentInfo?.deployment.environment || 'production',
-        workflowName: workflowRun?.name || null,
-      };
-      return deployment;
-    })
-  );
+        const deployment: import('../types/dashboard').DeploymentData = {
+          repoName: repo.name,
+          repoUrl: `https://github.com/${owner}/${repo.name}`,
+          liveUrl,
+          status,
+          deployedAt,
+          environment: deploymentInfo?.deployment.environment || 'production',
+          workflowName: workflowRun?.name || null,
+        };
+        return deployment;
+      })
+    );
 
-  return results
-    .filter((d): d is import('../types/dashboard').DeploymentData => d !== null)
-    .sort((a, b) => {
-      const aTime = a.deployedAt ? new Date(a.deployedAt).getTime() : 0;
-      const bTime = b.deployedAt ? new Date(b.deployedAt).getTime() : 0;
-      return bTime - aTime;
-    })
-    .slice(0, limit);
+    return results
+      .filter((d): d is import('../types/dashboard').DeploymentData => d !== null)
+      .sort((a, b) => {
+        const aTime = a.deployedAt ? new Date(a.deployedAt).getTime() : 0;
+        const bTime = b.deployedAt ? new Date(b.deployedAt).getTime() : 0;
+        return bTime - aTime;
+      })
+      .slice(0, limit);
+  };
+  return await deploymentsCache.getOrSet(key, load, GITHUB_CACHE_TTL_MS);
 }
 
 export async function getFullDashboardData(username: string, options: FetchOptions = {}) {
