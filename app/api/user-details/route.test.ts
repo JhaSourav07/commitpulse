@@ -97,6 +97,22 @@ describe('GET /api/user-details', () => {
     expect(body.error).toBe('User not found');
   });
 
+  it('returns 503 with a structured response when the GitHub token is missing', async () => {
+    vi.mocked(fetchUserProfile).mockRejectedValue(
+      new Error('GitHub token is missing. Set GITHUB_PAT or GITHUB_TOKEN.')
+    );
+
+    const response = await GET(makeRequest({ username: 'testuser' }));
+
+    expect(response.status).toBe(503);
+
+    const body = await response.json();
+    expect(body).toEqual({
+      code: 'GITHUB_TOKEN_MISSING',
+      error: 'GitHub authentication is not configured for this environment.',
+    });
+  });
+
   it('gracefully handles contributions fetch failure and returns profile details', async () => {
     vi.mocked(fetchGitHubContributions).mockRejectedValue(new Error('API limit reached'));
     const response = await GET(makeRequest({ username: 'testuser' }));

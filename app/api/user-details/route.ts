@@ -87,9 +87,21 @@ export async function GET(request: Request) {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : '';
+
+    if (message.includes('GitHub token is missing')) {
+      return NextResponse.json(
+        {
+          code: 'GITHUB_TOKEN_MISSING',
+          error: 'GitHub authentication is not configured for this environment.',
+        },
+        { status: 503 }
+      );
+    }
+
     if (message.includes('not found') || message.includes('404')) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
+
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
