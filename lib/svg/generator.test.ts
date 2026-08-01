@@ -25,16 +25,16 @@ import { themes } from './themes';
 describe('generateSideBySideSkylineSVG', () => {
   const mockStats: StreakStats = {
     totalContributions: 100,
-    firstContribution: '2023-01-01',
-    longestStreak: { start: '2023-01-01', end: '2023-01-05', length: 5 },
-    currentStreak: { start: '2023-01-01', end: '2023-01-05', length: 5 },
+    todayDate: '2023-01-01',
+    longestStreak: 5,
+    currentStreak: 5,
   };
 
   const mockCalendar: ContributionCalendar = {
     totalContributions: 100,
     weeks: [
       {
-        contributionDays: [{ contributionCount: 5, date: '2023-01-01', color: '#ebedf0' }],
+        contributionDays: [{ contributionCount: 5, date: '2023-01-01' }],
       },
     ],
   };
