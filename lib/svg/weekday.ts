@@ -1,6 +1,6 @@
-// lib/svg/weekday.ts
-
-import type { BadgeParams, ContributionCalendar, StreakStats } from '@/types';
+import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
+import { escapeXML } from './sanitizer';
+import { truncateUsername } from './generator';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -48,6 +48,7 @@ export function generateWeekdaySVG(
   params: BadgeParams,
   calendar: ContributionCalendar
 ): string {
+  const safeUser = escapeXML(truncateUsername(params.user || 'User'));
   let grouped = groupByWeekday(calendar);
 
   if (params.hide_weekend) {

@@ -969,7 +969,7 @@ export function generateSVG(
 
   const isAnimationDisabled = params.animations === false || params.disable_animations === true;
   const animate = isAnimationDisabled ? false : (params.animate ?? true);
-  const effectiveEntrance = isAnimationDisabled ? 'none' : (params.entrance || 'rise');
+  const effectiveEntrance = isAnimationDisabled ? 'none' : params.entrance || 'rise';
   const safeUser = escapeXML(params.user || 'GitHub User');
   const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
   const bgFill =
