@@ -386,7 +386,7 @@ export async function GET(request: Request) {
 
       grace: Math.max(
         0,
-        Math.min(7, typeof grace === 'number' ? grace : parseInt(String(grace || 1), 10))
+        Math.min(7, typeof grace === 'number' ? grace : parseInt(String(grace || 1, 10), 10))
       ),
 
       mode,
