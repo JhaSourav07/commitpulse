@@ -626,7 +626,7 @@ export interface CachedContributions {
 }
 
 export const contributionsCache = new DistributedCache<CachedContributions>(1000);
-const profileCache = new DistributedCache<GitHubUserProfile>(1000);
+export const profileCache = new DistributedCache<GitHubUserProfile>(1000);
 const reposCache = new DistributedCache<GitHubRepo[]>(500);
 const contributedReposCache = new DistributedCache<ContributedRepo[]>(500);
 
@@ -724,6 +724,8 @@ export function clearGitHubApiCacheForTests(): void {
   // Issue #7380: reset the mutex so tests start from a clean (unlocked) state.
   tokenIndexLock = Promise.resolve();
   globalCircuitBreakerOpenUntil = 0;
+  activeProfilePromises.clear();
+  activeContributionsPromises.clear();
 }
 
 function getGitHubToken(): string {
@@ -889,6 +891,7 @@ export function getCircuitTelemetry() {
 
 const FETCH_TIMEOUT_MS = Number(process.env.GITHUB_FETCH_TIMEOUT_MS ?? '4000');
 const activeContributionsPromises = new Map<string, Promise<ExtendedContributionData>>();
+const activeProfilePromises = new Map<string, Promise<GitHubUserProfile>>();
 
 export function getMockContributions(): ExtendedContributionData {
   return {
@@ -1254,6 +1257,28 @@ export function getMockProfile(username: string): GitHubUserProfile {
   };
 }
 
+function wrapWithSignal<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) return promise;
+  if (signal.aborted) return Promise.reject(new Error('AbortError'));
+
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => {
+      reject(new Error('AbortError'));
+    };
+    signal.addEventListener('abort', onAbort);
+    promise.then(
+      (val) => {
+        signal.removeEventListener('abort', onAbort);
+        resolve(val);
+      },
+      (err) => {
+        signal.removeEventListener('abort', onAbort);
+        reject(err);
+      }
+    );
+  });
+}
+
 export async function fetchUserProfile(
   username: string,
   options: FetchOptions = {}
@@ -1261,14 +1286,29 @@ export async function fetchUserProfile(
   const key = cacheKey('profile', username);
   const encodedUsername = encodeURIComponent(username);
 
-  const load = async () => {
-    return fetchProfileUncached(encodedUsername, key, options);
+  const getPendingPromise = () => {
+    let pending = activeProfilePromises.get(key);
+    if (!pending) {
+      const load = async () => {
+        const fetchOptions = { ...options, signal: undefined };
+        return fetchProfileUncached(encodedUsername, key, fetchOptions);
+      };
+      pending = load().finally(() => {
+        activeProfilePromises.delete(key);
+      });
+      activeProfilePromises.set(key, pending);
+    }
+    return pending;
   };
 
   if (options.bypassCache || options.forceRefresh) {
     try {
-      return await load();
+      const pending = getPendingPromise();
+      return await wrapWithSignal(pending, options.signal);
     } catch (err) {
+      if (options.signal?.aborted) {
+        throw err;
+      }
       if (shouldFallbackOnError(err)) {
         const stale = await profileCache.get(key);
         if (stale) {
@@ -1285,8 +1325,17 @@ export async function fetchUserProfile(
   }
 
   try {
-    return await profileCache.getOrSet(key, load, GITHUB_CACHE_TTL_MS);
+    const cached = await profileCache.get(key);
+    if (cached !== null) {
+      return cached;
+    }
+
+    const pending = getPendingPromise();
+    return await wrapWithSignal(pending, options.signal);
   } catch (err) {
+    if (options.signal?.aborted) {
+      throw err;
+    }
     if (shouldFallbackOnError(err)) {
       const stale = await profileCache.get(key);
       if (stale) {
