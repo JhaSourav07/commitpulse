@@ -2,7 +2,13 @@
 
 import { useState, useMemo } from 'react';
 import { Search, X } from 'lucide-react';
-import { TECHNOLOGIES, TECH_CATEGORIES, getShieldsBadgeUrl } from '../../data/technologies';
+import {
+  TECHNOLOGIES,
+  TECH_CATEGORIES,
+  getShieldsBadgeUrl,
+  DEFAULT_SHIELDS_BG_COLOR,
+  DEFAULT_SHIELDS_LOGO_COLOR,
+} from '../../data/technologies';
 import { SectionCard, FieldLabel } from '../SectionCard';
 import type { Technology, TechIconDisplay } from '../../types';
 import { getRecommendations } from '@/lib/graph/recommendationEngine';
@@ -14,6 +20,10 @@ interface TechnologiesSectionProps {
   onReset?: () => void;
   iconDisplay?: TechIconDisplay;
   onIconDisplayChange?: (v: TechIconDisplay) => void;
+  badgeBgColor?: string;
+  onBadgeBgColorChange?: (v: string) => void;
+  badgeLogoColor?: string;
+  onBadgeLogoColorChange?: (v: string) => void;
 }
 
 const ICON_DISPLAY_OPTIONS: { value: TechIconDisplay; label: string }[] = [
@@ -42,8 +52,16 @@ export function TechnologiesSection({
   onReset,
   iconDisplay = 'logo',
   onIconDisplayChange = () => {},
+  badgeBgColor = '',
+  onBadgeBgColorChange = () => {},
+  badgeLogoColor = '',
+  onBadgeLogoColorChange = () => {},
 }: TechnologiesSectionProps) {
   const safeSelected = useMemo(() => (Array.isArray(selected) ? selected : []), [selected]);
+  const safeBgColor = badgeBgColor.replace(/^#/, '');
+  const safeLogoColor = badgeLogoColor.replace(/^#/, '');
+  const bgColorIsValid = /^[0-9a-fA-F]{6}$/.test(safeBgColor);
+  const logoColorIsValid = /^[0-9a-fA-F]{6}$/.test(safeLogoColor);
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [recCategory, setRecCategory] = useState<string>('All');
@@ -310,6 +328,87 @@ export function TechnologiesSection({
               </button>
             ))}
           </div>
+
+          {iconDisplay === 'logo-name' && (
+            <div className="mt-3 flex flex-wrap items-start gap-4 p-3 rounded-xl border border-gray-200/70 dark:border-white/10 bg-gray-50/60 dark:bg-white/[0.02]">
+              <div>
+                <FieldLabel htmlFor="tech-badge-bg-color">Background Colour</FieldLabel>
+                <div className="flex items-center gap-2">
+                  <div className="relative flex items-center">
+                    <span className="absolute left-3 text-xs text-gray-400 dark:text-white/30 select-none">
+                      #
+                    </span>
+                    <input
+                      id="tech-badge-bg-color"
+                      type="text"
+                      value={safeBgColor}
+                      onChange={(e) => onBadgeBgColorChange(e.target.value.replace(/^#/, ''))}
+                      placeholder={DEFAULT_SHIELDS_BG_COLOR}
+                      maxLength={6}
+                      spellCheck={false}
+                      className="w-28 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 pl-7 pr-3 py-2 text-sm font-mono text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40 transition-colors"
+                    />
+                  </div>
+                  <div
+                    className="w-8 h-8 rounded-lg border border-gray-200 dark:border-white/10 flex-shrink-0 transition-colors"
+                    style={{
+                      background: bgColorIsValid
+                        ? `#${safeBgColor}`
+                        : `#${DEFAULT_SHIELDS_BG_COLOR}`,
+                    }}
+                  />
+                </div>
+                {safeBgColor && !bgColorIsValid && (
+                  <p className="text-[11px] text-amber-500 mt-1">Invalid hex</p>
+                )}
+              </div>
+
+              <div>
+                <FieldLabel htmlFor="tech-badge-logo-color">Logo Colour</FieldLabel>
+                <div className="flex items-center gap-2">
+                  <div className="relative flex items-center">
+                    <span className="absolute left-3 text-xs text-gray-400 dark:text-white/30 select-none">
+                      #
+                    </span>
+                    <input
+                      id="tech-badge-logo-color"
+                      type="text"
+                      value={safeLogoColor}
+                      onChange={(e) => onBadgeLogoColorChange(e.target.value.replace(/^#/, ''))}
+                      placeholder={DEFAULT_SHIELDS_LOGO_COLOR}
+                      maxLength={6}
+                      spellCheck={false}
+                      className="w-28 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 pl-7 pr-3 py-2 text-sm font-mono text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40 transition-colors"
+                    />
+                  </div>
+                  <div
+                    className="w-8 h-8 rounded-lg border border-gray-200 dark:border-white/10 flex-shrink-0 transition-colors"
+                    style={{
+                      background: logoColorIsValid
+                        ? `#${safeLogoColor}`
+                        : `#${DEFAULT_SHIELDS_LOGO_COLOR}`,
+                    }}
+                  />
+                </div>
+                {safeLogoColor && !logoColorIsValid && (
+                  <p className="text-[11px] text-amber-500 mt-1">Invalid hex</p>
+                )}
+              </div>
+
+              {(safeBgColor || safeLogoColor) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onBadgeBgColorChange('');
+                    onBadgeLogoColorChange('');
+                  }}
+                  className="self-center text-[11px] text-red-500 dark:text-red-400 hover:underline"
+                >
+                  Reset colours
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex flex-wrap gap-1.5 mb-4 overflow-x-auto pb-1">
@@ -355,9 +454,9 @@ export function TechnologiesSection({
                       // is used here instead of next/image.
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={getShieldsBadgeUrl(tech)}
+                        src={getShieldsBadgeUrl(tech, badgeBgColor, badgeLogoColor)}
                         alt={tech.name}
-                        className="h-4 object-contain"
+                        className="h-4 object-contain my-1"
                       />
                     ) : (
                       <>
