@@ -2,13 +2,26 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+export type CursorStyle = 'normal' | 'star' | 'bright';
+
+const CURSOR_STYLE_STORAGE_KEY = 'cursorStyle';
+const CURSOR_STYLE_EVENT = 'cursorstylechange';
+
+const STAR_CLIP_PATH =
+  'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)';
+
+const isValidCursorStyle = (value: string | null): value is CursorStyle =>
+  value === 'normal' || value === 'star' || value === 'bright';
+
 export default function AnimatedCursor() {
   const dotRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<HTMLDivElement>(null);
   const [isHovering, setIsHovering] = useState(false);
-
-  // const prefersReduced =
-  //   typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const [cursorStyle, setCursorStyle] = useState<CursorStyle>(() => {
+    if (typeof window === 'undefined') return 'normal';
+    const stored = window.localStorage.getItem(CURSOR_STYLE_STORAGE_KEY);
+    return isValidCursorStyle(stored) ? stored : 'normal';
+  });
 
   const isTestEnvironment = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
 
@@ -17,45 +30,34 @@ export default function AnimatedCursor() {
     typeof window !== 'undefined' &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // const [mounted, setMounted] = useState(false);
-  // ── Reduced motion: hide custom cursor entirely when user prefers it ──
-
-  // const [prefersReduced, setPrefersReduced] = useState(false);
-
-  //   useEffect(() => {
-  //   setMounted(true);
-
-  //   const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-
-  //   const handler = (e: MediaQueryListEvent) => {
-  //     setPrefersReduced(e.matches);
-  //   };
-
-  //   mq.addEventListener('change', handler);
-
-  //   return () => {
-  //     mq.removeEventListener('change', handler);
-  //   };
-  // }, []);
-  // ── End reduced motion guard ──────────────────────────────────────────
-  // useEffect(() => {
-  //   if (!mounted) return;
-
-  //   const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-  //   setPrefersReduced(mq.matches);
-  // }, [mounted]);
-
   const isHoveringRef = useRef(false);
 
   const mouse = useRef({ x: 0, y: 0 });
   const ring = useRef({ x: 0, y: 0 });
   const rafId = useRef<number>(0);
 
-  // Helper function to update both state (for DOM renders) and ref (for RAF loop)
   const setHover = (hovering: boolean) => {
     setIsHovering(hovering);
     isHoveringRef.current = hovering;
   };
+
+  // Load the persisted cursor style once on mount, and stay in sync with
+  // CursorStyleSwitcher via a custom event — matches the existing
+  // localStorage + native-event pattern already used for the site's
+  // dark/light theme, rather than introducing React context.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const onStyleChange = (e: Event) => {
+      const detail = (e as CustomEvent<CursorStyle>).detail;
+      if (isValidCursorStyle(detail)) {
+        setCursorStyle(detail);
+      }
+    };
+
+    window.addEventListener(CURSOR_STYLE_EVENT, onStyleChange);
+    return () => window.removeEventListener(CURSOR_STYLE_EVENT, onStyleChange);
+  }, []);
 
   useEffect(() => {
     // Single guard — bail out on touch/mobile devices
@@ -82,7 +84,6 @@ export default function AnimatedCursor() {
       rafId.current = requestAnimationFrame(animate);
     };
 
-    // Defined at effect scope so cleanup can reference them
     const onEnter = (e: MouseEvent) => {
       const el = e.target as HTMLElement;
       if (el.closest('a, button, [role="button"], .card, input, textarea')) {
@@ -102,7 +103,6 @@ export default function AnimatedCursor() {
     document.addEventListener('mouseout', onLeave);
     rafId.current = requestAnimationFrame(animate);
 
-    // Single cleanup — removes everything
     return () => {
       window.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseover', onEnter);
@@ -112,14 +112,14 @@ export default function AnimatedCursor() {
     };
   }, []);
 
-  // Render nothing when user prefers reduced motion — native cursor takes over
-  // if (!mounted) return null;
-
   if (prefersReduced) return null;
+
+  const isBright = cursorStyle === 'bright';
+  const isStar = cursorStyle === 'star';
 
   return (
     <>
-      {/* Sharp dot */}
+      {/* Sharp dot — shape/intensity varies by cursorStyle, position logic is unchanged */}
       <div
         ref={dotRef}
         style={{
@@ -128,23 +128,39 @@ export default function AnimatedCursor() {
           left: 0,
           width: 8,
           height: 8,
-          background: '#58a6ff',
-          borderRadius: '50%',
+          background: isBright ? '#7ee7ff' : '#58a6ff',
+          borderRadius: isStar ? 0 : '50%',
+          clipPath: isStar ? STAR_CLIP_PATH : undefined,
+          boxShadow: isBright
+            ? '0 0 6px 2px rgba(126, 231, 255, 1), 0 0 18px 6px rgba(88, 166, 255, 0.85), 0 0 32px 12px rgba(88, 166, 255, 0.45)'
+            : undefined,
           pointerEvents: 'none',
           zIndex: 9999,
           transition: 'opacity 0.2s',
         }}
       />
-      {/* Lagging ring */}
+      {/* Lagging ring — shape/intensity varies by cursorStyle, position logic is unchanged */}
       <div
         ref={ringRef}
         style={{
           position: 'fixed',
           top: 0,
           left: 0,
-          border: `1.5px solid ${isHovering ? '#58a6ff' : 'rgba(88,166,255,0.5)'}`,
-          background: isHovering ? 'rgba(88,166,255,0.08)' : 'transparent',
-          borderRadius: '50%',
+          border: isStar
+            ? 'none'
+            : `1.5px solid ${isHovering ? '#58a6ff' : 'rgba(88,166,255,0.5)'}`,
+          background: isStar
+            ? isHovering
+              ? '#58a6ff'
+              : 'rgba(88,166,255,0.5)'
+            : isHovering
+              ? 'rgba(88,166,255,0.08)'
+              : 'transparent',
+          borderRadius: isStar ? 0 : '50%',
+          clipPath: isStar ? STAR_CLIP_PATH : undefined,
+          boxShadow: isBright
+            ? `0 0 ${isHovering ? 16 : 10}px 3px rgba(126, 231, 255, 0.9), 0 0 ${isHovering ? 36 : 26}px 8px rgba(88, 166, 255, 0.5)`
+            : undefined,
           pointerEvents: 'none',
           zIndex: 9998,
           transition: 'width 0.2s, height 0.2s, border-color 0.2s, background 0.2s',

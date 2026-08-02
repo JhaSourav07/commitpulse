@@ -14,7 +14,7 @@ import { ArticlesSection } from './sections/ArticlesSection';
 import { GitHubImportModal } from './GitHubImportModal';
 import { FaGithub } from 'react-icons/fa';
 import { PROFILE_PRESETS } from '../data/presets';
-import type { GeneratorState } from '../types';
+import type { GeneratorState, TechIconDisplay } from '../types';
 import type { ImportedData } from '../utils/githubMapper';
 
 export interface EditorPanelProps {
@@ -27,6 +27,9 @@ export interface EditorPanelProps {
   onHeroImageAlignChange?: (v: 'left' | 'center' | 'right') => void;
   onHeroImageAltChange?: (v: string) => void;
   onTechsChange: (ids: string[]) => void;
+  onTechIconDisplayChange?: (v: TechIconDisplay) => void;
+  onTechBadgeBgColorChange?: (v: string) => void;
+  onTechBadgeLogoColorChange?: (v: string) => void;
   onSocialsChange: (ids: string[]) => void;
   onSocialLinkChange: (id: string, url: string) => void;
   onGithubUsernameChange: (v: string) => void;
@@ -59,6 +62,9 @@ export function EditorPanel({
   onHeroImageAlignChange = () => {},
   onHeroImageAltChange = () => {},
   onTechsChange,
+  onTechIconDisplayChange = () => {},
+  onTechBadgeBgColorChange = () => {},
+  onTechBadgeLogoColorChange = () => {},
   onSocialsChange,
   onSocialLinkChange,
   onGithubUsernameChange,
@@ -170,6 +176,12 @@ export function EditorPanel({
         selected={state.selectedTechs}
         onChange={onTechsChange}
         onReset={() => onTechsChange([])}
+        iconDisplay={state.techIconDisplay ?? 'logo'}
+        onIconDisplayChange={onTechIconDisplayChange}
+        badgeBgColor={state.techBadgeBgColor ?? ''}
+        onBadgeBgColorChange={onTechBadgeBgColorChange}
+        badgeLogoColor={state.techBadgeLogoColor ?? ''}
+        onBadgeLogoColorChange={onTechBadgeLogoColorChange}
       />
       <SocialsSection
         selected={state.selectedSocials}

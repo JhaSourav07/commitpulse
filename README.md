@@ -211,10 +211,23 @@ GITHUB_TOKEN=your_github_pat_here
 
 > Replace `your_github_pat_here` with your own GitHub Personal Access Token.
 
-> ⚠️ **Security Notice**
+> ⚠️ **GitHub Token Security Notice**
 >
+> **Minimum Scope Required**: Your GitHub Personal Access Token only requires the `read:user` scope.
+> This allows CommitPulse to fetch your public contribution data only.
+>
+> **Why Minimal Scope Matters**:
+>
+> - Granting excessive scopes (like `repo` or `admin:org`) creates a significant security risk.
+> - If your token is leaked via logs, environment variables, or version control, an attacker gains only read-only access to public user data.
+> - A token with `repo` scope would allow an attacker to read and write to all your repositories.
+>
+> **Best Practices**:
+>
+> - Create a Fine-Grained Personal Access Token at https://github.com/settings/tokens
+> - Select "No repositories" access and grant only `read:user` permission.
 > - Never commit `.env.local` or any file containing secrets to Git.
-> - Keep your Personal Access Token private.
+> - Keep your token private and rotate it regularly.
 > - If your token is ever exposed, revoke it immediately from your GitHub account and generate a new one.
 > - `.env.local` is intended for local development only and should remain untracked by Git.
 
@@ -223,9 +236,6 @@ GITHUB_TOKEN=your_github_pat_here
 ```bash
 npm run dev
 ```
-
-> **📌 Token Scope**: > Your GitHub Personal Access Token only requires the `read:user` scope.
-> Avoid granting additional permissions unless absolutely necessary, following the principle of least privilege.
 
 Then visit: `http://localhost:3000/api/streak?user=YOUR_USERNAME`
 

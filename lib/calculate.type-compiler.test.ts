@@ -39,6 +39,7 @@ describe('TypeScript Compiler Validation & Schema Constraints Stability (lib/cal
         timezone?: string,
         now?: Date,
         grace?: number,
+        vacationDates?: string[],
       ]
     >();
 

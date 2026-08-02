@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Flame } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -36,6 +36,7 @@ interface BurnoutReport {
 }
 
 function BurnoutAnalyzerContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState('');
   const [report, setReport] = useState<BurnoutReport | null>(null);
@@ -140,6 +141,20 @@ function BurnoutAnalyzerContent() {
   const loadSuggestion = (repoPath: string) => {
     setQuery(repoPath);
     handleSearch(undefined, repoPath);
+  };
+
+  const handleBackToSearch = () => {
+    setReport(null);
+    setError(null);
+    setIsLoading(false);
+    setQuery('');
+
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+
+    router.push('/burnout-analyzer');
   };
 
   return (
@@ -283,6 +298,7 @@ function BurnoutAnalyzerContent() {
               onRefresh={handleRefresh}
               isRefreshing={isRefreshing}
               report={report}
+              onBackToSearch={handleBackToSearch}
             />
 
             <div className="flex justify-between items-center gap-3 bg-white/50 dark:bg-black/30 backdrop-blur-md border border-black/10 dark:border-white/5 px-5 py-3 rounded-2xl shadow-sm">

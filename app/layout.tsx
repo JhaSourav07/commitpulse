@@ -8,6 +8,7 @@ import type { Metadata, Viewport } from 'next';
 import ScrollRestoration from './components/ScrollRestoration';
 import { Providers } from './providers';
 import AnimatedCursor from '@/components/AnimatedCursor';
+import CursorStyleSwitcher from '@/components/CursorStyleSwitcher';
 import KonamiEasterEgg from '@/components/KonamiEasterEgg';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -115,6 +116,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <ScrollRestoration />
           <AnimatedCursor />
+          <CursorStyleSwitcher />
           <BrandParticles />
           <Navbar />
           <main id="main-content" className="relative z-10">

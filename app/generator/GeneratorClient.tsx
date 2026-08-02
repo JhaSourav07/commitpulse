@@ -16,6 +16,9 @@ const INITIAL_STATE: GeneratorState = {
   name: '',
   description: '',
   selectedTechs: [],
+  techIconDisplay: 'logo',
+  techBadgeBgColor: '',
+  techBadgeLogoColor: '',
   selectedSocials: [],
   socialLinks: {},
   githubUsername: '',
@@ -110,6 +113,9 @@ export function GeneratorClient() {
           onTechsChange={(ids) =>
             setState((s) => ({ ...s, selectedTechs: Array.from(new Set(ids)) }))
           }
+          onTechIconDisplayChange={(v) => setState((s) => ({ ...s, techIconDisplay: v }))}
+          onTechBadgeBgColorChange={(v) => setState((s) => ({ ...s, techBadgeBgColor: v }))}
+          onTechBadgeLogoColorChange={(v) => setState((s) => ({ ...s, techBadgeLogoColor: v }))}
           onSocialsChange={(ids) =>
             setState((s) => ({ ...s, selectedSocials: Array.from(new Set(ids)) }))
           }

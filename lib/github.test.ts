@@ -14,6 +14,7 @@ import {
   buildInsights,
   buildActivityMap,
   contributionsCache,
+  profileCache,
 } from './github';
 import type { ContributionCalendar } from '../types';
 
@@ -571,7 +572,7 @@ describe('fetchCommitHourDistribution', () => {
             defaultBranchRef: {
               target: {
                 history: {
-                  nodes: [{ committedDate: isoTimestamp }],
+                  nodes: [{ author: { date: isoTimestamp } }],
                 },
               },
             },
@@ -623,7 +624,7 @@ describe('fetchCommitHourDistribution', () => {
             defaultBranchRef: {
               target: {
                 history: {
-                  nodes: [{ committedDate: isoTimestamp }],
+                  nodes: [{ author: { date: isoTimestamp } }],
                 },
               },
             },
@@ -639,7 +640,11 @@ describe('fetchCommitHourDistribution', () => {
 });
 
 describe('fetchUserProfile', () => {
-  beforeEach(() => vi.spyOn(global, 'fetch'));
+  beforeEach(() => {
+    vi.spyOn(global, 'fetch');
+    vi.spyOn(profileCache, 'get').mockResolvedValue(null);
+    vi.spyOn(profileCache, 'set').mockResolvedValue(undefined);
+  });
   afterEach(() => vi.restoreAllMocks());
 
   it('returns all profile fields on success', async () => {
@@ -727,6 +732,79 @@ describe('fetchUserProfile', () => {
   it('throws status code error on other failures', async () => {
     vi.mocked(fetch).mockResolvedValue(mockResponse({ message: 'Error' }, 500));
     await expect(fetchUserProfile('octocat')).rejects.toThrow('GitHub REST API error: 500');
+  });
+
+  it('dedupes concurrent profile requests for the same cold cache key', async () => {
+    let resolveFetch!: (response: Response) => void;
+    vi.mocked(fetch).mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveFetch = resolve;
+        })
+    );
+
+    const mockProfile = {
+      login: 'octocat',
+      name: 'The Octocat',
+      avatar_url: 'https://avatar.url',
+      public_repos: 8,
+      followers: 100,
+      following: 5,
+      created_at: '2011-01-25T18:44:36Z',
+      bio: 'GitHub mascot',
+      location: 'San Francisco',
+    };
+
+    const requests = Promise.all([
+      fetchUserProfile('octocat', { bypassCache: true }),
+      fetchUserProfile('octocat', { bypassCache: true }),
+      fetchUserProfile('octocat', { bypassCache: true }),
+    ]);
+
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+
+    resolveFetch(mockResponse(mockProfile));
+
+    const results = await requests;
+    expect(results.map((r) => r.login)).toEqual(['octocat', 'octocat', 'octocat']);
+  });
+
+  it('aborts only the requesting caller if its signal aborts while deduplicating profile request', async () => {
+    let resolveFetch!: (response: Response) => void;
+    vi.mocked(fetch).mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveFetch = resolve;
+        })
+    );
+
+    const mockProfile = {
+      login: 'octocat',
+      name: 'The Octocat',
+      avatar_url: 'https://avatar.url',
+      public_repos: 8,
+      followers: 100,
+      following: 5,
+      created_at: '2011-01-25T18:44:36Z',
+      bio: 'GitHub mascot',
+      location: 'San Francisco',
+    };
+
+    const controller = new AbortController();
+
+    const p1 = fetchUserProfile('octocat', { bypassCache: true });
+    const p2 = fetchUserProfile('octocat', { bypassCache: true, signal: controller.signal });
+
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+
+    controller.abort();
+
+    await expect(p2).rejects.toThrow('AbortError');
+
+    resolveFetch(mockResponse(mockProfile));
+
+    const res1 = await p1;
+    expect(res1.login).toBe('octocat');
   });
 });
 

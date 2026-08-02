@@ -57,6 +57,8 @@ import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
 import { logger, setRequestId, clearRequestId } from '@/lib/logger';
 
 import { normalizeCacheKey, cachedValidation } from './validation-cache';
+import dbConnect from '@/lib/mongodb';
+import { User } from '@/models/User';
 
 const SVG_CSP_HEADER =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
@@ -547,18 +549,67 @@ export async function GET(request: Request) {
     let fullVersusStats: StreakStats | undefined;
     let fullWeekdayStats: StreakStats | undefined;
 
+    const userVacationDates: string[] = [];
+    let versusVacationDates: string[] = [];
+    try {
+      if (process.env.MONGODB_URI) {
+        await dbConnect();
+        const usernames = user.split(',').map((u) => u.trim().toLowerCase());
+        const users = await User.find({ username: { $in: usernames } }).lean();
+        const vacationMap = new Map<string, string[]>();
+        users.forEach((u) => {
+          if (u.username && u.vacationDates) {
+            vacationMap.set(u.username.toLowerCase(), u.vacationDates);
+          }
+        });
+        usernames.forEach((uname) => {
+          const dates = vacationMap.get(uname);
+          if (dates) {
+            userVacationDates.push(...dates);
+          }
+        });
+
+        if (versus) {
+          const versusUser = await User.findOne({ username: versus.trim().toLowerCase() }).lean();
+          if (versusUser?.vacationDates) {
+            versusVacationDates = versusUser.vacationDates;
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch user vacation dates for streak:', err);
+    }
+
     if (versus && versusCalendar) {
       // Normalize both calendars to the target timezone for accurate comparison
       const normalizedCalendar = normalizeCalendarToTimezone(calendar, timezone);
       const normalizedVersusCalendar = normalizeCalendarToTimezone(versusCalendar, timezone);
 
-      fullStats = calculateStreak(normalizedCalendar, timezone, undefined, grace);
-      fullVersusStats = calculateStreak(normalizedVersusCalendar, timezone, undefined, grace);
+      fullStats = calculateStreak(
+        normalizedCalendar,
+        timezone,
+        undefined,
+        grace,
+        userVacationDates
+      );
+      fullVersusStats = calculateStreak(
+        normalizedVersusCalendar,
+        timezone,
+        undefined,
+        grace,
+        versusVacationDates
+      );
     } else {
-      fullStats = calculateStreak(calendar, timezone, undefined, grace);
+      fullStats = calculateStreak(calendar, timezone, undefined, grace, userVacationDates);
       if (normalizedView === 'weekday') {
         const normalizedCalendar = normalizeCalendarToTimezone(calendar, timezone);
-        fullWeekdayStats = calculateStreak(normalizedCalendar, timezone, undefined, grace);
+        fullWeekdayStats = calculateStreak(
+          normalizedCalendar,
+          timezone,
+          undefined,
+          grace,
+          userVacationDates
+        );
       }
     }
 

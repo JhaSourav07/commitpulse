@@ -25,6 +25,8 @@ export type SocialCategory =
 
 export type IconType = 'devicon' | 'simpleicon';
 
+export type TechIconDisplay = 'logo' | 'logo-name';
+
 export interface Technology {
   id: string;
   name: string;
@@ -48,6 +50,9 @@ export interface GeneratorState {
   name: string;
   description: string;
   selectedTechs: string[];
+  techIconDisplay?: TechIconDisplay;
+  techBadgeBgColor?: string;
+  techBadgeLogoColor?: string;
   selectedSocials: string[];
   socialLinks: Record<string, string>;
   githubUsername: string;
