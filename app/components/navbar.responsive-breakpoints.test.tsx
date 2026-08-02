@@ -101,7 +101,7 @@ describe('Navbar Responsive Breakpoints & Menu Toggle', () => {
     expect(screen.queryByText('Switch to Dark Mode')).toBeNull();
   });
 
-  it('3. Closes the mobile menu automatically when the window is resized to desktop (min-width: 1024px)', () => {
+  it('3. Closes the mobile menu automatically when the window is resized to desktop (min-width: 1100px)', () => {
     let changeHandler: ((e: MediaQueryListEvent) => void) | null = null;
 
     // Override the mock specifically to capture the resize event listener
