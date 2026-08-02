@@ -5,6 +5,37 @@ const DI = (name: string, variant = 'original') =>
 
 const SI = (slug: string) => `https://cdn.simpleicons.org/${slug}`;
 
+//shields.io badges exceptions are listed here.
+const SHIELDS_SLUG_OVERRIDES: Record<string, string> = {
+  nodejs: 'nodedotjs',
+  nextjs: 'nextdotjs',
+  nuxtjs: 'nuxtdotjs',
+  vuejs: 'vuedotjs',
+  angularjs: 'angular',
+  denojs: 'deno',
+  windows11: 'windows11',
+  'apple-os': 'apple',
+  openai: 'openai',
+};
+
+//Resolves the Simple Icons slug used by shields.io's `logo` query param for a given technology.
+export const getShieldsLogoSlug = (tech: Technology): string => {
+  if (tech.type === 'simpleicon') {
+    return tech.iconUrl.split('/').pop() || tech.id;
+  }
+  return SHIELDS_SLUG_OVERRIDES[tech.id] || tech.id;
+};
+
+const SHIELDS_BADGE_COLOR = '2b2b2b';
+
+//Builds a shields.io "for-the-badge" URL showing the technology's
+//logo + name together, used for the "Logo + Name" icon display mode.
+export const getShieldsBadgeUrl = (tech: Technology): string => {
+  const label = encodeURIComponent(tech.name).replace(/-/g, '--');
+  const slug = getShieldsLogoSlug(tech);
+  return `https://img.shields.io/badge/${label}-${SHIELDS_BADGE_COLOR}?style=for-the-badge&logo=${slug}&logoColor=white`;
+};
+
 export const TECHNOLOGIES: Technology[] = [
   {
     id: 'javascript',
