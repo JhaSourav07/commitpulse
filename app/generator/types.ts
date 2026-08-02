@@ -50,7 +50,7 @@ export interface GeneratorState {
   name: string;
   description: string;
   selectedTechs: string[];
-  techIconDisplay: TechIconDisplay;
+  techIconDisplay?: TechIconDisplay;
   techBadgeBgColor?: string;
   techBadgeLogoColor?: string;
   selectedSocials: string[];
