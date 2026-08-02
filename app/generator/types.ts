@@ -51,6 +51,8 @@ export interface GeneratorState {
   description: string;
   selectedTechs: string[];
   techIconDisplay: TechIconDisplay;
+  techBadgeBgColor?: string;
+  techBadgeLogoColor?: string;
   selectedSocials: string[];
   socialLinks: Record<string, string>;
   githubUsername: string;
