@@ -2,6 +2,8 @@ import 'server-only';
 import { getGitHubTokens } from '@/lib/github';
 import { DistributedCache } from '@/lib/cache';
 import { isBotAuthor } from '@/lib/bot-filter';
+import dbConnect from '@/lib/mongodb';
+import { User } from '@/models/User';
 
 interface ContributorWeekData {
   w: number; // week timestamp (Unix)
@@ -59,6 +61,18 @@ export interface BurnoutReport {
 }
 
 const reportCache = new DistributedCache<BurnoutReport>(200);
+
+/**
+ * Returns true if any vacation date falls within the 7-day window starting at weekStartUnix.
+ */
+function isWeekVacation(weekStartUnix: number, vacationDates: string[]): boolean {
+  if (!vacationDates || vacationDates.length === 0) return false;
+  const weekStart = new Date(weekStartUnix * 1000);
+  const weekEnd = new Date(weekStartUnix * 1000 + 6 * 24 * 60 * 60 * 1000);
+  const startStr = weekStart.toISOString().slice(0, 10);
+  const endStr = weekEnd.toISOString().slice(0, 10);
+  return vacationDates.some((d) => d >= startStr && d <= endStr);
+}
 
 let currentTokenIndex = 0;
 function getHeaders(userToken?: string) {
@@ -173,6 +187,29 @@ async function analyzeRepositoryUncached(
 
   const sortedRaw = [...filteredRawData].sort((a, b) => (b.total || 0) - (a.total || 0));
 
+  // Fetch vacation dates for all contributors from MongoDB
+  const vacationMap = new Map<string, string[]>();
+  try {
+    if (process.env.MONGODB_URI) {
+      await dbConnect();
+      const contributorUsernames = sortedRaw
+        .filter((c) => c.author?.login)
+        .map((c) => c.author.login.toLowerCase());
+      if (contributorUsernames.length > 0) {
+        const dbUsers = await User.find({
+          username: { $in: contributorUsernames },
+        }).lean();
+        dbUsers.forEach((u) => {
+          if (u.username && u.vacationDates && u.vacationDates.length > 0) {
+            vacationMap.set(u.username.toLowerCase(), u.vacationDates);
+          }
+        });
+      }
+    }
+  } catch (err) {
+    console.error('Failed to fetch vacation dates for burnout analysis:', err);
+  }
+
   for (const c of sortedRaw) {
     if (!c.author || !c.weeks || c.weeks.length === 0) continue;
 
@@ -181,9 +218,12 @@ async function analyzeRepositoryUncached(
     const userCommits = c.total || 0;
     const commitShare = totalCommits > 0 ? (userCommits / totalCommits) * 100 : 0;
 
-    // Get the last 12 weeks of contributions
+    const userVacationDates = vacationMap.get(username.toLowerCase()) ?? [];
 
-    const recentWeeks = c.weeks.slice(-12);
+    // Get the last 12 weeks of contributions, filtering out vacation weeks
+    const allRecentWeeks = c.weeks.slice(-12);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const recentWeeks = allRecentWeeks.filter((w: any) => !isWeekVacation(w.w, userVacationDates));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const recentTrend = recentWeeks.map((w: any) => w.c || 0);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

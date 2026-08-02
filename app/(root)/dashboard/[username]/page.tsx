@@ -4,6 +4,7 @@ import DashboardClient from '@/components/dashboard/DashboardClient';
 import DashboardSkeleton from '@/components/dashboard/DashboardSkeleton';
 import { getFullDashboardData, fetchUserProfile, fetchUserRepos } from '@/lib/github';
 import { getUserGitHubToken } from '@/lib/githubtoken';
+import { auth } from '@/auth';
 
 import type { RepoActivityInfo } from '@/types/dashboard';
 import { notFound, redirect } from 'next/navigation';
@@ -132,6 +133,8 @@ async function DashboardContent({
     to: searchParams?.to,
   });
   const userToken = await getUserGitHubToken();
+  const session = await auth();
+  const sessionUsername = (session?.user as { username?: string })?.username ?? null;
 
   let data;
 
@@ -198,6 +201,7 @@ async function DashboardContent({
         username={username}
         compareData={compareData}
         period={period}
+        sessionUsername={sessionUsername}
       />
     </DashboardPageWrapper>
   );
