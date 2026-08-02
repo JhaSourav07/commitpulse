@@ -1,9 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { generateSpotifySVG } from './spotify';
 import type { SpotifyTrackData } from '../../services/spotify/api';
-import { spotifyParamsSchema } from '../validations';
-
-const defaultParams = spotifyParamsSchema.parse({});
+import type { SpotifyParams } from '../validations';
 
 describe('[Bug fix] generateSpotifySVG truncates before escaping', () => {
   it('never produces a truncated/incomplete XML entity when a special character sits near the truncation boundary', async () => {
