@@ -46,7 +46,7 @@ function parseCidr(cidr: string): ParsedCidr | null {
   try {
     const [range, bitsStr] = cidr.split('/');
     const bits = parseInt(bitsStr, 10);
-    if (isNaN(bits) || bits < 0 || bits > 32) return null;
+    if (Number.isNaN(bits) || bits < 0 || bits > 32) return null;
     const rangeInt = ip4ToInt(range);
     const mask = bits === 0 ? 0 : bits === 32 ? 0xffffffff : ~((1 << (32 - bits)) - 1) >>> 0;
     return { rangeInt, mask };
@@ -94,7 +94,7 @@ export function ip6ToBigInt(ip: string): bigint | null {
   let intValue = BigInt(0);
   for (const part of parts) {
     const num = parseInt(part, 16);
-    if (isNaN(num) || num < 0 || num > 0xffff) return null;
+    if (Number.isNaN(num) || num < 0 || num > 0xffff) return null;
     intValue = (intValue << BigInt(16)) + BigInt(num);
   }
 
@@ -109,7 +109,7 @@ export function parseCidr6(cidr: string): ParsedCidr6 | null {
     const [range, bitsStr] = cidr.split('/');
     if (!bitsStr) return null;
     const bits = parseInt(bitsStr, 10);
-    if (isNaN(bits) || bits < 0 || bits > 128) return null;
+    if (Number.isNaN(bits) || bits < 0 || bits > 128) return null;
     const rangeBigInt = ip6ToBigInt(range);
     if (rangeBigInt === null) return null;
 
@@ -129,7 +129,7 @@ export function isIPv4InCidr(ip: string, cidr: string): boolean {
   try {
     const [range, bitsStr] = cidr.split('/');
     const bits = parseInt(bitsStr, 10);
-    if (isNaN(bits) || bits < 0 || bits > 32) return false;
+    if (Number.isNaN(bits) || bits < 0 || bits > 32) return false;
     const ipInt = ip4ToInt(ip);
     const rangeInt = ip4ToInt(range);
     if (bits === 0) return true;
@@ -148,7 +148,7 @@ export function isIPv4(ip: string): boolean {
   if (parts.length !== 4) return false;
   return parts.every((part) => {
     const num = parseInt(part, 10);
-    return !isNaN(num) && num >= 0 && num <= 255 && part === num.toString();
+    return !Number.isNaN(num) && num >= 0 && num <= 255 && part === num.toString();
   });
 }
 
