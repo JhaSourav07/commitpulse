@@ -102,6 +102,7 @@ export interface DashboardData {
   starredRepos?: Repository[];
   deployments?: DeploymentData[];
   hallOfFame?: HallOfFameAward[];
+  rawCommits?: string[];
 }
 
 interface DashboardClientProps {
@@ -755,6 +756,7 @@ export default function DashboardClient({
                   <ActivityHeatmapPro
                     activity={initialData.activity}
                     commitClock={initialData.commitClock}
+                    rawCommits={initialData.rawCommits}
                   />
                 </section>
 

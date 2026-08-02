@@ -26,3 +26,33 @@ export function processCommitTimestamps(commitDates: string[] | Date[]): TimeOfD
 
   return metrics;
 }
+
+/**
+ * Extracts the author's original local hour from a Git ISO timestamp string.
+ * Example: '2024-03-10T15:30:00+02:00' -> 15
+ */
+export function getAuthorLocalHour(isoDate: string): number {
+  if (!isoDate || typeof isoDate !== 'string') return 0;
+
+  if (isoDate.length >= 13) {
+    const hourStr = isoDate.substring(11, 13);
+    const hour = parseInt(hourStr, 10);
+    if (!isNaN(hour) && hour >= 0 && hour <= 23) {
+      return hour;
+    }
+  }
+
+  // Fallback for malformed strings
+  const parsed = new Date(isoDate);
+  return isNaN(parsed.getTime()) ? 0 : parsed.getHours();
+}
+
+/**
+ * Extracts the viewer's local hour from an ISO timestamp string.
+ * This converts the timestamp to the browser's local timezone.
+ */
+export function getViewerLocalHour(isoDate: string): number {
+  if (!isoDate) return 0;
+  const parsed = new Date(isoDate);
+  return isNaN(parsed.getTime()) ? 0 : parsed.getHours();
+}
