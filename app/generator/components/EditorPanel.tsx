@@ -28,6 +28,8 @@ export interface EditorPanelProps {
   onHeroImageAltChange?: (v: string) => void;
   onTechsChange: (ids: string[]) => void;
   onTechIconDisplayChange?: (v: TechIconDisplay) => void;
+  onTechBadgeBgColorChange?: (v: string) => void;
+  onTechBadgeLogoColorChange?: (v: string) => void;
   onSocialsChange: (ids: string[]) => void;
   onSocialLinkChange: (id: string, url: string) => void;
   onGithubUsernameChange: (v: string) => void;
@@ -61,6 +63,8 @@ export function EditorPanel({
   onHeroImageAltChange = () => {},
   onTechsChange,
   onTechIconDisplayChange = () => {},
+  onTechBadgeBgColorChange = () => {},
+  onTechBadgeLogoColorChange = () => {},
   onSocialsChange,
   onSocialLinkChange,
   onGithubUsernameChange,
@@ -174,6 +178,10 @@ export function EditorPanel({
         onReset={() => onTechsChange([])}
         iconDisplay={state.techIconDisplay ?? 'logo'}
         onIconDisplayChange={onTechIconDisplayChange}
+        badgeBgColor={state.techBadgeBgColor ?? ''}
+        onBadgeBgColorChange={onTechBadgeBgColorChange}
+        badgeLogoColor={state.techBadgeLogoColor ?? ''}
+        onBadgeLogoColorChange={onTechBadgeLogoColorChange}
       />
       <SocialsSection
         selected={state.selectedSocials}
