@@ -27,7 +27,7 @@ export function optimizePathData(d: string): string {
   optimized = optimized.replace(/[-+]?\d+\.\d+/g, (m) => {
     const val = parseFloat(m);
     let s = val.toFixed(2);
-    if (s.indexOf('.') !== -1) {
+    if (s.includes('.')) {
       s = s.replace(/0+$/, '');
       s = s.replace(/\.$/, '');
     }
@@ -110,7 +110,7 @@ export function optimizeSVG(svg: string): string {
   processed = processed.replace(/[-+]?\d+\.\d{3,}\b/g, (m) => {
     const val = parseFloat(m);
     let s = val.toFixed(2);
-    if (s.indexOf('.') !== -1) {
+    if (s.includes('.')) {
       s = s.replace(/0+$/, '');
       s = s.replace(/\.$/, '');
     }
