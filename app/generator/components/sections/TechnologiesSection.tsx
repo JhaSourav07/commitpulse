@@ -2,9 +2,9 @@
 
 import { useState, useMemo } from 'react';
 import { Search, X } from 'lucide-react';
-import { TECHNOLOGIES, TECH_CATEGORIES } from '../../data/technologies';
+import { TECHNOLOGIES, TECH_CATEGORIES, getShieldsBadgeUrl } from '../../data/technologies';
 import { SectionCard, FieldLabel } from '../SectionCard';
-import type { Technology } from '../../types';
+import type { Technology, TechIconDisplay } from '../../types';
 import { getRecommendations } from '@/lib/graph/recommendationEngine';
 import Image from 'next/image';
 
@@ -12,7 +12,14 @@ interface TechnologiesSectionProps {
   selected: string[];
   onChange: (ids: string[]) => void;
   onReset?: () => void;
+  iconDisplay?: TechIconDisplay;
+  onIconDisplayChange?: (v: TechIconDisplay) => void;
 }
+
+const ICON_DISPLAY_OPTIONS: { value: TechIconDisplay; label: string }[] = [
+  { value: 'logo', label: 'Logo Only' },
+  { value: 'logo-name', label: 'Logo + Name' },
+];
 
 function TechIcon({ tech, isDark }: { tech: Technology; isDark: boolean }) {
   const filterClass = tech.type === 'simpleicon' && isDark ? 'invert brightness-200' : '';
@@ -33,6 +40,8 @@ export function TechnologiesSection({
   selected = [],
   onChange,
   onReset,
+  iconDisplay = 'logo',
+  onIconDisplayChange = () => {},
 }: TechnologiesSectionProps) {
   const safeSelected = useMemo(() => (Array.isArray(selected) ? selected : []), [selected]);
   const [search, setSearch] = useState('');
@@ -115,6 +124,32 @@ export function TechnologiesSection({
           )}
         </div>
 
+        <div className="mb-4">
+          <FieldLabel>Icon Style</FieldLabel>
+          <div
+            role="tablist"
+            aria-label="Technology icon display style"
+            className="flex rounded-xl bg-gray-100 dark:bg-white/5 p-1 gap-1 w-full"
+          >
+            {ICON_DISPLAY_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                role="tab"
+                aria-selected={iconDisplay === opt.value}
+                onClick={() => onIconDisplayChange(opt.value)}
+                className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                  iconDisplay === opt.value
+                    ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="flex flex-wrap gap-1.5 mb-4 overflow-x-auto pb-1">
           {categories.map((cat) => (
             <button
@@ -153,16 +188,29 @@ export function TechnologiesSection({
                     key={id}
                     className="inline-flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-700 dark:text-emerald-300"
                   >
-                    <Image
-                      src={tech.iconUrl}
-                      alt=""
-                      width={14}
-                      height={14}
-                      className={`w-3.5 h-3.5 object-contain ${
-                        tech.type === 'simpleicon' && isDark ? 'invert brightness-200' : ''
-                      }`}
-                    />
-                    <span>{tech.name}</span>
+                    {iconDisplay === 'logo-name' ? (
+                      // shields.io badges are variable-width SVGs, so a plain <img>
+                      // is used here instead of next/image.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={getShieldsBadgeUrl(tech)}
+                        alt={tech.name}
+                        className="h-4 object-contain"
+                      />
+                    ) : (
+                      <>
+                        <Image
+                          src={tech.iconUrl}
+                          alt=""
+                          width={14}
+                          height={14}
+                          className={`w-3.5 h-3.5 object-contain ${
+                            tech.type === 'simpleicon' && isDark ? 'invert brightness-200' : ''
+                          }`}
+                        />
+                        <span>{tech.name}</span>
+                      </>
+                    )}
                     <button
                       type="button"
                       onClick={() => toggle(id)}
