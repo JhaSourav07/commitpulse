@@ -26,7 +26,7 @@ export const getShieldsLogoSlug = (tech: Technology): string => {
   return SHIELDS_SLUG_OVERRIDES[tech.id] || tech.id;
 };
 
-const SHIELDS_BADGE_COLOR = '2b2b2b';
+const SHIELDS_BADGE_COLOR = '0D1117';
 
 //Builds a shields.io "for-the-badge" URL showing the technology's
 //logo + name together, used for the "Logo + Name" icon display mode.
