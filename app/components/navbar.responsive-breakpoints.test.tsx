@@ -171,7 +171,7 @@ describe('Navbar Responsive Breakpoints & Menu Toggle', () => {
   it('6. Hides the "GitHub Repo" text label below the lg breakpoint while keeping the icon visible', () => {
     const { container } = render(<Navbar />);
 
-    const repoLabel = container.querySelector('.hidden.min-\\[1100px\\]\\:inline');
+    const repoLabel = container.querySelector('.hidden.lg\\:inline');
     expect(repoLabel).toBeInTheDocument();
     expect(repoLabel).toHaveTextContent('GitHub Repo');
   });
