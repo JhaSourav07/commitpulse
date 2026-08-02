@@ -15,7 +15,9 @@ describe('[Bug fix] generateSpotifySVG truncates before escaping', () => {
       title: 'A'.repeat(31) + ' & Friends Live Album Version',
       artist: 'Test Artist',
     };
-    const params: SpotifyParams = { width: 400, height: 150 } as SpotifyParams;
+
+    // Using type assertion to satisfy the required params while only providing what we need for the test
+    const params = { width: 400, height: 150 } as SpotifyParams;
 
     const svg = await generateSpotifySVG(track, params, null);
 
@@ -29,7 +31,8 @@ describe('[Bug fix] generateSpotifySVG truncates before escaping', () => {
       title: 'Rock & Roll',
       artist: 'AC/DC',
     };
-    const params: SpotifyParams = { width: 400, height: 150 } as SpotifyParams;
+
+    const params = { width: 400, height: 150 } as SpotifyParams;
 
     const svg = await generateSpotifySVG(track, params, null);
 
