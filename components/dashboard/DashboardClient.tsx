@@ -763,7 +763,7 @@ export default function DashboardClient({
                 </section>
 
                 <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <LanguageChart languages={initialData.languages} />
+                  <LanguageChart languages={initialData.languages} username={username} />
                   <CommitClock data={initialData.commitClock} />
                 </section>
 

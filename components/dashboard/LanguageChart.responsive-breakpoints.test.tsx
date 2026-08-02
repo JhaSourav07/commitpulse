@@ -55,7 +55,7 @@ describe('LanguageChart - Responsive Multi-device Columns & Mobile Viewport Layo
     render(<LanguageChart languages={mockLanguages} />);
 
     const heading = screen.getByText('Top Languages');
-    const region = heading.parentElement!;
+    const region = heading.closest('[role="region"]') ?? heading.parentElement!.parentElement!;
     // The main container stacks items vertically (chart on top, list on bottom)
     expect(region).toHaveClass('flex', 'flex-col');
 
@@ -77,7 +77,7 @@ describe('LanguageChart - Responsive Multi-device Columns & Mobile Viewport Layo
     render(<LanguageChart languages={mockLanguages} />);
 
     const heading = screen.getByText('Top Languages');
-    const region = heading.parentElement!;
+    const region = heading.closest('[role="region"]') ?? heading.parentElement!.parentElement!;
     const listContainer = region.querySelector('.w-full.mt-8');
 
     // Ensures the list container scales fluidly to its parent's bounds rather than having absolute bounds

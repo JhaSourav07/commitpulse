@@ -688,6 +688,8 @@ export const streakParamsSchema = baseStreakParamsSchema
     }
   );
 
+export const languagesParamsSchema = streakParamsSchema;
+
 const HEX_REGEX = /^([A-Fa-f0-9]{3,4}|[A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$/;
 
 export const githubParamsSchema = z.object({
@@ -1217,3 +1219,4 @@ export type NotifyGetParams = z.infer<typeof notifyGetSchema>;
 export type ResumeConfirmData = z.infer<typeof resumeConfirmDataSchema>;
 export type SpotifyParams = z.infer<typeof spotifyParamsSchema>;
 export type WakatimeParams = z.infer<typeof wakatimeParamsSchema>;
+export type LanguagesParams = z.infer<typeof languagesParamsSchema>;
