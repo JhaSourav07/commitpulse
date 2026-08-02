@@ -123,8 +123,12 @@ export function generateReadme(state: GeneratorState): string {
         if (!tech) return null;
 
         if (iconDisplay === 'logo-name') {
-          const badgeUrl = getShieldsBadgeUrl(tech);
-          return `<img src="${badgeUrl}" alt="${tech.name}" title="${tech.name}" />`;
+          const badgeUrl = getShieldsBadgeUrl(
+            tech,
+            state.techBadgeBgColor,
+            state.techBadgeLogoColor
+          );
+          return `<img src="${badgeUrl}" alt="${tech.name}" title="${tech.name}" style="margin: 4px;" />`;
         }
 
         if (tech.type === 'simpleicon') {
