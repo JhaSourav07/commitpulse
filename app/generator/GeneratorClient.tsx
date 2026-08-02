@@ -16,6 +16,7 @@ const INITIAL_STATE: GeneratorState = {
   name: '',
   description: '',
   selectedTechs: [],
+  techIconDisplay: 'logo',
   selectedSocials: [],
   socialLinks: {},
   githubUsername: '',
@@ -110,6 +111,7 @@ export function GeneratorClient() {
           onTechsChange={(ids) =>
             setState((s) => ({ ...s, selectedTechs: Array.from(new Set(ids)) }))
           }
+          onTechIconDisplayChange={(v) => setState((s) => ({ ...s, techIconDisplay: v }))}
           onSocialsChange={(ids) =>
             setState((s) => ({ ...s, selectedSocials: Array.from(new Set(ids)) }))
           }
