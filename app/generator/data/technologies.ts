@@ -5,7 +5,10 @@ const DI = (name: string, variant = 'original') =>
 
 const SI = (slug: string) => `https://cdn.simpleicons.org/${slug}`;
 
-//shields.io badges exceptions are listed here.
+//shields.io badges use Simple Icons slugs for the `logo` query param.
+//Our devicon-backed technologies mostly share an id that already matches
+//the Simple Icons slug (e.g. 'javascript', 'python', 'react'), but a few
+//diverge - those exceptions are listed here.
 const SHIELDS_SLUG_OVERRIDES: Record<string, string> = {
   nodejs: 'nodedotjs',
   nextjs: 'nextdotjs',
@@ -18,7 +21,8 @@ const SHIELDS_SLUG_OVERRIDES: Record<string, string> = {
   openai: 'openai',
 };
 
-//Resolves the Simple Icons slug used by shields.io's `logo` query param for a given technology.
+//Resolves the Simple Icons slug used by shields.io's `logo` query param
+//for a given technology.
 export const getShieldsLogoSlug = (tech: Technology): string => {
   if (tech.type === 'simpleicon') {
     return tech.iconUrl.split('/').pop() || tech.id;
@@ -26,14 +30,29 @@ export const getShieldsLogoSlug = (tech: Technology): string => {
   return SHIELDS_SLUG_OVERRIDES[tech.id] || tech.id;
 };
 
-const SHIELDS_BADGE_COLOR = '0D1117';
+export const DEFAULT_SHIELDS_BG_COLOR = '2b2b2b';
+export const DEFAULT_SHIELDS_LOGO_COLOR = 'ffffff';
+
+const isValidHex = (hex: string): boolean => /^[0-9a-fA-F]{6}$/.test(hex);
 
 //Builds a shields.io "for-the-badge" URL showing the technology's
 //logo + name together, used for the "Logo + Name" icon display mode.
-export const getShieldsBadgeUrl = (tech: Technology): string => {
+//`bgColor` / `logoColor` accept a 6-digit hex string (with or without a
+//leading '#'); invalid or missing values fall back to the defaults.
+export const getShieldsBadgeUrl = (
+  tech: Technology,
+  bgColor?: string,
+  logoColor?: string
+): string => {
   const label = encodeURIComponent(tech.name).replace(/-/g, '--');
   const slug = getShieldsLogoSlug(tech);
-  return `https://img.shields.io/badge/${label}-${SHIELDS_BADGE_COLOR}?style=for-the-badge&logo=${slug}&logoColor=white`;
+
+  const cleanBg = (bgColor || '').replace(/^#/, '');
+  const cleanLogoColor = (logoColor || '').replace(/^#/, '');
+  const finalBg = isValidHex(cleanBg) ? cleanBg : DEFAULT_SHIELDS_BG_COLOR;
+  const finalLogoColor = isValidHex(cleanLogoColor) ? cleanLogoColor : DEFAULT_SHIELDS_LOGO_COLOR;
+
+  return `https://img.shields.io/badge/${label}-${finalBg}?style=for-the-badge&logo=${slug}&logoColor=${finalLogoColor}`;
 };
 
 export const TECHNOLOGIES: Technology[] = [
