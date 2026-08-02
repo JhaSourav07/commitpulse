@@ -213,7 +213,7 @@ export default function Navbar() {
   });
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(min-width: 1024px)');
+    const mediaQuery = window.matchMedia('(min-width: 1100px)');
 
     const handleBreakpointChange = (event: MediaQueryListEvent) => {
       if (event.matches) {
