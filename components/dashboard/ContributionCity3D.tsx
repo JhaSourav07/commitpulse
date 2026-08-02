@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
 import { Play, Pause, RotateCcw, Download } from 'lucide-react';
 import { ErrorBoundary } from 'react-error-boundary';
 import type { ActivityData } from '@/types/dashboard';
@@ -66,7 +66,7 @@ interface TooltipState {
   count: number;
 }
 
-export default function ContributionCity3D({
+const ContributionCity3D = memo(function ContributionCity3D({
   data,
   theme = 'dark',
   days = 98,
@@ -467,7 +467,6 @@ export default function ContributionCity3D({
   // ── Time-Lapse Animation Loop ──────────────────────────────────────────────
   useEffect(() => {
     if (!timeLapseMode) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPlaybackIndex(days);
 
       setIsPlaying(false);
@@ -809,4 +808,6 @@ export default function ContributionCity3D({
       )}
     </div>
   );
-}
+});
+
+export default ContributionCity3D;

@@ -1,5 +1,6 @@
 import withSerwist from '@serwist/next';
 import type { NextConfig } from 'next';
+import withBundleAnalyzer from '@next/bundle-analyzer';
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ['next/og', '@resvg/resvg-js'],
@@ -51,4 +52,8 @@ const withSerwistConfig = withSerwist({
   disable: process.env.NODE_ENV === 'development',
 });
 
-export default withSerwistConfig(nextConfig);
+const withAnalyzer = withBundleAnalyzer({
+  enabled: process.env.ANALYZE === 'true',
+});
+
+export default withAnalyzer(withSerwistConfig(nextConfig));
