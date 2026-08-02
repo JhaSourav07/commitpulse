@@ -1,4 +1,4 @@
-import { getTechById } from '../data/technologies';
+import { getTechById, getShieldsBadgeUrl } from '../data/technologies';
 import { getSocialById } from '../data/socials';
 import { validateSocialHandle, sanitizeSocialUrl } from './urlSanitizer';
 import type { GeneratorState } from '../types';
@@ -115,10 +115,17 @@ export function generateReadme(state: GeneratorState): string {
   if (state.selectedTechs.length > 0) {
     const techLines: string[] = ['## 🛠️ Tech Stack', '', '<div align="center">'];
 
+    const iconDisplay = state.techIconDisplay || 'logo';
+
     const techIcons = state.selectedTechs
       .map((id) => {
         const tech = getTechById(id);
         if (!tech) return null;
+
+        if (iconDisplay === 'logo-name') {
+          const badgeUrl = getShieldsBadgeUrl(tech);
+          return `<img src="${badgeUrl}" alt="${tech.name}" title="${tech.name}" />`;
+        }
 
         if (tech.type === 'simpleicon') {
           const slug = tech.iconUrl.split('/').pop() || id;
