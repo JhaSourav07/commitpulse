@@ -236,7 +236,9 @@ export async function exportSvgToPdf(
   canvas.height = Math.ceil(renderHeight * dpr);
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   if (!ctx) {
-    throw new Error('Failed to create canvas for PDF export');
+    throw new Error(
+      'Failed to create 2D canvas context for PDF export. This may indicate an unsupported browser environment or a browser security policy restriction.'
+    );
   }
 
   // Fill the SVG background color explicitly (in case SVG bg rect is transparent)
