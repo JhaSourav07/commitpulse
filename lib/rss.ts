@@ -30,6 +30,8 @@ export async function fetchLatestArticles(
       }
     }
 
+    if (!feedUrl) return [];
+
     const feed = await parser.parseURL(feedUrl);
 
     // Get the top 3 articles
