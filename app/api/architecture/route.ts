@@ -445,7 +445,7 @@ export async function POST(req: NextRequest) {
               ['rev-list', '--count', 'HEAD', '--', file],
               { cwd: tempDir }
             );
-            commitsCount = parseInt(commitCountRes.stdout.trim(), 10) || 1;
+            commitsCount = parseInt(commitCountRes.stdout.trim(, 10), 10) || 1;
 
             const lastModRes = await execFilePromise(
               'git',
