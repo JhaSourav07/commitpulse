@@ -185,7 +185,10 @@ export default function ProfileOptimizerModal({
   const circumference = 2 * Math.PI * radius;
 
   // Mocked Dynamic Data derived from userData
-  const overallScore = userData ? Math.min(100, 40 + (userData.profile?.developerScore || 30)) : 72;
+  const hasProfile = !!userData?.profile;
+  const overallScore = hasProfile
+    ? Math.min(100, 40 + (userData.profile?.developerScore || 30))
+    : 0;
   const grade =
     overallScore >= 90
       ? 'A+'
