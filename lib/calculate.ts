@@ -250,7 +250,11 @@ export function calculateStreak(
 
       // Issue #6171:
       // only reject when today is missing AND gap > grace
-      if (gapDays > (safeGrace > 0 ? safeGrace : 1)) {
+      const gapIsValid =
+        !isNaN(new Date(effectiveTodayStr).getTime()) &&
+        !isNaN(new Date(lastDateStr).getTime()) &&
+        !isNaN(gapDays);
+      if (gapIsValid && gapDays > (safeGrace > 0 ? safeGrace : 1)) {
         todayIndex = -1;
       } else {
         todayIndex = lastIndex;
