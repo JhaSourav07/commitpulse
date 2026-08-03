@@ -49,7 +49,7 @@ import type {
 } from '@/types';
 import { getNormalizedThemeKey, themes, resolveErrorTheme } from '@/lib/svg/themes';
 import { streakParamsSchema, coerceQueryParams } from '@/lib/validations';
-import { sanitizeHexColor, sanitizeRadius, escapeXML } from '@/lib/svg/sanitizer';
+import { sanitizeHexColor, sanitizeRadius, escapeXML, sanitizeUsername } from '@/lib/svg/sanitizer';
 import { getClientIp } from '@/utils/getClientIp';
 import { quotaMonitor } from '@/services/github/quota-monitor';
 import { refreshPolicy } from '@/services/github/refresh-policy';
@@ -174,6 +174,10 @@ export async function GET(request: Request) {
       minify,
       hide_weekend,
     } = parseResult.data;
+
+    // Sanitize username to prevent XSS when SVG is embedded in HTML
+    const sanitizedUser = sanitizeUsername(user);
+
     const normalizedView = view as
       | 'default'
       | 'monthly'
@@ -349,6 +353,9 @@ export async function GET(request: Request) {
             .slice(0, 2)
             .join(' + ')
         : user);
+
+    // Sanitize the display entity to prevent XSS in SVG output
+    const sanitizedEntity = sanitizeUsername(targetEntity);
     const animate = searchParams.get('animate') !== 'false';
     const compact = searchParams.get('compact') === 'true';
     // Validate and clamp the speed param to prevent broken SVG animation
@@ -359,7 +366,7 @@ export async function GET(request: Request) {
         : '8s'
     ) as `${number}s`;
     const params: BadgeParams = {
-      user: targetEntity,
+      user: sanitizedEntity,
       theme: themeName,
       bg: isAutoTheme ? selectedTheme.bg : bg || selectedTheme.bg,
       bgType,

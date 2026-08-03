@@ -232,6 +232,19 @@ export function escapeXML(str: string): string {
     .replace(/`/g, '&#96;');
 }
 
+export function sanitizeUsername(username: string | undefined | null): string {
+  if (!username) return 'GitHub User';
+
+  const trimmed = String(username).trim();
+  if (!trimmed) return 'GitHub User';
+
+  // Remove any characters that could break out of SVG/HTML context
+  // Keep only alphanumeric, hyphens, and underscores (GitHub username chars)
+  const sanitized = trimmed.replace(/[^a-zA-Z0-9\-_]/g, '').slice(0, 39);
+
+  return sanitized || 'GitHub User';
+}
+
 /**
  * Sanitizes input string to prevent XML injection/XSS.
  * Removes/escapes any characters that could break out of SVG tags/attributes.
