@@ -70,6 +70,21 @@ describe('rgbToHex', () => {
     expect(rgbToHex(0, 0, 1)).toBe('#000001');
     expect(rgbToHex(15, 15, 15)).toBe('#0f0f0f');
   });
+
+  it('clamps negative values to 0', () => {
+    expect(rgbToHex(-1, 0, 0)).toBe('#000000');
+    expect(rgbToHex(-255, -128, -1)).toBe('#000000');
+  });
+
+  it('clamps values above 255 to 255', () => {
+    expect(rgbToHex(256, 0, 0)).toBe('#ff0000');
+    expect(rgbToHex(300, 999, 256)).toBe('#ffffff');
+  });
+
+  it('rounds fractional values before clamping', () => {
+    expect(rgbToHex(0.4, 0.6, 0.9)).toBe('#010101');
+    expect(rgbToHex(255.9, 128.3, 0.1)).toBe('#ff8000');
+  });
 });
 
 describe('rgbToHsl', () => {
