@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getAuthorLocalHour, getViewerLocalHour } from './dateHelpers';
+import { getAuthorLocalHour, getViewerLocalHour, processCommitTimestamps } from './dateHelpers';
 
 describe('dateHelpers', () => {
   describe('getAuthorLocalHour', () => {
@@ -24,6 +24,12 @@ describe('dateHelpers', () => {
       expect(getAuthorLocalHour('invalid-date')).toBe(0);
       expect(getAuthorLocalHour('')).toBe(0);
     });
+
+    it('returns 0 for partial ISO date strings', () => {
+      expect(getAuthorLocalHour('2024-01-01')).toBe(0);
+      expect(getAuthorLocalHour('2024-01-01T')).toBe(0);
+      expect(getAuthorLocalHour('2024-01-01T12')).toBe(0);
+    });
   });
 
   describe('getViewerLocalHour', () => {
@@ -36,6 +42,24 @@ describe('dateHelpers', () => {
     it('returns 0 for invalid strings', () => {
       expect(getViewerLocalHour('invalid-date')).toBe(0);
       expect(getViewerLocalHour('')).toBe(0);
+    });
+
+    it('returns 0 for malformed date formats', () => {
+      expect(getViewerLocalHour('2024-01-01')).toBe(0);
+      expect(getViewerLocalHour('not-a-date')).toBe(0);
+      expect(getViewerLocalHour('2024-')).toBe(0);
+    });
+  });
+
+  describe('processCommitTimestamps', () => {
+    it('returns zeroed metrics for empty array', () => {
+      const result = processCommitTimestamps([]);
+      expect(result).toEqual({ morning: 0, afternoon: 0, evening: 0, night: 0 });
+    });
+
+    it('returns zeroed metrics when all dates are invalid', () => {
+      const result = processCommitTimestamps(['invalid', '', 'also-invalid'] as string[]);
+      expect(result).toEqual({ morning: 0, afternoon: 0, evening: 0, night: 0 });
     });
   });
 });
