@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getAuthorLocalHour, getViewerLocalHour } from './dateHelpers';
+import { getAuthorLocalHour, getViewerLocalHour, processCommitTimestamps } from './dateHelpers';
 
 describe('dateHelpers', () => {
   describe('getAuthorLocalHour', () => {
@@ -36,6 +36,18 @@ describe('dateHelpers', () => {
     it('returns 0 for invalid strings', () => {
       expect(getViewerLocalHour('invalid-date')).toBe(0);
       expect(getViewerLocalHour('')).toBe(0);
+    });
+  });
+
+  describe('processCommitTimestamps', () => {
+    it('returns all-zero metrics for empty array', () => {
+      const result = processCommitTimestamps([]);
+      expect(result).toEqual({ morning: 0, afternoon: 0, evening: 0, night: 0 });
+    });
+
+    it('handles invalid date strings gracefully', () => {
+      const result = processCommitTimestamps(['not-a-date', '2024-03-10T10:00:00Z']);
+      expect(result.morning).toBeGreaterThanOrEqual(0);
     });
   });
 });
