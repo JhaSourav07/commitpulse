@@ -26,7 +26,10 @@ export function hexToRgb(hex: string): { r: number; g: number; b: number } | nul
 }
 
 export function rgbToHex(r: number, g: number, b: number): string {
-  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+  const clampedR = Math.max(0, Math.min(255, r));
+  const clampedG = Math.max(0, Math.min(255, g));
+  const clampedB = Math.max(0, Math.min(255, b));
+  return `#${((1 << 24) + (clampedR << 16) + (clampedG << 8) + clampedB).toString(16).slice(1)}`;
 }
 
 export function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
