@@ -90,7 +90,7 @@ export async function getCurrentlyPlaying(): Promise<SpotifyTrackData> {
 
     const data = await response.json();
 
-    if (!data || !data.item) {
+    if (!data || typeof data !== 'object' || !data.item) {
       return { isPlaying: false };
     }
 
