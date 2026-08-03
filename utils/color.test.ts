@@ -82,7 +82,7 @@ describe('rgbToHex', () => {
   });
 
   it('rounds fractional values before clamping', () => {
-    expect(rgbToHex(0.4, 0.6, 0.9)).toBe('#010101');
+    expect(rgbToHex(0.4, 0.6, 0.9)).toBe('#000101');
     expect(rgbToHex(255.9, 128.3, 0.1)).toBe('#ff8000');
   });
 });
