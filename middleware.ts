@@ -166,5 +166,6 @@ export const config = {
     '/api/pr-insights/:path*',
     '/api/architecture/:path*',
     '/api/enterprise/:path*',
+    '/api/languages/:path*',
   ],
 };
