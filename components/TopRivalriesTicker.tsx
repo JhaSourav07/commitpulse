@@ -64,9 +64,7 @@ export interface TopRivalriesTickerProps {
   rivalries?: RivalryItem[] | null;
 }
 
-export default function TopRivalriesTicker({
-  rivalries = MOCK_RIVALRIES,
-}: TopRivalriesTickerProps = {}) {
+export default function TopRivalriesTicker({ rivalries = [] }: TopRivalriesTickerProps = {}) {
   const router = useRouter();
 
   const handleRivalryClick = (u1: string, u2: string) => {
