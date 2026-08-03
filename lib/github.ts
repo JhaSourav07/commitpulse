@@ -1044,7 +1044,8 @@ export async function fetchGitHubContributions(
 
   try {
     const result = await coalescedLoad();
-    if (!options.bypassCache || options.forceRefresh) {
+    // Always cache successful results to enable future requests and fallback
+    if (!options.bypassCache) {
       await contributionsCache.set(key, { data: result, fetchedAt: Date.now() }, LONG_CACHE_TTL);
     }
     return result;
