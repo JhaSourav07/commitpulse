@@ -18,6 +18,7 @@ import { quotaMonitor } from '@/services/github/quota-monitor';
 import pLimit from 'p-limit';
 import logger from '@/lib/logger';
 import { decryptGitHubToken, isEncryptedToken } from '@/lib/github-token-encryption';
+import { validateGitHubUsername } from '@/lib/validations';
 
 export interface GitHubRepo {
   name: string;
@@ -1121,6 +1122,11 @@ async function fetchContributionsUncached(
   key: string,
   options: FetchOptions
 ): Promise<ExtendedContributionData> {
+  // Validate GitHub username to prevent injection attacks (Fixes #8570)
+  if (!validateGitHubUsername(username)) {
+    throw new Error(`Invalid GitHub username: ${username}`);
+  }
+
   let organizationId: string | undefined = undefined;
   if (options.org) {
     organizationId = await fetchOrgNodeId(options.org, options.signal);
