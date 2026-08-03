@@ -495,6 +495,147 @@ function IconAuroraCyberpunk({ text, accent }: IC): ReactElement {
   );
 }
 
+function IconObsidian({ text, accent }: IC): ReactElement {
+  return (
+    <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+      <path d="M7 7 L14 4 L21 7 L21 14 L14 17 L7 14 Z" fill={accent} opacity="0.85" />
+      <path d="M7 14 L14 17 L14 24 L7 21 Z" fill={text} opacity="0.7" />
+      <path d="M21 14 L14 17 L14 24 L21 21 Z" fill={accent} opacity="0.6" />
+    </svg>
+  );
+}
+
+function IconTokyonight({ text, accent }: IC): ReactElement {
+  return (
+    <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+      <circle cx="14" cy="8" r="4" fill={accent} opacity="0.9" />
+      <path
+        d="M4 16 Q14 12 24 16 T4 20 Q14 16 24 20"
+        stroke={text}
+        strokeWidth="2"
+        fill="none"
+        opacity="0.7"
+      />
+      <circle cx="8" cy="24" r="1.5" fill={accent} opacity="0.6" />
+      <circle cx="14" cy="25" r="1" fill={text} opacity="0.5" />
+      <circle cx="20" cy="24" r="1.5" fill={accent} opacity="0.6" />
+    </svg>
+  );
+}
+
+function IconCyberpunk({ text, accent }: IC): ReactElement {
+  return (
+    <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+      <rect x="3" y="8" width="22" height="12" fill={accent} opacity="0.8" />
+      <line x1="3" y1="14" x2="25" y2="14" stroke={text} strokeWidth="1.5" opacity="0.6" />
+      <line x1="8" y1="8" x2="8" y2="20" stroke={text} strokeWidth="1" opacity="0.4" />
+      <line x1="14" y1="8" x2="14" y2="20" stroke={text} strokeWidth="1" opacity="0.4" />
+      <line x1="20" y1="8" x2="20" y2="20" stroke={text} strokeWidth="1" opacity="0.4" />
+    </svg>
+  );
+}
+
+function IconRetroTerminal({ text, accent }: IC): ReactElement {
+  return (
+    <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+      <rect
+        x="2"
+        y="3"
+        width="24"
+        height="22"
+        rx="2"
+        stroke={accent}
+        strokeWidth="1.5"
+        opacity="0.8"
+      />
+      <line x1="2" y1="8" x2="26" y2="8" stroke={accent} strokeWidth="1" opacity="0.5" />
+      <line x1="4" y1="12" x2="10" y2="12" stroke={accent} strokeWidth="1.2" opacity="0.9" />
+      <line x1="4" y1="16" x2="16" y2="16" stroke={accent} strokeWidth="1" opacity="0.7" />
+      <circle cx="24" cy="6" r="1" fill={accent} opacity="0.6" />
+    </svg>
+  );
+}
+
+function IconGlacier({ text, accent }: IC): ReactElement {
+  return (
+    <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+      <path
+        d="M14 2 L20 8 L18 12 L24 14 L18 16 L20 20 L14 26 L8 20 L10 16 L4 14 L10 12 L8 8 Z"
+        fill={accent}
+        opacity="0.8"
+      />
+      <circle cx="14" cy="14" r="3" fill={text} opacity="0.6" />
+    </svg>
+  );
+}
+
+function IconMonokai({ text, accent }: IC): ReactElement {
+  return (
+    <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+      <circle cx="7" cy="7" r="3" fill={accent} opacity="0.9" />
+      <circle cx="14" cy="7" r="3" fill={text} opacity="0.7" />
+      <circle cx="21" cy="7" r="3" fill={accent} opacity="0.8" />
+      <rect x="4" y="13" width="20" height="10" rx="2" fill={text} opacity="0.4" />
+      <rect x="6" y="15" width="5" height="6" fill={accent} opacity="0.8" />
+      <rect x="17" y="15" width="5" height="6" fill={accent} opacity="0.6" />
+    </svg>
+  );
+}
+
+function IconMidnightOcean({ text, accent }: IC): ReactElement {
+  return (
+    <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+      <circle cx="14" cy="8" r="4.5" fill={accent} opacity="0.9" />
+      <path
+        d="M2 16 Q6 13 10 14 T18 14 T26 16"
+        stroke={text}
+        strokeWidth="2"
+        fill="none"
+        opacity="0.6"
+      />
+      <path
+        d="M2 20 Q8 18 14 19 T26 20"
+        stroke={accent}
+        strokeWidth="1.5"
+        fill="none"
+        opacity="0.7"
+      />
+      <path d="M2 24 Q10 22 14 23 T26 24" stroke={text} strokeWidth="1" fill="none" opacity="0.4" />
+    </svg>
+  );
+}
+
+function IconEnterprise({ text, accent }: IC): ReactElement {
+  return (
+    <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+      <rect
+        x="3"
+        y="5"
+        width="22"
+        height="18"
+        rx="2"
+        stroke={accent}
+        strokeWidth="1.5"
+        opacity="0.85"
+      />
+      <rect x="5" y="7" width="6" height="5" fill={accent} opacity="0.75" />
+      <rect x="13" y="7" width="6" height="5" fill={text} opacity="0.6" />
+      <rect x="5" y="14" width="14" height="7" fill={accent} opacity="0.4" />
+    </svg>
+  );
+}
+
+function IconOneDark({ text, accent }: IC): ReactElement {
+  return (
+    <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+      <circle cx="8" cy="8" r="3.5" fill={accent} opacity="0.9" />
+      <circle cx="20" cy="8" r="3.5" fill={text} opacity="0.7" />
+      <rect x="4" y="14" width="7" height="8" rx="1" fill={accent} opacity="0.8" />
+      <rect x="13" y="14" width="7" height="8" rx="1" fill={text} opacity="0.6" />
+    </svg>
+  );
+}
+
 const ICON_MAP: Record<string, (c: IC) => ReactElement> = {
   dark: (c) => <IconDark {...c} />,
   light: (c) => <IconLight {...c} />,
@@ -514,6 +655,22 @@ const ICON_MAP: Record<string, (c: IC) => ReactElement> = {
   solarized_light: (c) => <IconSolarizedLight {...c} />,
   gruvbox_light: (c) => <IconGruvbox {...c} />,
   nord_light: (c) => <IconNord {...c} />,
+  obsidian: (c) => <IconObsidian {...c} />,
+  tokyonight: (c) => <IconTokyonight {...c} />,
+  tokyo_night: (c) => <IconTokyonight {...c} />,
+  cyberpunk: (c) => <IconCyberpunk {...c} />,
+  cyberpunk_neon: (c) => <IconCyberpunk {...c} />,
+  'cyber-pulse': (c) => <IconCyberpunk {...c} />,
+  'retro-terminal': (c) => <IconRetroTerminal {...c} />,
+  glacier: (c) => <IconGlacier {...c} />,
+  monokai: (c) => <IconMonokai {...c} />,
+  midnight_ocean: (c) => <IconMidnightOcean {...c} />,
+  enterprise: (c) => <IconEnterprise {...c} />,
+  one_dark: (c) => <IconOneDark {...c} />,
+  ayu_mirage: (c) => <IconObsidian {...c} />,
+  lumos: (c) => <IconLight {...c} />,
+  india: (c) => <IconGruvbox {...c} />,
+  catppuccin_mocha: (c) => <IconCatppuccinLatte {...c} />,
 };
 
 export function ThemeQuickPresets({ theme, onThemeChange }: ThemeQuickPresetsProps): ReactElement {
