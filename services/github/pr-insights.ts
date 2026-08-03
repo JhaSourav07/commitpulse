@@ -252,13 +252,15 @@ async function fetchPRInsightsUncached(
     // Activity timelines
     const createdDate = new Date(pr.createdAt);
 
-    // Group by month
-    const monthKey = `${createdDate.getFullYear()}-${String(createdDate.getMonth() + 1).padStart(2, '0')}`;
+    // Group by month — use UTC getters, since pr.createdAt is a UTC
+    // instant; local getters would shift the bucket depending on the
+    // server process's timezone (see services/github/ci-analytics.ts's
+    // buildWeeklyTrend() for the established correct pattern).
+    const monthKey = `${createdDate.getUTCFullYear()}-${String(createdDate.getUTCMonth() + 1).padStart(2, '0')}`;
     monthlyActivityMap.set(monthKey, (monthlyActivityMap.get(monthKey) || 0) + 1);
 
     // Group by week (ISO week roughly)
     const weekKey = getWeekKey(createdDate);
-    weeklyActivityMap.set(weekKey, (weeklyActivityMap.get(weekKey) || 0) + 1);
 
     // Repos
     const repoName = pr.repository?.nameWithOwner || 'Unknown';
@@ -387,7 +389,10 @@ async function fetchPRInsightsUncached(
 }
 
 function getWeekKey(date: Date) {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  // Use UTC getters throughout — date.getFullYear()/getMonth()/getDate()
+  // would read the SERVER PROCESS's local timezone, not the UTC calendar
+  // date the incoming timestamp actually represents.
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
   const dayNum = d.getUTCDay() || 7;
   d.setUTCDate(d.getUTCDate() + 4 - dayNum);
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));

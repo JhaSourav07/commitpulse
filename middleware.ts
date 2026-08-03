@@ -203,6 +203,7 @@ export const config = {
     '/api/user-details/:path*',
     '/api/user-repos/:path*',
     '/api/webhook/:path*',
+    '/api/languages/:path*',
     '/api/webhooks/:path*',
   ],
 };

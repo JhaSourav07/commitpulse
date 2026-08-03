@@ -41,6 +41,7 @@ export async function GET(request: Request) {
     }
 
     const radius = searchParams.get('radius') || '4';
+
     // getSizeScale() (lib/svg/generator.ts) only recognizes 'small' and
     // 'large' as non-default scales; 'medium' — and any other value,
     // including undefined — falls through to its 1.0-scale default.
@@ -60,7 +61,10 @@ export async function GET(request: Request) {
       size,
     };
 
-    const svg = generateArticlesSVG(articles, params);
+    // FIX: Pass a shallow copy [...articles] so that if generateArticlesSVG
+    // splices the array to limit the display count, it doesn't mutate the
+    // original cached array across consecutive test/API calls!
+    const svg = generateArticlesSVG([...(articles || [])], params);
 
     return new NextResponse(svg, {
       headers: {
