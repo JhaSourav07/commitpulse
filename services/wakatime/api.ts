@@ -58,7 +58,7 @@ export async function getWakaTimeStats(): Promise<WakaTimeStatData> {
       isConfigured: true,
       totalSeconds: data.total_seconds,
       dailyAverage: data.daily_average,
-      languages: data.languages ? data.languages.slice(0, 5) : [],
+      languages: Array.isArray(data.languages) ? data.languages.slice(0, 5) : [],
       humanReadableTotal: data.human_readable_total,
       humanReadableDailyAverage: data.human_readable_daily_average,
     };
