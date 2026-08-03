@@ -807,6 +807,10 @@ export const ogParamsSchema = z
       .transform(toValidHexColor('000000')),
     refresh: z.string().optional().transform(toRefreshFlag),
     bypassCache: z.string().optional().transform(toRefreshFlag),
+    // Previously missing entirely — without this, currentStreak/longestStreak
+    // were always computed in UTC, regardless of the tz the user's actual
+    // badge is configured with (see statsParamsSchema, which already has this).
+    tz: timeZoneParam,
   })
   .transform((data) => ({
     ...data,

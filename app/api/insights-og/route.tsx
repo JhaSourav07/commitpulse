@@ -75,7 +75,18 @@ export async function GET(req: NextRequest) {
     accent,
     refresh,
     bypassCache: bypassCacheParam,
+    tz: tzParam,
   } = parseResult.data;
+
+  let timezone = 'UTC';
+  if (tzParam) {
+    try {
+      timezone = new Intl.DateTimeFormat(undefined, { timeZone: tzParam }).resolvedOptions()
+        .timeZone;
+    } catch {
+      timezone = 'UTC';
+    }
+  }
 
   const isRefreshRequested = refresh || bypassCacheParam;
 
@@ -111,7 +122,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const data = await fetchGitHubContributions(user, { bypassCache: isRefreshRequested });
-    const stats = calculateStreak(data.calendar ?? data);
+    const stats = calculateStreak(data.calendar ?? data, timezone);
     totalCommits = stats.totalContributions;
     longestStreak = stats.longestStreak;
     currentStreak = stats.currentStreak;
