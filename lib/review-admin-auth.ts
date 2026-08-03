@@ -16,7 +16,14 @@ export function verifyReviewAdmin(req: Request): NextResponse | null {
   }
 
   const authHeader = req.headers.get('authorization');
-  if (!authHeader || authHeader !== `Bearer ${secret}`) {
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return NextResponse.json(
+      { success: false, message: 'Unauthorized: invalid or missing admin token.' },
+      { status: 401 }
+    );
+  }
+  const providedToken = authHeader.slice(7).trim();
+  if (providedToken !== secret) {
     return NextResponse.json(
       { success: false, message: 'Unauthorized: invalid or missing admin token.' },
       { status: 401 }
