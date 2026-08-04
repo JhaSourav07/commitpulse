@@ -4,6 +4,8 @@ import { getFullDashboardData } from '@/lib/github';
 import { getUserGitHubToken } from '@/lib/githubtoken';
 import { RateLimiter } from '@/lib/rate-limit';
 import { fetchPRInsights } from '@/services/github/pr-insights';
+import { computeAchievementState } from './route';
+import type { AchievementDef } from '@/types/achievements';
 
 vi.mock('@/lib/github', () => ({
   getFullDashboardData: vi.fn(),
@@ -308,5 +310,47 @@ describe('GET /api/achievements', () => {
     const response = await GET(makeRequest({ username: 'octocat' }));
     expect(response.status).toBe(429);
     expect(getFullDashboardData).not.toHaveBeenCalled();
+  });
+});
+
+describe('[Bug fix] computeAchievementState — per-tier progress baseline', () => {
+  // Mirrors the real 'commit-champion' definition: bronze=100, silver=500, gold=1000.
+  // We cast it 'as AchievementDef' so TypeScript doesn't complain about missing UI properties
+  // like 'name' and 'icon' which aren't needed for the math logic anyway.
+  const def = {
+    id: 'commit-champion',
+    name: 'Commit Champion',
+    description: 'Test description',
+    category: 'contribution',
+    icon: '🔥',
+    rarity: 'common',
+    measureLabel: 'commits',
+    levels: [
+      { tier: 'bronze', threshold: 100, xp: 50 },
+      { tier: 'silver', threshold: 500, xp: 100 },
+      { tier: 'gold', threshold: 1000, xp: 200 },
+    ],
+  } as AchievementDef;
+
+  it('shows 0% progress the instant a user crosses into a non-first tier', () => {
+    const state = computeAchievementState(500, def); // exactly reached silver
+    expect(state.currentTier).toBe('silver');
+    expect(state.progress).toBe(0);
+  });
+
+  it('shows 50% progress exactly halfway between the current tier and the next', () => {
+    const state = computeAchievementState(750, def); // halfway between silver (500) and gold (1000)
+    expect(state.progress).toBe(50);
+  });
+
+  it('shows 100% progress right before reaching the next tier threshold', () => {
+    const state = computeAchievementState(999, def);
+    expect(state.progress).toBe(100);
+  });
+
+  it('the first-tier transition (bronze) still behaves correctly (regression guard)', () => {
+    const state = computeAchievementState(100, def); // exactly reached bronze
+    expect(state.currentTier).toBe('bronze');
+    expect(state.progress).toBe(0);
   });
 });

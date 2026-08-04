@@ -474,7 +474,10 @@ const AI_KEYWORDS = [
   'agent',
 ];
 
-function computeAchievementState(currentValue: number, def: AchievementDef): AchievementState {
+export function computeAchievementState(
+  currentValue: number,
+  def: AchievementDef
+): AchievementState {
   const sortedLevels = [...def.levels].sort((a, b) => b.threshold - a.threshold);
 
   for (let i = 0; i < sortedLevels.length; i++) {
@@ -487,13 +490,17 @@ function computeAchievementState(currentValue: number, def: AchievementDef): Ach
       return {
         currentValue,
         targetValue: nextTier?.threshold ?? level.threshold,
+        // Progress toward the NEXT tier is measured from the CURRENTLY
+        // achieved tier's own threshold, not the achievement's first
+        // tier — previously this always used def.levels[0].threshold as
+        // the baseline, which meant progress never reset to 0% when
+        // crossing into a new tier and overstated progress for every
+        // tier past the first.
         progress: nextTier
           ? Math.min(
               100,
               Math.round(
-                ((currentValue - def.levels[0].threshold) /
-                  (nextTier.threshold - def.levels[0].threshold)) *
-                  100
+                ((currentValue - level.threshold) / (nextTier.threshold - level.threshold)) * 100
               )
             )
           : 100,
