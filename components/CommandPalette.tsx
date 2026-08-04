@@ -262,7 +262,6 @@ export default function CommandPalette({ isOpen, onClose, onOpenShortcuts }: Com
     activeEl?.scrollIntoView({ block: 'nearest' });
   }, [selectedIndex, isOpen]);
 
-
   if (!isOpen) return null;
 
   return (
