@@ -180,6 +180,43 @@ export default function ProfileOptimizerModal({
 
   if (!isOpen) return null;
 
+  // Show no-score state when userData is null
+  if (!userData) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="absolute inset-0 bg-black/60 backdrop-blur-md"
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 16 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 16 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          className="relative w-full max-w-md rounded-2xl border border-black/10 bg-white dark:border-[rgba(255,255,255,0.08)] dark:bg-[#0a0a0a] shadow-2xl p-8 flex flex-col items-center gap-4"
+        >
+          <AlertCircle className="w-12 h-12 text-zinc-400 dark:text-zinc-600" />
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+            No Profile Data Available
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+            Profile data is required to generate optimization recommendations. Please ensure your
+            GitHub profile information is accessible.
+          </p>
+          <button
+            onClick={onClose}
+            className="mt-2 px-6 py-2 rounded-xl bg-black dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-100 text-white dark:text-black text-sm font-semibold transition-all"
+          >
+            Close
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
+
   //score ring
   const radius = 52;
   const circumference = 2 * Math.PI * radius;
