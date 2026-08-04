@@ -315,9 +315,7 @@ describe('GET /api/achievements', () => {
 
 describe('[Bug fix] computeAchievementState — per-tier progress baseline', () => {
   // Mirrors the real 'commit-champion' definition: bronze=100, silver=500, gold=1000.
-  // We cast it 'as AchievementDef' so TypeScript doesn't complain about missing UI properties
-  // like 'name' and 'icon' which aren't needed for the math logic anyway.
-  const def = {
+  const def: AchievementDef = {
     id: 'commit-champion',
     name: 'Commit Champion',
     description: 'Test description',
@@ -330,7 +328,7 @@ describe('[Bug fix] computeAchievementState — per-tier progress baseline', () 
       { tier: 'silver', threshold: 500, xp: 100 },
       { tier: 'gold', threshold: 1000, xp: 200 },
     ],
-  } as AchievementDef;
+  };
 
   it('shows 0% progress the instant a user crosses into a non-first tier', () => {
     const state = computeAchievementState(500, def); // exactly reached silver
