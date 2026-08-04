@@ -50,7 +50,11 @@ describe('useKeyboardShortcuts', () => {
     press('g');
     press('r');
 
-    expect(openSpy).toHaveBeenCalledWith('https://github.com/JhaSourav07/commitpulse', '_blank', 'noopener,noreferrer');
+    expect(openSpy).toHaveBeenCalledWith(
+      'https://github.com/JhaSourav07/commitpulse',
+      '_blank',
+      'noopener,noreferrer'
+    );
   });
 
   it('triggers onOpenShortcuts when ? or Shift+/ is pressed', () => {
@@ -119,4 +123,3 @@ describe('useKeyboardShortcuts', () => {
     editable.remove();
   });
 });
-

@@ -84,7 +84,6 @@ describe('KeyboardShortcutsModal Accessibility Standards & ARIA Compliance', () 
     expect(screen.getByText('Close active modal / dialog')).toBeInTheDocument();
   });
 
-
   it('renders <kbd> elements for each key in shortcuts', () => {
     const { container } = render(<KeyboardShortcutsModal isOpen={true} onClose={onClose} />);
 

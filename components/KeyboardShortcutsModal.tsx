@@ -105,7 +105,6 @@ export default function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShor
     };
   }, [isOpen]);
 
-
   if (!isOpen) return null;
 
   return (

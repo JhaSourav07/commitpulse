@@ -77,14 +77,25 @@ export function useKeyboardShortcuts(options?: UseKeyboardShortcutsOptions) {
       }
 
       // ? or Shift + / opens shortcuts modal
-      if (!event.ctrlKey && !event.metaKey && !event.altKey && (event.key === '?' || (event.key === '/' && event.shiftKey))) {
+      if (
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        (event.key === '?' || (event.key === '/' && event.shiftKey))
+      ) {
         event.preventDefault();
         options?.onOpenShortcuts?.();
         return;
       }
 
       // / focuses search input (when not already typing)
-      if (!event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey && event.key === '/') {
+      if (
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        !event.shiftKey &&
+        event.key === '/'
+      ) {
         event.preventDefault();
         options?.onFocusSearch?.();
         return;
@@ -124,4 +135,3 @@ export function useKeyboardShortcuts(options?: UseKeyboardShortcutsOptions) {
     };
   }, [router, options]);
 }
-
