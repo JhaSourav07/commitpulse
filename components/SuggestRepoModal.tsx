@@ -101,14 +101,6 @@ export default function SuggestRepoModal({ isOpen, onClose, onSubmit }: SuggestR
     return 'text-gray-500 dark:text-gray-400';
   };
 
-  const handleClose = () => {
-    setRepoUrl('');
-    setReason('');
-    setErrorMsg('');
-    setIsSubmitting(false);
-    onClose();
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isFormValid) {
