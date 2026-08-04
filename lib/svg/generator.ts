@@ -27,6 +27,11 @@ import {
   sanitizeSpeed,
   sanitizeCustomText,
 } from './sanitizer';
+import {
+  aggregateTechStack,
+  buildLanguageColorPalette,
+  type TechStackSummary,
+} from './techStackAnalytics';
 
 import {
   GRID_ORIGIN_X,
@@ -4044,5 +4049,234 @@ export function buildInlineErrorSVG(text: string, options?: ErrorSVGOptions): st
       ? `\n  <text x="${Math.round(width / 2)}" y="${line2Y}" text-anchor="middle" dominant-baseline="central" fill="${textCol}" font-family="sans-serif" font-size="13">${line2}</text>`
       : ''
   }
+</svg>`;
+}
+
+// ─── Tech Stack View ──────────────────────────────────────────────────────────
+
+/**
+ * Renders the SVG legend for the tech stack view.
+ * Shows top languages as colored swatches with name + percentage labels.
+ */
+function renderTechStackLegend(
+  summary: TechStackSummary,
+  sf: number,
+  text: string,
+  bg: string,
+  statsFont: string
+): string {
+  if (summary.topLanguages.length === 0) return '';
+
+  const fs = (n: number): number => Math.round(n * sf * 10) / 10;
+  const s = createScaler(sf);
+
+  const LEGEND_X = s(430);
+  const LEGEND_Y = s(90);
+  const ROW_H = s(20);
+  const SWATCH_SIZE = s(10);
+  const CORNER_R = s(2);
+  const PANEL_W = s(155);
+  const PANEL_H = s(22 + summary.topLanguages.length * 20 + 10);
+
+  const isLightBg = getLuminance(bg) > 0.5;
+  const panelFill = isLightBg ? '#00000015' : '#ffffff10';
+  const panelStroke = isLightBg ? '#00000030' : '#ffffff20';
+
+  let rows = '';
+  summary.topLanguages.forEach((lang, i) => {
+    const y = LEGEND_Y + s(22) + i * ROW_H;
+    const hexColor = lang.color.startsWith('#') ? lang.color : `#${lang.color}`;
+    rows += `
+    <rect x="${LEGEND_X + s(8)}" y="${y - s(8)}" width="${SWATCH_SIZE}" height="${SWATCH_SIZE}" rx="${CORNER_R}" fill="${hexColor}" />
+    <text x="${LEGEND_X + s(24)}" y="${y}" font-family="${statsFont}" font-size="${fs(9)}px" fill="${text}" opacity="0.9">${escapeXML(lang.language)}</text>
+    <text x="${LEGEND_X + PANEL_W - s(8)}" y="${y}" text-anchor="end" font-family="${statsFont}" font-size="${fs(9)}px" fill="${text}" opacity="0.6">${lang.percentage}%</text>`;
+  });
+
+  return `
+  <g class="techstack-legend" aria-label="Tech stack legend">
+    <rect x="${LEGEND_X}" y="${LEGEND_Y}" width="${PANEL_W}" height="${PANEL_H}" rx="${CORNER_R * 3}" fill="${panelFill}" stroke="${panelStroke}" stroke-width="1" />
+    <text x="${LEGEND_X + s(8)}" y="${LEGEND_Y + s(14)}" font-family="${statsFont}" font-size="${fs(9)}px" fill="${text}" opacity="0.5" font-weight="600" letter-spacing="1">TECH STACK</text>
+    ${rows}
+  </g>`;
+}
+
+/**
+ * Renders an archetype badge below the legend.
+ */
+function renderArchetypeBadge(
+  archetype: string,
+  sf: number,
+  text: string,
+  accentColor: string,
+  statsFont: string,
+  legendYOffset: number
+): string {
+  const fs = (n: number): number => Math.round(n * sf * 10) / 10;
+  const s = createScaler(sf);
+
+  const BADGE_X = s(432);
+  const BADGE_Y = s(legendYOffset);
+  const BADGE_W = s(150);
+  const BADGE_H = s(18);
+  const CORNER_R = s(9);
+
+  const hexAccent = accentColor.startsWith('#') ? accentColor : `#${accentColor}`;
+
+  return `
+  <g class="techstack-archetype-badge">
+    <rect x="${BADGE_X}" y="${BADGE_Y}" width="${BADGE_W}" height="${BADGE_H}" rx="${CORNER_R}" fill="${hexAccent}" fill-opacity="0.15" stroke="${hexAccent}" stroke-opacity="0.4" stroke-width="1" />
+    <text x="${BADGE_X + BADGE_W / 2}" y="${BADGE_Y + s(12)}" text-anchor="middle" font-family="${statsFont}" font-size="${fs(8.5)}px" fill="${hexAccent}" font-weight="600">${escapeXML(archetype)}</text>
+  </g>`;
+}
+
+/**
+ * Generates the language-aware isometric monolith SVG — `view=techstack`.
+ *
+ * Tower colors are driven by the contributor's dominant programming language.
+ * A legend panel on the right side lists the top languages with color swatches.
+ * A developer archetype badge is displayed below the legend.
+ *
+ * @param stats           - Streak stats for the user
+ * @param params          - Badge rendering params
+ * @param calendar        - Contribution calendar data
+ * @param repoContributions - Repository contributions with language data
+ */
+export function generateTechStackSVG(
+  stats: import('../../types').StreakStats,
+  params: BadgeParams,
+  calendar: ContributionCalendar,
+  repoContributions: import('../../types').RepoContribution[]
+): string {
+  if (params.autoTheme) {
+    // Delegate to auto-theme variant with techstack accent colors injected
+    const summary = aggregateTechStack(repoContributions);
+    const palette = buildLanguageColorPalette(summary);
+    const techParams: BadgeParams = {
+      ...params,
+      accent: palette as import('../../types').HexColor[],
+    };
+    return generateAutoThemeSVG(stats, techParams, calendar);
+  }
+
+  const rawBorderWidth = String(params.border || '').trim();
+  let safeBorderWidth: string | number = 0;
+  if (/^\d+$/.test(rawBorderWidth)) {
+    safeBorderWidth = parseInt(rawBorderWidth, 10);
+  } else if (
+    /^#[0-9a-fA-F]{3,6}$/.test(rawBorderWidth) ||
+    /^[0-9a-fA-F]{3,6}$/.test(rawBorderWidth)
+  ) {
+    safeBorderWidth = 2;
+  } else if (['none', 'thin', 'medium', 'thick'].includes(rawBorderWidth.toLowerCase())) {
+    safeBorderWidth = rawBorderWidth.toLowerCase();
+  }
+
+  const animate = params.animate ?? true;
+  const safeUser = escapeXML(params.user || 'GitHub User');
+  const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
+  const bgFill =
+    params.bgType === 'linear' || params.bgType === 'radial' ? 'url(#canvas-gradient)' : bg;
+
+  // ── Build tech stack data ──────────────────────────────────────────────────
+  const techSummary = aggregateTechStack(repoContributions);
+  const langPalette = buildLanguageColorPalette(techSummary, 5);
+
+  // Use tech stack colors as multi-accent if available, otherwise fall back to params accent
+  const accent: string | string[] =
+    langPalette.length > 0
+      ? langPalette
+      : Array.isArray(params.accent)
+        ? params.accent.map((c) => sanitizeHexColor(c, '00ffaa'))
+        : sanitizeHexColor(params.accent, '00ffaa');
+
+  const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
+
+  const borderAttr = safeBorderWidth
+    ? `stroke="#${sanitizeHexColor(params.border, '000000')}" stroke-width="${safeBorderWidth}"`
+    : '';
+
+  const sanitizedFont = sanitizeFont(params.font);
+  const selectedFont = resolveFont(sanitizedFont);
+  const isPredefinedFont = isBundledFont(sanitizedFont);
+  const statsFont = selectedFont || '"Space Grotesk", sans-serif';
+  const googleFontUrlPart =
+    sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
+  const googleFontsImport = googleFontUrlPart
+    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&amp;display=swap');`
+    : '';
+
+  const sf = getSizeScale(params.size);
+  const radius = sanitizeRadius(params.radius, 8) * sf;
+  const labels = getLabels(params.lang);
+  const labelVisible = params.label !== false;
+  const W = Math.round(SVG_WIDTH * sf);
+  const H = Math.round((labelVisible ? SVG_HEIGHT : SVG_HEIGHT - 40) * sf);
+  const yOffset = params.label === false ? -40 : 0;
+
+  const towerData = scaleTowerData(
+    computeTowers(calendar, params.scale, stats.todayDate, params.mode),
+    sf
+  );
+
+  if (params.gradient) {
+    generateCustomGradients(params);
+  }
+
+  // Dominant accent for particles/glow
+  const mainAccentHex =
+    langPalette.length > 0
+      ? (langPalette[langPalette.length - 1] ?? '#00ffaa')
+      : Array.isArray(accent)
+        ? (accent[accent.length - 1] ?? '#00ffaa')
+        : typeof accent === 'string'
+          ? accent.startsWith('#')
+            ? accent
+            : `#${accent}`
+          : '#00ffaa';
+
+  const towers = renderTowers(
+    towerData,
+    params,
+    accent,
+    text,
+    sf,
+    false,
+    params.opacity ?? 1.0,
+    animate,
+    false
+  );
+
+  const safeId = safeUser.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
+
+  // ── Legend & badge Y positioning ──────────────────────────────────────────
+  const legendTopY = 90;
+  const legendBottomY = legendTopY + 22 + techSummary.topLanguages.length * 20 + 18;
+
+  const legend = renderTechStackLegend(techSummary, sf, text, bg, statsFont);
+  const archetypeBadge =
+    techSummary.dominantLanguage !== null
+      ? renderArchetypeBadge(
+          techSummary.archetype,
+          sf,
+          text,
+          mainAccentHex,
+          statsFont,
+          legendBottomY
+        )
+      : '';
+
+  return `
+<svg style="max-width: 100%; height: auto;" xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" focusable="false" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
+  <title id="cp-title-${safeId}">CommitPulse Tech Stack for ${safeUser}</title>
+  <desc id="cp-desc-${safeId}">${safeUser} — ${techSummary.archetype}. Dominant language: ${escapeXML(techSummary.dominantLanguage ?? 'Unknown')}. ${stats.totalContributions} total contributions.</desc>
+  ${renderDefs(sf, params)}
+  ${renderStyle(selectedFont, statsFont, googleFontsImport, text, mainAccentHex, sf, bg, params.entrance || 'rise')}
+  ${renderBackgroundRect(params.hideBackground ? 'transparent' : bgFill, radius, borderAttr || undefined)}
+  <g id="cp-towers" style="transform-origin: center; transform-box: fill-box;" transform="translate(0, ${Math.round((20 + yOffset) * sf)})" focusable="false">${towers}</g>
+  ${renderIsometricLabels(calendar, params, text, sf)}
+  ${legend}
+  ${archetypeBadge}
+  ${renderFooter(stats, params, labels, safeUser, mainAccentHex, sf)}
+  ${renderMilestoneBadges(stats, params, sf)}
 </svg>`;
 }

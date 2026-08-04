@@ -60,6 +60,8 @@ const ROUTES_WITH_OWN_RATE_LIMITING = [
   '/api/learning-curve',
   '/api/org',
   '/api/spotify', // Added here in case it has its own rate limiter
+  '/api/languages',
+  '/api/tech-stack',
 ];
 
 function addSecurityHeaders(response: NextResponse): NextResponse {
@@ -204,5 +206,7 @@ export const config = {
     '/api/user-repos/:path*',
     '/api/webhook/:path*',
     '/api/webhooks/:path*',
+    '/api/languages/:path*',
+    '/api/tech-stack/:path*',
   ],
 };
