@@ -26,7 +26,7 @@ export async function GET(request: Request) {
   let interval = 30; // default 30s
   if (intervalParam) {
     const parsed = parseInt(intervalParam, 10);
-    if (!isNaN(parsed)) {
+    if (!Number.isNaN(parsed)) {
       interval = Math.max(30, Math.min(parsed, 300));
     }
   }

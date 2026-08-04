@@ -135,3 +135,5 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ success: true, username, revalidated: true }, { status: 200 });
 }
+
+.catch(err => console.error("Promise.all failed:", err));
