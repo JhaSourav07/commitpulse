@@ -147,6 +147,7 @@ describe('DashboardPage', () => {
     insights: [],
     achievements: [],
     commitClock: [],
+    rawCommits: [],
     graphData: { nodes: [], links: [] },
     lastSyncedAt: undefined,
     popularRepos: [],

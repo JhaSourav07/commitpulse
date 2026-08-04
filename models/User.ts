@@ -10,6 +10,7 @@ export interface IUser extends Document {
   createdAt: Date;
   lastSeen?: Date;
   visitCount: number;
+  vacationDates?: string[];
 }
 
 const UserSchema: Schema<IUser> = new Schema<IUser>({
@@ -40,6 +41,10 @@ const UserSchema: Schema<IUser> = new Schema<IUser>({
   contributionGoals: {
     monthly: { type: Number, min: 1, default: 100 },
     yearly: { type: Number, min: 1, default: 1000 },
+  },
+  vacationDates: {
+    type: [String],
+    default: [],
   },
 });
 

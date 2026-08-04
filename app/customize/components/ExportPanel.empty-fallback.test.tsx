@@ -94,8 +94,12 @@ describe('ExportPanel Empty/Missing Inputs Verification', () => {
 
     expect(codeBlock).toBeInTheDocument();
 
+    // The Markdown export tab and the new Raw/Preview toggle both use
+    // aria-pressed, so scope this query to the Markdown tab by name to keep it
+    // unambiguous.
     const markdownButton = screen.getByRole('button', {
       pressed: true,
+      name: /markdown/i,
     });
 
     await user.click(markdownButton);

@@ -27,12 +27,20 @@ export interface DecryptedToken {
   nextIndex: number;
 }
 
+/** The result of encrypting one token, containing both the original and encrypted form. */
 export interface EncryptedTokenData {
   token: string;
   encryptedToken: string;
   rotationIndex: number;
 }
 
+/**
+ * Encrypts a GitHub token using AES-256-GCM with a PBKDF2-derived key.
+ * Returns the token as-is if no encryption key is configured (dev/test mode).
+ *
+ * @param token - The plaintext GitHub personal access token.
+ * @throws Error if encryption key is missing or encryption fails.
+ */
 export function encryptGitHubToken(token: string): string {
   if (!token || typeof token !== 'string') {
     throw new Error('Invalid GitHub token');
@@ -60,6 +68,14 @@ export function encryptGitHubToken(token: string): string {
   }
 }
 
+/**
+ * Decrypts a token that was encrypted with encryptGitHubToken.
+ * Supports both the current AES-256-GCM format and legacy AES-256-CBC format
+ * for backwards compatibility with previously encrypted tokens.
+ *
+ * @param encryptedToken - The encrypted token string (GCM or legacy CBC format).
+ * @throws Error if decryption fails or the format is unrecognized.
+ */
 export function decryptGitHubToken(encryptedToken: string): string {
   const key = process.env.GITHUB_TOKEN_ENCRYPTION_KEY;
   if (!key) {
@@ -95,6 +111,12 @@ export function decryptGitHubToken(encryptedToken: string): string {
   throw new Error('Invalid encrypted token format');
 }
 
+/**
+ * Parses a comma-separated list of GitHub tokens and encrypts each one.
+ *
+ * @param tokenString - A comma-separated string of raw GitHub PATs.
+ * @throws Error if the token string is empty or invalid.
+ */
 export function parseAndEncryptTokens(tokenString: string): EncryptedTokenData[] {
   if (!tokenString || typeof tokenString !== 'string') {
     throw new Error('Token string is required');
@@ -122,6 +144,13 @@ export function parseAndEncryptTokens(tokenString: string): EncryptedTokenData[]
   }));
 }
 
+/**
+ * Returns the next token in the rotation and the index to use after it.
+ * Uses round-robin rotation across the encrypted token list.
+ *
+ * @param encryptedTokens - Array of encrypted tokens.
+ * @param currentIndex    - The currently active token's index.
+ */
 export function getNextToken(encryptedTokens: string[], currentIndex = 0): DecryptedToken {
   if (!Array.isArray(encryptedTokens) || encryptedTokens.length === 0) {
     throw new Error('No encrypted tokens available');
@@ -136,6 +165,10 @@ export function getNextToken(encryptedTokens: string[], currentIndex = 0): Decry
   };
 }
 
+/**
+ * Returns true if the given string appears to be a valid encrypted token
+ * (either GCM or legacy CBC format).
+ */
 export function isEncryptedToken(encryptedToken: string | null | undefined): boolean {
   if (!encryptedToken || typeof encryptedToken !== 'string') {
     return false;
@@ -161,6 +194,10 @@ export function isEncryptedToken(encryptedToken: string | null | undefined): boo
   return false;
 }
 
+/**
+ * Returns a safely redacted version of a token for logging purposes.
+ * Shows the first 4 and last 4 characters with '...' in between.
+ */
 export function redactToken(token: string | null | undefined): string {
   if (!token || token.length < 10) {
     return '***';

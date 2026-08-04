@@ -131,7 +131,9 @@ describe('Navbar Timezone Normalization & Calendar Data Boundary Alignment', () 
 
     // The desktop navigation row must also render, proving no leap-year
     // exception silently unmounted a subtree.
-    const desktopNavRow = container.querySelector('.hidden.items-center.gap-2.lg\\:flex');
+    const desktopNavRow = container.querySelector(
+      '.hidden.items-center.gap-2.min-\\[1100px\\]\\:flex'
+    );
     expect(desktopNavRow).toBeInTheDocument();
   });
 

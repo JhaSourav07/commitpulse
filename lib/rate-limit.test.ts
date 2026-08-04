@@ -1,15 +1,22 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { DistributedCache } from './cache';
-import { rateLimit, RateLimiter, getRateLimitHeaders } from './rate-limit';
+import {
+  rateLimit,
+  RateLimiter,
+  getRateLimitHeaders,
+  isInMemoryRateLimitAllowed,
+} from './rate-limit';
 
 beforeEach(() => {
   delete process.env.KV_REST_API_URL;
   delete process.env.KV_REST_API_TOKEN;
+  vi.unstubAllEnvs();
 });
 
 afterEach(() => {
   delete process.env.KV_REST_API_URL;
   delete process.env.KV_REST_API_TOKEN;
+  vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
 
@@ -177,20 +184,18 @@ describe('rateLimit', () => {
       expect(res.remaining).toBe(0);
     });
 
-    it('falls back to memory if fetch fails (non-ok response)', async () => {
+    it('fails closed if fetch returns non-ok response', async () => {
       setupMockKV({ ok: false, status: 500 });
-      const limit = 2;
-      expect((await rateLimit('9.9.9.1', limit, 60000)).success).toBe(true);
-      expect((await rateLimit('9.9.9.1', limit, 60000)).success).toBe(true);
-      expect((await rateLimit('9.9.9.1', limit, 60000)).success).toBe(false);
+      const result = await rateLimit('9.9.9.1', 60, 60000);
+      expect(result.success).toBe(false);
+      expect(result.remaining).toBe(0);
     });
 
-    it('falls back to memory if fetch throws a network error', async () => {
+    it('fails closed if fetch throws a network error', async () => {
       setupMockKV(new Error('Network error'));
-      const limit = 2;
-      expect((await rateLimit('9.9.9.2', limit, 60000)).success).toBe(true);
-      expect((await rateLimit('9.9.9.2', limit, 60000)).success).toBe(true);
-      expect((await rateLimit('9.9.9.2', limit, 60000)).success).toBe(false);
+      const result = await rateLimit('9.9.9.2', 60, 60000);
+      expect(result.success).toBe(false);
+      expect(result.remaining).toBe(0);
     });
   });
 
@@ -494,6 +499,81 @@ describe('getRateLimitHeaders', () => {
 
     // 60s window, 15s elapsed since the window opened at t=0 -> 45s left
     expect(headers['Retry-After']).toBe('45');
+  });
+});
+
+describe('isInMemoryRateLimitAllowed', () => {
+  it('allows in-memory fallback in development', () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    expect(isInMemoryRateLimitAllowed()).toBe(true);
+  });
+
+  it('allows in-memory fallback in test environment', () => {
+    vi.stubEnv('NODE_ENV', 'test');
+    expect(isInMemoryRateLimitAllowed()).toBe(true);
+  });
+
+  it('allows in-memory fallback when NODE_ENV is undefined', () => {
+    vi.stubEnv('NODE_ENV', undefined);
+    expect(isInMemoryRateLimitAllowed()).toBe(true);
+  });
+
+  it('rejects in-memory fallback in production without opt-in', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    expect(isInMemoryRateLimitAllowed()).toBe(false);
+  });
+
+  it('allows in-memory fallback in production with DANGEROUSLY_ALLOW_IN_MEMORY_RATE_LIMIT=true', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('DANGEROUSLY_ALLOW_IN_MEMORY_RATE_LIMIT', 'true');
+    expect(isInMemoryRateLimitAllowed()).toBe(true);
+  });
+
+  it('rejects in-memory fallback in production with DANGEROUSLY_ALLOW_IN_MEMORY_RATE_LIMIT=false', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('DANGEROUSLY_ALLOW_IN_MEMORY_RATE_LIMIT', 'false');
+    expect(isInMemoryRateLimitAllowed()).toBe(false);
+  });
+});
+
+describe('Production fail-closed behavior', () => {
+  it('rateLimit() rejects all requests in production when KV is not configured', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    // No KV env vars set
+    const result = await rateLimit('1.2.3.4', 60, 60000);
+    expect(result.success).toBe(false);
+    expect(result.remaining).toBe(0);
+  });
+
+  it('RateLimiter rejects all requests in production when KV is not configured', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    const limiter = new RateLimiter(5, 60000);
+    expect(await limiter.check('1.2.3.4')).toBe(false);
+    expect(await limiter.check('1.2.3.4')).toBe(false);
+  });
+
+  it('rateLimit() still works in production with DANGEROUSLY_ALLOW_IN_MEMORY_RATE_LIMIT=true', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('DANGEROUSLY_ALLOW_IN_MEMORY_RATE_LIMIT', 'true');
+    const limit = 2;
+    expect((await rateLimit('1.2.3.4', limit, 60000)).success).toBe(true);
+    expect((await rateLimit('1.2.3.4', limit, 60000)).success).toBe(true);
+    expect((await rateLimit('1.2.3.4', limit, 60000)).success).toBe(false);
+  });
+
+  it('rateLimit() fails closed when KV is configured but fetch fails', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    setupMockKV({ ok: false, status: 500 });
+    const result = await rateLimit('1.2.3.4', 60, 60000);
+    expect(result.success).toBe(false);
+    expect(result.remaining).toBe(0);
+  });
+
+  it('RateLimiter fails closed when KV is configured but fetch fails', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    setupMockKV(new Error('Network error'));
+    const limiter = new RateLimiter(5, 60000);
+    expect(await limiter.check('1.2.3.4')).toBe(false);
   });
 });
 

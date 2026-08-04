@@ -327,6 +327,7 @@ export default function LandingPageClient() {
   const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
   const [userDetailsLoading, setUserDetailsLoading] = useState(false);
   const [userDetailsError, setUserDetailsError] = useState<string | null>(null);
+  const [githubSetupWarning, setGitHubSetupWarning] = useState(false);
 
   // SSR hydration guard: server and client both render with mounted=false so
   // their initial output matches. After hydration this effect runs once,
@@ -364,7 +365,7 @@ export default function LandingPageClient() {
 
   // Active username used to load the badge
   const previewUsername = instantUsername || debouncedUsername;
-  const hasUsername = previewUsername.length > 0;
+  const hasUsername = previewUsername.length > 0 && !githubSetupWarning;
 
   // Keep track of the latest previewUsername to avoid race conditions with out-of-order image callbacks
   const latestPreviewUsernameRef = useRef(previewUsername);
@@ -439,6 +440,7 @@ export default function LandingPageClient() {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setUserDetails(null);
       setUserDetailsError(null);
+      setGitHubSetupWarning(false);
       setUserDetailsLoading(false);
       return;
     }
@@ -446,6 +448,7 @@ export default function LandingPageClient() {
     if (!validateGitHubUsername(debouncedUsername)) {
       setUserDetails(null);
       setUserDetailsError('Invalid username format');
+      setGitHubSetupWarning(false);
       setUserDetailsLoading(false);
       return;
     }
@@ -456,22 +459,41 @@ export default function LandingPageClient() {
     const fetchDetails = async () => {
       setUserDetailsLoading(true);
       setUserDetailsError(null);
+      setGitHubSetupWarning(false);
       try {
         const response = await fetch(
           `/api/user-details?username=${encodeURIComponent(debouncedUsername)}`,
           { signal: abortController.signal }
         );
         if (!response.ok) {
+          const errData: {
+            code?: string;
+            error?: string;
+          } = await response.json().catch(() => ({}));
+
+          if (errData.code === 'GITHUB_TOKEN_MISSING') {
+            if (!abortController.signal.aborted) {
+              setUserDetails(null);
+              setUserDetailsError(null);
+              setGitHubSetupWarning(true);
+              setBadgeResult(null);
+            }
+
+            return;
+          }
+
           if (response.status === 404) {
             throw new Error('User not found');
           }
-          const errData = await response.json();
+
           throw new Error(errData.error || 'Failed to fetch user');
         }
         const data = await response.json();
         // Only update state if the request wasn't aborted
         if (!abortController.signal.aborted) {
           setUserDetails(data);
+          setUserDetailsError(null);
+          setGitHubSetupWarning(false);
         }
       } catch (err) {
         // Don't update state if the request was aborted (component unmount or new request)
@@ -481,6 +503,7 @@ export default function LandingPageClient() {
         const message = err instanceof Error ? err.message : 'Failed to fetch user';
         if (!abortController.signal.aborted) {
           setUserDetails(null);
+          setGitHubSetupWarning(false);
           setUserDetailsError(message);
         }
       } finally {
@@ -751,6 +774,24 @@ export default function LandingPageClient() {
                         <div className="h-3 w-24 bg-white/10 rounded" />
                         <span className="text-[10px] text-zinc-500 ml-auto">
                           {t('landing.verifying', { defaultValue: 'Verifying...' })}
+                        </span>
+                      </motion.div>
+                    ) : githubSetupWarning ? (
+                      <motion.div
+                        key="github-setup-warning"
+                        role="status"
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        className="flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300"
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500"
+                        />
+                        <span>
+                          Local setup: Add GITHUB_TOKEN to .env.local, then restart the development
+                          server. The sample preview remains available below.
                         </span>
                       </motion.div>
                     ) : userDetailsError ? (

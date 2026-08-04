@@ -49,6 +49,7 @@ import DeveloperJourneyTimeline from './DeveloperJourneyTimeline';
 import RepositoryContributionExplorer from './RepositoryContributionExplorer';
 import BotFilterToggle from './BotFilterToggle';
 import CustomMetricCard from './CustomMetricCard';
+import VacationModeCard from './VacationModeCard';
 
 // Define the dashboard data structure
 export interface DashboardData {
@@ -102,6 +103,7 @@ export interface DashboardData {
   starredRepos?: Repository[];
   deployments?: DeploymentData[];
   hallOfFame?: HallOfFameAward[];
+  rawCommits?: string[];
 }
 
 interface DashboardClientProps {
@@ -110,6 +112,7 @@ interface DashboardClientProps {
   username: string;
   compareData?: DashboardData | null;
   period: DashboardPeriod;
+  sessionUsername?: string | null;
 }
 
 export interface ProfileMetrics {
@@ -332,6 +335,7 @@ export default function DashboardClient({
   username,
   compareData = null,
   period,
+  sessionUsername = null,
 }: DashboardClientProps) {
   const isLoading = useSyncExternalStore(
     () => () => {},
@@ -733,6 +737,9 @@ export default function DashboardClient({
                   totalCommits={initialData.stats.totalContributions}
                   activeDays={initialData.stats.peakStreak || 30}
                 />
+                {sessionUsername && sessionUsername.toLowerCase() === username.toLowerCase() && (
+                  <VacationModeCard username={username} />
+                )}
                 <Achievements achievements={initialData.achievements} />
                 <ResumeProfileSection githubUsername={username} />
                 <DeploymentTracker data={initialData.deployments} />
@@ -754,6 +761,7 @@ export default function DashboardClient({
                   <ActivityHeatmapPro
                     activity={initialData.activity}
                     commitClock={initialData.commitClock}
+                    rawCommits={initialData.rawCommits}
                   />
                 </section>
 

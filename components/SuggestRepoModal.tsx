@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { X, GitPullRequest, AlertCircle } from 'lucide-react';
 
 export interface SuggestRepoModalProps {
@@ -17,6 +17,14 @@ export default function SuggestRepoModal({ isOpen, onClose, onSubmit }: SuggestR
   const modalRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
+  const handleClose = useCallback(() => {
+    setRepoUrl('');
+    setReason('');
+    setErrorMsg('');
+    setIsSubmitting(false);
+    onClose();
+  }, [onClose]);
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -26,7 +34,7 @@ export default function SuggestRepoModal({ isOpen, onClose, onSubmit }: SuggestR
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        handleClose();
         return;
       }
 
@@ -55,7 +63,7 @@ export default function SuggestRepoModal({ isOpen, onClose, onSubmit }: SuggestR
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, handleClose]);
 
   useEffect(() => {
     if (isOpen) {
@@ -71,7 +79,6 @@ export default function SuggestRepoModal({ isOpen, onClose, onSubmit }: SuggestR
         }
       }, 30);
     } else {
-      document.body.style.overflow = '';
       if (previousFocusRef.current) {
         previousFocusRef.current.focus();
       }

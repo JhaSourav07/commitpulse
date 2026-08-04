@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { NameSection } from './sections/NameSection';
 import { DescriptionSection } from './sections/DescriptionSection';
+import { HeroImageSection } from './sections/HeroImageSection';
 import { TechnologiesSection } from './sections/TechnologiesSection';
 import { SocialsSection } from './sections/SocialsSection';
 import { CommitPulseSection } from './sections/CommitPulseSection';
@@ -13,14 +14,22 @@ import { ArticlesSection } from './sections/ArticlesSection';
 import { GitHubImportModal } from './GitHubImportModal';
 import { FaGithub } from 'react-icons/fa';
 import { PROFILE_PRESETS } from '../data/presets';
-import type { GeneratorState } from '../types';
+import type { GeneratorState, TechIconDisplay } from '../types';
 import type { ImportedData } from '../utils/githubMapper';
 
 export interface EditorPanelProps {
   state: GeneratorState;
   onNameChange: (v: string) => void;
   onDescriptionChange: (v: string) => void;
+  onShowHeroImageChange?: (v: boolean) => void;
+  onHeroImageUrlChange?: (v: string) => void;
+  onHeroImageWidthChange?: (v: string) => void;
+  onHeroImageAlignChange?: (v: 'left' | 'center' | 'right') => void;
+  onHeroImageAltChange?: (v: string) => void;
   onTechsChange: (ids: string[]) => void;
+  onTechIconDisplayChange?: (v: TechIconDisplay) => void;
+  onTechBadgeBgColorChange?: (v: string) => void;
+  onTechBadgeLogoColorChange?: (v: string) => void;
   onSocialsChange: (ids: string[]) => void;
   onSocialLinkChange: (id: string, url: string) => void;
   onGithubUsernameChange: (v: string) => void;
@@ -47,7 +56,15 @@ export function EditorPanel({
   state,
   onNameChange,
   onDescriptionChange,
+  onShowHeroImageChange = () => {},
+  onHeroImageUrlChange = () => {},
+  onHeroImageWidthChange = () => {},
+  onHeroImageAlignChange = () => {},
+  onHeroImageAltChange = () => {},
   onTechsChange,
+  onTechIconDisplayChange = () => {},
+  onTechBadgeBgColorChange = () => {},
+  onTechBadgeLogoColorChange = () => {},
   onSocialsChange,
   onSocialLinkChange,
   onGithubUsernameChange,
@@ -136,10 +153,35 @@ export function EditorPanel({
         onChange={onDescriptionChange}
         onReset={() => onDescriptionChange('')}
       />
+      <HeroImageSection
+        showHeroImage={state.showHeroImage ?? false}
+        heroImageUrl={state.heroImageUrl ?? ''}
+        heroImageWidth={state.heroImageWidth ?? '450'}
+        heroImageAlign={state.heroImageAlign ?? 'center'}
+        heroImageAlt={state.heroImageAlt ?? 'Coding GIF'}
+        onShowHeroImageChange={onShowHeroImageChange}
+        onHeroImageUrlChange={onHeroImageUrlChange}
+        onHeroImageWidthChange={onHeroImageWidthChange}
+        onHeroImageAlignChange={onHeroImageAlignChange}
+        onHeroImageAltChange={onHeroImageAltChange}
+        onReset={() => {
+          onShowHeroImageChange(false);
+          onHeroImageUrlChange('');
+          onHeroImageWidthChange('450');
+          onHeroImageAlignChange('center');
+          onHeroImageAltChange('Coding GIF');
+        }}
+      />
       <TechnologiesSection
         selected={state.selectedTechs}
         onChange={onTechsChange}
         onReset={() => onTechsChange([])}
+        iconDisplay={state.techIconDisplay ?? 'logo'}
+        onIconDisplayChange={onTechIconDisplayChange}
+        badgeBgColor={state.techBadgeBgColor ?? ''}
+        onBadgeBgColorChange={onTechBadgeBgColorChange}
+        badgeLogoColor={state.techBadgeLogoColor ?? ''}
+        onBadgeLogoColorChange={onTechBadgeLogoColorChange}
       />
       <SocialsSection
         selected={state.selectedSocials}

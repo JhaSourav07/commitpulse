@@ -2819,3 +2819,44 @@ describe('[Bug fix] dim_weekends applies to view=languages, not just skyline/def
     expect(svg).not.toContain('class="dimmed-tower"');
   });
 });
+
+describe('[Bug fix] renderBackgroundRect border styling does not leak between calls', () => {
+  // Use "as unknown as Type" for minimal test mocks to satisfy strict TS
+  const mockStats = {
+    totalContributions: 100,
+    currentStreak: 5,
+    longestStreak: 10,
+    todayDate: '2026-07-31',
+  } as unknown as StreakStats;
+
+  const mockCalendar = {
+    totalContributions: 100,
+    weeks: [],
+  } as unknown as ContributionCalendar;
+
+  it('a call with hideBackground/no border does not pick up a border from a preceding compact-badge call', () => {
+    const paramsWithBorder = {
+      user: 'octocat',
+      border: '5',
+    } as unknown as BadgeParams;
+
+    const paramsWithoutBorder = {
+      user: 'octocat',
+    } as unknown as BadgeParams;
+
+    const svgWithBorder = generateSVG(mockStats, paramsWithBorder, mockCalendar);
+    expect(svgWithBorder).toContain('stroke-width="5"');
+
+    // Immediately after a bordered call, a call with no border param should
+    // never show a leftover border — this is exactly what the removed
+    // module-level currentBackgroundRectBorderAttrs variable risked.
+    const svgWithoutBorder = generateSVG(mockStats, paramsWithoutBorder, mockCalendar);
+
+    const bgRectMatch = svgWithoutBorder.match(/<rect data-testid="card-bg"[^>]*\/>/);
+
+    // Ensure the rect was found, then ensure it does not have stroke properties
+    expect(bgRectMatch).toBeTruthy();
+    expect(bgRectMatch?.[0]).not.toContain('stroke-width');
+    expect(bgRectMatch?.[0]).not.toContain('stroke=');
+  });
+});

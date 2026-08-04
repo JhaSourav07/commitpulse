@@ -1,6 +1,12 @@
 import type { LanguageData } from '@/types/dashboard';
 import { getNormalizedThemeKey, themes } from './themes';
-import { escapeXML, sanitizeRadius } from './sanitizer';
+import {
+  escapeXML,
+  sanitizeHexColor,
+  sanitizeRadius,
+  sanitizeDimension,
+  sanitizeCustomText,
+} from './sanitizer';
 import { DEFAULT_FONTS_BASE64 } from './fonts';
 
 export interface LanguagesCardParams {
@@ -25,45 +31,29 @@ export function generateLanguagesSVG(
   const themeKey = getNormalizedThemeKey(params.theme);
   const selectedTheme = themes[themeKey] || themes.dark;
 
-  const bg = params.bg
-    ? params.bg.startsWith('#')
-      ? params.bg
-      : `#${params.bg}`
-    : selectedTheme.bg.startsWith('#')
-      ? selectedTheme.bg
-      : `#${selectedTheme.bg}`;
-  const text = params.text
-    ? params.text.startsWith('#')
-      ? params.text
-      : `#${params.text}`
-    : selectedTheme.text.startsWith('#')
-      ? selectedTheme.text
-      : `#${selectedTheme.text}`;
+  const bg = `#${sanitizeHexColor(params.bg, selectedTheme.bg)}`;
+  const text = `#${sanitizeHexColor(params.text, selectedTheme.text)}`;
 
   const accentVal = Array.isArray(params.accent) ? params.accent[0] : params.accent;
-  const accentHex = accentVal
-    ? accentVal.startsWith('#')
-      ? accentVal
-      : `#${accentVal}`
-    : selectedTheme.accent
-      ? Array.isArray(selectedTheme.accent)
-        ? `#${selectedTheme.accent[0]}`
-        : selectedTheme.accent.startsWith('#')
-          ? selectedTheme.accent
-          : `#${selectedTheme.accent}`
-      : '#3b82f6';
+  const defaultAccent = Array.isArray(selectedTheme.accent)
+    ? selectedTheme.accent[0]
+    : selectedTheme.accent || '3b82f6';
+  const accentHex = `#${sanitizeHexColor(accentVal, defaultAccent)}`;
 
-  const width = params.width || 400;
-  const height = params.height || 210;
+  const width = sanitizeDimension(params.width, 400, 100, 2000);
+  const height = sanitizeDimension(params.height, 210, 100, 2000);
   const radius = sanitizeRadius(params.radius, 10);
   const user = escapeXML(params.user || '');
   const displayLanguages = (languages || []).slice(0, params.count || 5);
   const hideTitle = Boolean(params.hide_title);
   const hideBorder = Boolean(params.hide_border);
 
-  const titleText = escapeXML(
-    params.title || (user ? `${user}'s Top Languages` : 'Most Used Languages')
-  );
+  const rawTitle = params.title
+    ? sanitizeCustomText(params.title)
+    : user
+      ? `${user}'s Top Languages`
+      : 'Most Used Languages';
+  const titleText = escapeXML(rawTitle);
 
   let content = '';
 
@@ -87,9 +77,10 @@ export function generateLanguagesSVG(
         const isFirst = i === 0;
         const rx = isFirst ? 4 : 0;
         const ry = isFirst ? 4 : 0;
+        const langColor = `#${sanitizeHexColor(lang.color, '3b82f6')}`;
 
         barRects += `
-          <rect x="${currentBarX.toFixed(2)}" y="${barY}" width="${segmentWidth.toFixed(2)}" height="${barHeight}" fill="${lang.color}" rx="${rx}" ry="${ry}" />
+          <rect x="${currentBarX.toFixed(2)}" y="${barY}" width="${segmentWidth.toFixed(2)}" height="${barHeight}" fill="${langColor}" rx="${rx}" ry="${ry}" />
         `;
         currentBarX += segmentWidth;
       }
@@ -106,11 +97,12 @@ export function generateLanguagesSVG(
       const itemY = legendStartY + row * 24;
 
       const langName = escapeXML(lang.name);
-      const percentStr = `${lang.percentage}%`;
+      const langColor = `#${sanitizeHexColor(lang.color, '3b82f6')}`;
+      const percentStr = `${escapeXML(String(lang.percentage))}%`;
 
       legendItems += `
         <g transform="translate(${itemX}, ${itemY})">
-          <circle cx="5" cy="5" r="4.5" fill="${lang.color}" />
+          <circle cx="5" cy="5" r="4.5" fill="${langColor}" />
           <text x="16" y="9" class="lang-name">${langName}</text>
           <text x="${((width - 48) / 2 - 16).toFixed(2)}" y="9" class="lang-percent" text-anchor="end">${percentStr}</text>
         </g>
