@@ -68,6 +68,7 @@ export default function TopRivalriesTicker({
   rivalries = MOCK_RIVALRIES,
 }: TopRivalriesTickerProps = {}) {
   const router = useRouter();
+  const isDefaultList = rivalries === MOCK_RIVALRIES;
 
   const handleRivalryClick = (u1: string, u2: string) => {
     router.push(`/compare?user1=${encodeURIComponent(u1)}&user2=${encodeURIComponent(u2)}`);
@@ -124,8 +125,13 @@ export default function TopRivalriesTicker({
                   </span>
                 </div>
 
-                <span className="rounded-md border border-black/5 bg-white px-2 py-0.5 text-[10px] font-medium text-zinc-400 dark:border-white/10 dark:bg-black/20 dark:text-zinc-500">
+                <span className="rounded-md border border-black/5 bg-white px-2 py-0.5 text-[10px] font-medium text-zinc-400 dark:border-white/10 dark:bg-black/20 dark:text-zinc-500 flex items-center gap-1.5">
                   {rivalry.label}
+                  {isDefaultList && (
+                    <span className="rounded bg-amber-500/10 px-1 py-0.2 text-[9px] font-semibold text-amber-600 dark:text-amber-400">
+                      Example
+                    </span>
+                  )}
                 </span>
               </div>
             );
