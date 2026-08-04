@@ -48,6 +48,7 @@ import ActivityHeatmapPro from './ActivityHeatmapPro';
 import DeveloperJourneyTimeline from './DeveloperJourneyTimeline';
 import RepositoryContributionExplorer from './RepositoryContributionExplorer';
 import BotFilterToggle from './BotFilterToggle';
+import CustomMetricCard from './CustomMetricCard';
 
 // Define the dashboard data structure
 export interface DashboardData {
@@ -728,6 +729,10 @@ export default function DashboardClient({
                   }}
                 />
                 <BotFilterToggle />
+                <CustomMetricCard
+                  totalCommits={initialData.stats.totalContributions}
+                  activeDays={initialData.stats.peakStreak || 30}
+                />
                 <Achievements achievements={initialData.achievements} />
                 <ResumeProfileSection githubUsername={username} />
                 <DeploymentTracker data={initialData.deployments} />
