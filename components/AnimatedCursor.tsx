@@ -17,6 +17,7 @@ export default function AnimatedCursor() {
   const dotRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<HTMLDivElement>(null);
   const [isHovering, setIsHovering] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
   const [cursorStyle, setCursorStyle] = useState<CursorStyle>(() => {
     if (typeof window === 'undefined') return 'normal';
     const stored = window.localStorage.getItem(CURSOR_STYLE_STORAGE_KEY);
@@ -31,6 +32,7 @@ export default function AnimatedCursor() {
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const isHoveringRef = useRef(false);
+  const isMouseDownRef = useRef(false);
 
   const mouse = useRef({ x: 0, y: 0 });
   const ring = useRef({ x: 0, y: 0 });
@@ -76,7 +78,10 @@ export default function AnimatedCursor() {
       ring.current.x += (mouse.current.x - ring.current.x) * 0.12;
       ring.current.y += (mouse.current.y - ring.current.y) * 0.12;
       if (ringRef.current) {
-        const size = isHoveringRef.current ? 40 : 24;
+        let size = isHoveringRef.current ? 40 : 24;
+        if (isMouseDownRef.current) {
+          size = Math.max(16, Math.round(size * 0.75));
+        }
         ringRef.current.style.transform = `translate(${ring.current.x - size / 2}px, ${ring.current.y - size / 2}px)`;
         ringRef.current.style.width = `${size}px`;
         ringRef.current.style.height = `${size}px`;
@@ -84,29 +89,57 @@ export default function AnimatedCursor() {
       rafId.current = requestAnimationFrame(animate);
     };
 
+    const INTERACTIVE_SELECTOR =
+      'a, button, [role="button"], .card, input, textarea, select, summary, label, [tabindex]:not([tabindex="-1"]), [data-interactive]';
+
     const onEnter = (e: MouseEvent) => {
       const el = e.target as HTMLElement;
-      if (el.closest('a, button, [role="button"], .card, input, textarea')) {
+      if (el?.closest && el.closest(INTERACTIVE_SELECTOR)) {
         setHover(true);
       }
     };
 
     const onLeave = (e: MouseEvent) => {
       const el = e.target as HTMLElement;
-      if (el.closest('a, button, [role="button"], .card, input, textarea')) {
+      if (el?.closest && el.closest(INTERACTIVE_SELECTOR)) {
         setHover(false);
       }
+    };
+
+    const onMouseDown = () => {
+      isMouseDownRef.current = true;
+    };
+
+    const onMouseUp = () => {
+      isMouseDownRef.current = false;
+    };
+
+    const onMouseLeaveWindow = () => {
+      setIsVisible(false);
+    };
+
+    const onMouseEnterWindow = () => {
+      setIsVisible(true);
     };
 
     window.addEventListener('mousemove', onMove);
     document.addEventListener('mouseover', onEnter);
     document.addEventListener('mouseout', onLeave);
+    window.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mouseup', onMouseUp);
+    document.addEventListener('mouseleave', onMouseLeaveWindow);
+    document.addEventListener('mouseenter', onMouseEnterWindow);
+
     rafId.current = requestAnimationFrame(animate);
 
     return () => {
       window.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseover', onEnter);
       document.removeEventListener('mouseout', onLeave);
+      window.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mouseup', onMouseUp);
+      document.removeEventListener('mouseleave', onMouseLeaveWindow);
+      document.removeEventListener('mouseenter', onMouseEnterWindow);
       cancelAnimationFrame(rafId.current);
       document.body.style.cursor = '';
     };
@@ -136,6 +169,7 @@ export default function AnimatedCursor() {
             : undefined,
           pointerEvents: 'none',
           zIndex: 9999,
+          opacity: isVisible ? 1 : 0,
           transition: 'opacity 0.2s',
         }}
       />
@@ -163,6 +197,7 @@ export default function AnimatedCursor() {
             : undefined,
           pointerEvents: 'none',
           zIndex: 9998,
+          opacity: isVisible ? 1 : 0,
           transition: 'width 0.2s, height 0.2s, border-color 0.2s, background 0.2s',
         }}
       />
