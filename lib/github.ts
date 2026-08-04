@@ -3412,12 +3412,6 @@ export interface RawCommitActivity {
   commits: number;
 }
 
-export interface RawCommitActivity {
-  date: string;
-  language: string;
-  commits: number;
-}
-
 // 1. Define the specific type for the GraphQL response
 export interface GitHubUserActivityData {
   data?: {
