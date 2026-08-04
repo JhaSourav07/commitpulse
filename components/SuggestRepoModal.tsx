@@ -75,16 +75,11 @@ export default function SuggestRepoModal({ isOpen, onClose, onSubmit }: SuggestR
       if (previousFocusRef.current) {
         previousFocusRef.current.focus();
       }
-      setRepoUrl('');
-      setReason('');
-      setErrorMsg('');
-      setIsSubmitting(false);
     }
     return () => {
       document.body.style.overflow = '';
     };
   }, [isOpen]);
-
 
   if (!isOpen) return null;
 
@@ -97,6 +92,14 @@ export default function SuggestRepoModal({ isOpen, onClose, onSubmit }: SuggestR
     if (charCount < 50) return 'text-amber-600 dark:text-amber-400';
     if (charCount >= 100) return 'text-emerald-500 dark:text-emerald-400';
     return 'text-gray-500 dark:text-gray-400';
+  };
+
+  const handleClose = () => {
+    setRepoUrl('');
+    setReason('');
+    setErrorMsg('');
+    setIsSubmitting(false);
+    onClose();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
