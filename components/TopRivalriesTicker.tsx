@@ -1,53 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Flame, Star, Swords, Target, Trophy, Zap } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-
-const MOCK_RIVALRIES = [
-  {
-    u1: 'torvalds',
-    u2: 'gaearon',
-    label: 'Kernel vs React',
-    icon: Flame,
-    color: 'text-orange-500',
-  },
-  {
-    u1: 'rich-harris',
-    u2: 'antfu',
-    label: 'Svelte vs Nuxt',
-    icon: Zap,
-    color: 'text-yellow-400',
-  },
-  {
-    u1: 'shadcn',
-    u2: 'pacocoursey',
-    label: 'UI Masters',
-    icon: Target,
-    color: 'text-indigo-400',
-  },
-  {
-    u1: 'rauchg',
-    u2: 'biilmann',
-    label: 'Vercel & Netlify Founders',
-    icon: Trophy,
-    color: 'text-emerald-500',
-  },
-  {
-    u1: 'dhh',
-    u2: 'taylorotwell',
-    label: 'Ruby vs PHP',
-    icon: Star,
-    color: 'text-rose-500',
-  },
-  {
-    u1: 'jhasourav07',
-    u2: 'leerob',
-    label: 'Rising vs Vet',
-    icon: Swords,
-    color: 'text-purple-500',
-  },
-];
 
 export interface RivalryItem {
   u1: string;
@@ -65,7 +19,7 @@ export interface TopRivalriesTickerProps {
 }
 
 export default function TopRivalriesTicker({
-  rivalries = MOCK_RIVALRIES,
+  rivalries = [],
 }: TopRivalriesTickerProps = {}) {
   const router = useRouter();
 
