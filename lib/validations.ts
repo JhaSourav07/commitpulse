@@ -994,7 +994,7 @@ export const wakatimeParamsSchema = z.object({
     })
     .transform((val) => (val ? sanitizeHexColor(val, '00ffaa') : undefined)),
   width: dimensionParam('width', 100, 1200).default(400),
-  height: dimensionParam('height', 80, 800).default(150),
+  height: dimensionParam('height', 150, 800).default(150),
   radius: z
     .string()
     .transform((val) => sanitizeRadius(val, 8))
