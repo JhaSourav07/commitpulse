@@ -9,13 +9,13 @@ describe('notification management token massive scaling', () => {
   it('handles very long token strings for hashing', () => {
     const longToken = 'cpn_' + 'a'.repeat(10_000);
     const hash = hashNotificationManagementToken(longToken);
-    expect(hash).toMatch(/^[a-f0-9]{64}$/);
+    expect(hash).toMatch(/^\$2[ab]\$\d{2}\$.{53}$/);
   });
 
   it('handles unicode characters in token strings', () => {
     const unicodeToken = 'cpn_🚀🔥commitpulse测试token値';
     const hash = hashNotificationManagementToken(unicodeToken);
-    expect(hash).toMatch(/^[a-f0-9]{64}$/);
+    expect(hash).toMatch(/^\$2[ab]\$\d{2}\$.{53}$/);
   });
 
   it('verifies correctly for 1000 round-trip tokens', () => {

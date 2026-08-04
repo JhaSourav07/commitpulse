@@ -31,14 +31,18 @@ export async function generateSpotifySVG(
   const height = params.height || 150;
   const radius = params.radius !== undefined ? params.radius : 8;
 
-  const title = track.isPlaying
-    ? escapeXML(track.title || 'Unknown Title')
-    : 'Not Currently Playing';
-  const artist = track.isPlaying ? escapeXML(track.artist || 'Unknown Artist') : 'Spotify';
+  const rawTitle = track.isPlaying ? track.title || 'Unknown Title' : 'Not Currently Playing';
+  const rawArtist = track.isPlaying ? track.artist || 'Unknown Artist' : 'Spotify';
 
-  // Truncate long texts
-  const displayTitle = title.length > 35 ? title.substring(0, 32) + '...' : title;
-  const displayArtist = artist.length > 40 ? artist.substring(0, 37) + '...' : artist;
+  // Truncate the RAW text first, then escape — escaping first (as this
+  // code previously did) risks cutting a multi-character XML entity
+  // like '&amp;' in half at the truncation boundary, producing invalid
+  // SVG XML. Matches the pattern already used in lib/svg/articles.ts.
+  const truncatedTitle = rawTitle.length > 35 ? rawTitle.substring(0, 32) + '...' : rawTitle;
+  const truncatedArtist = rawArtist.length > 40 ? rawArtist.substring(0, 37) + '...' : rawArtist;
+
+  const displayTitle = escapeXML(truncatedTitle);
+  const displayArtist = escapeXML(truncatedArtist);
 
   const progressPercent =
     track.isPlaying && track.durationMs && track.progressMs

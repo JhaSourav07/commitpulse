@@ -47,6 +47,21 @@ const routeRules: RouteRule[] = [
   },
 ];
 
+const ROUTES_WITH_OWN_RATE_LIMITING = [
+  '/api/spotlight',
+  '/api/reviews',
+  '/api/achievements',
+  '/api/ci-analytics',
+  '/api/user-repos',
+  '/api/team-attribution',
+  '/api/repo-burnout',
+  '/api/webhook',
+  '/api/articles',
+  '/api/learning-curve',
+  '/api/org',
+  '/api/spotify', // Added here in case it has its own rate limiter
+];
+
 function addSecurityHeaders(response: NextResponse): NextResponse {
   Object.entries(securityHeaders).forEach(([key, value]) => {
     response.headers.set(key, value);
@@ -97,9 +112,12 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Check if route has its own local rate limiter to avoid double-limiting
+  const hasOwnRateLimiter = ROUTES_WITH_OWN_RATE_LIMITING.some((p) => path.startsWith(p));
+
   // 2. Configurable Rate Limiting
   let limitResult;
-  if (rule?.rateLimit !== false) {
+  if (rule?.rateLimit !== false && !hasOwnRateLimiter) {
     // Determine if this is a hard-refresh request (bypasses cache/hits GitHub API)
     const isRefreshRequest =
       request.nextUrl.searchParams.get('refresh') === 'true' ||
@@ -165,7 +183,27 @@ export const config = {
     '/api/student/:path*',
     '/api/pr-insights/:path*',
     '/api/architecture/:path*',
+    '/api/articles/:path*',
+    '/api/learning-curve/:path*',
+    '/api/org/:path*',
+    '/api/spotify/:path*',
+    '/api/Auth/:path*',
+    '/api/achievements/:path*',
+    '/api/ci-analytics/:path*',
+    '/api/cicd/:path*',
     '/api/enterprise/:path*',
     '/api/languages/:path*',
+    '/api/health/:path*',
+    '/api/insights-og/:path*',
+    '/api/repo-burnout/:path*',
+    '/api/reviews/:path*',
+    '/api/spotlight/:path*',
+    '/api/team-attribution/:path*',
+    '/api/user/:path*',
+    '/api/wakatime/:path*',
+    '/api/user-details/:path*',
+    '/api/user-repos/:path*',
+    '/api/webhook/:path*',
+    '/api/webhooks/:path*',
   ],
 };

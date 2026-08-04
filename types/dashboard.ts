@@ -168,4 +168,5 @@ export interface DashboardData {
   starredRepos?: Repository[];
   deployments?: DeploymentData[];
   hallOfFame?: HallOfFameAward[];
+  rawCommits?: string[]; // Raw ISO timestamps of recent commits for accurate hourly pulse
 }

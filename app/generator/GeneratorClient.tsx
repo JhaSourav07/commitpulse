@@ -16,6 +16,9 @@ const INITIAL_STATE: GeneratorState = {
   name: '',
   description: '',
   selectedTechs: [],
+  techIconDisplay: 'logo',
+  techBadgeBgColor: '',
+  techBadgeLogoColor: '',
   selectedSocials: [],
   socialLinks: {},
   githubUsername: '',
@@ -29,6 +32,11 @@ const INITIAL_STATE: GeneratorState = {
   showArticles: false,
   articlesPlatform: 'devto',
   articlesUsername: '',
+  showHeroImage: false,
+  heroImageUrl: '',
+  heroImageWidth: '450',
+  heroImageAlign: 'center',
+  heroImageAlt: 'Coding GIF',
 };
 
 export function GeneratorClient() {
@@ -38,6 +46,7 @@ export function GeneratorClient() {
     const hasContent =
       state.name.trim() ||
       state.description.trim() ||
+      (state.showHeroImage && state.heroImageUrl?.trim()) ||
       state.selectedTechs.length > 0 ||
       state.selectedSocials.some((id) => state.socialLinks[id]?.trim()) ||
       (state.showCommitPulse && state.githubUsername.trim()) ||
@@ -96,9 +105,17 @@ export function GeneratorClient() {
           state={state}
           onNameChange={(v) => setState((s) => ({ ...s, name: v }))}
           onDescriptionChange={(v) => setState((s) => ({ ...s, description: v }))}
+          onShowHeroImageChange={(v) => setState((s) => ({ ...s, showHeroImage: v }))}
+          onHeroImageUrlChange={(v) => setState((s) => ({ ...s, heroImageUrl: v }))}
+          onHeroImageWidthChange={(v) => setState((s) => ({ ...s, heroImageWidth: v }))}
+          onHeroImageAlignChange={(v) => setState((s) => ({ ...s, heroImageAlign: v }))}
+          onHeroImageAltChange={(v) => setState((s) => ({ ...s, heroImageAlt: v }))}
           onTechsChange={(ids) =>
             setState((s) => ({ ...s, selectedTechs: Array.from(new Set(ids)) }))
           }
+          onTechIconDisplayChange={(v) => setState((s) => ({ ...s, techIconDisplay: v }))}
+          onTechBadgeBgColorChange={(v) => setState((s) => ({ ...s, techBadgeBgColor: v }))}
+          onTechBadgeLogoColorChange={(v) => setState((s) => ({ ...s, techBadgeLogoColor: v }))}
           onSocialsChange={(ids) =>
             setState((s) => ({ ...s, selectedSocials: Array.from(new Set(ids)) }))
           }
