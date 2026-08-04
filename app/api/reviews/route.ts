@@ -29,7 +29,7 @@ export async function GET(req: Request) {
 
     const url = new URL(req.url);
     const status = url.searchParams.get('status') ?? 'pending';
-    const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10));
+    const page = Math.max(1, parseInt(url.searchParams.get('page', 10) ?? '1', 10));
     const limit = Math.min(
       MAX_REVIEWS_PER_PAGE,
       Math.max(1, parseInt(url.searchParams.get('limit') ?? '20', 10))
