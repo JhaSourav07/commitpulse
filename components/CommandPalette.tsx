@@ -69,6 +69,7 @@ export default function CommandPalette({ isOpen, onClose, onOpenShortcuts }: Com
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   const handleClose = useCallback(() => {
     setQuery('');
@@ -88,6 +89,7 @@ export default function CommandPalette({ isOpen, onClose, onOpenShortcuts }: Com
           handleClose();
         },
         keywords: ['home', 'landing', 'main', 'index'],
+        shortcut: ['G', 'H'],
       },
       {
         id: 'nav-generator',
@@ -110,6 +112,7 @@ export default function CommandPalette({ isOpen, onClose, onOpenShortcuts }: Com
           handleClose();
         },
         keywords: ['compare', 'vs', 'rivalry', 'battle'],
+        shortcut: ['G', 'P'],
       },
       {
         id: 'nav-burnout',
@@ -121,6 +124,19 @@ export default function CommandPalette({ isOpen, onClose, onOpenShortcuts }: Com
           handleClose();
         },
         keywords: ['burnout', 'radar', 'health', 'analyzer', 'stats'],
+        shortcut: ['G', 'D'],
+      },
+      {
+        id: 'nav-contributors',
+        title: 'Go to Contributors',
+        category: 'Navigation',
+        iconName: 'Users',
+        action: () => {
+          router.push('/contributors');
+          handleClose();
+        },
+        keywords: ['contributors', 'community', 'team', 'authors'],
+        shortcut: ['G', 'C'],
       },
       {
         id: 'nav-studio',
@@ -128,10 +144,11 @@ export default function CommandPalette({ isOpen, onClose, onOpenShortcuts }: Com
         category: 'Navigation',
         iconName: 'Sliders',
         action: () => {
-          router.push('/#customization-studio');
+          router.push('/customize');
           handleClose();
         },
         keywords: ['customization', 'studio', 'themes', 'style'],
+        shortcut: ['G', 'U'],
       },
       {
         id: 'action-shortcuts',
@@ -170,6 +187,7 @@ export default function CommandPalette({ isOpen, onClose, onOpenShortcuts }: Com
           handleClose();
         },
         keywords: ['github', 'repo', 'source', 'code', 'git'],
+        shortcut: ['G', 'R'],
       },
     ],
     [router, handleClose, onOpenShortcuts]
@@ -193,10 +211,16 @@ export default function CommandPalette({ isOpen, onClose, onOpenShortcuts }: Com
 
   useEffect(() => {
     if (isOpen) {
+      if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+        previousFocusRef.current = document.activeElement;
+      }
       document.body.style.overflow = 'hidden';
       setTimeout(() => inputRef.current?.focus(), 50);
     } else {
       document.body.style.overflow = '';
+      if (previousFocusRef.current) {
+        previousFocusRef.current.focus();
+      }
     }
     return () => {
       document.body.style.overflow = '';
@@ -237,6 +261,7 @@ export default function CommandPalette({ isOpen, onClose, onOpenShortcuts }: Com
     const activeEl = listRef.current?.querySelector(`[data-index="${selectedIndex}"]`);
     activeEl?.scrollIntoView({ block: 'nearest' });
   }, [selectedIndex, isOpen]);
+
 
   if (!isOpen) return null;
 

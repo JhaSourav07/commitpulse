@@ -3,29 +3,43 @@ import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 const SHORTCUT_ROUTES: Record<string, string> = {
+  h: '/',
   d: '/',
+  r: 'https://github.com/JhaSourav07/commitpulse',
+  p: '/customize',
   c: '/contributors',
-  p: '/compare',
   u: '/customize',
 };
 
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   const tagName = target.tagName.toLowerCase();
+  const role = target.getAttribute('role')?.toLowerCase();
   return (
     tagName === 'input' ||
     tagName === 'textarea' ||
     tagName === 'select' ||
-    target.isContentEditable
+    target.isContentEditable ||
+    role === 'textbox' ||
+    role === 'combobox' ||
+    role === 'searchbox'
   );
 }
 
-interface UseKeyboardShortcutsOptions {
+export interface UseKeyboardShortcutsOptions {
   onOpenShortcuts?: () => void;
+  onFocusSearch?: () => void;
+  onToggleCommandPalette?: () => void;
+  onCloseActiveModal?: () => void;
+  onSuggestRepo?: () => void;
 }
 
-// Global "g then key" quick-nav shortcuts. Navigates via the App Router, so it
-// must be mounted within a Next.js App Router context (useRouter throws otherwise).
+// Global keyboard shortcuts system:
+// - Shift + / or ? -> Open keyboard shortcuts modal
+// - Esc -> Close active modal / search
+// - / -> Focus search input
+// - Ctrl + K / Cmd + K -> Open command palette
+// - g + h/d/r/p/c/u -> Quick navigation (Home, Dashboard, Repositories, Profile, Contributors, Customization)
 
 export function useKeyboardShortcuts(options?: UseKeyboardShortcutsOptions) {
   const router = useRouter();
@@ -42,12 +56,37 @@ export function useKeyboardShortcuts(options?: UseKeyboardShortcutsOptions) {
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (isTypingTarget(event.target)) return;
+      if (isTypingTarget(event.target)) {
+        if (event.key === 'Escape') {
+          options?.onCloseActiveModal?.();
+        }
+        return;
+      }
 
-      // ? opens shortcuts modal
-      if (!event.ctrlKey && !event.metaKey && !event.altKey && event.key === '?') {
+      // Esc closes active modal/dialog/search
+      if (event.key === 'Escape') {
+        options?.onCloseActiveModal?.();
+        return;
+      }
+
+      // Ctrl + K / Cmd + K opens quick navigation / command palette
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        options?.onToggleCommandPalette?.();
+        return;
+      }
+
+      // ? or Shift + / opens shortcuts modal
+      if (!event.ctrlKey && !event.metaKey && !event.altKey && (event.key === '?' || (event.key === '/' && event.shiftKey))) {
         event.preventDefault();
         options?.onOpenShortcuts?.();
+        return;
+      }
+
+      // / focuses search input (when not already typing)
+      if (!event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey && event.key === '/') {
+        event.preventDefault();
+        options?.onFocusSearch?.();
         return;
       }
 
@@ -69,7 +108,11 @@ export function useKeyboardShortcuts(options?: UseKeyboardShortcutsOptions) {
       const route = SHORTCUT_ROUTES[key];
       if (route) {
         event.preventDefault();
-        router.push(route);
+        if (route.startsWith('http://') || route.startsWith('https://')) {
+          window.open(route, '_blank', 'noopener,noreferrer');
+        } else {
+          router.push(route);
+        }
       }
       resetShortcut();
     };
@@ -81,3 +124,4 @@ export function useKeyboardShortcuts(options?: UseKeyboardShortcutsOptions) {
     };
   }, [router, options]);
 }
+

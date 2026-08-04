@@ -12,17 +12,20 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
     title: 'Navigation',
     shortcuts: [
-      { keys: ['G', 'D'], description: 'Go to Home' },
+      { keys: ['G', 'H'], description: 'Go to Home' },
+      { keys: ['G', 'D'], description: 'Go to Dashboard' },
+      { keys: ['G', 'R'], description: 'Go to Repositories' },
+      { keys: ['G', 'P'], description: 'Go to Profile' },
       { keys: ['G', 'C'], description: 'Go to Contributors' },
-      { keys: ['G', 'P'], description: 'Go to Compare' },
-      { keys: ['G', 'U'], description: 'Go to Customization Studio' },
     ],
   },
   {
-    title: 'General',
+    title: 'Actions & Commands',
     shortcuts: [
-      { keys: ['?'], description: 'Open keyboard shortcuts' },
-      { keys: ['Esc'], description: 'Close this modal' },
+      { keys: ['Ctrl', 'K'], description: 'Open Quick Navigation / Palette' },
+      { keys: ['/'], description: 'Focus search input' },
+      { keys: ['?'], description: 'Open keyboard shortcuts modal' },
+      { keys: ['Esc'], description: 'Close active modal / dialog' },
     ],
   },
 ];
@@ -34,12 +37,44 @@ interface KeyboardShortcutsModalProps {
 
 export default function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
 
+    // Save active element for focus restoration on close
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      previousFocusRef.current = document.activeElement;
+    }
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+
+      // Focus trapping
+      if (e.key === 'Tab' && modalRef.current) {
+        const focusables = modalRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusables.length === 0) return;
+
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === first || document.activeElement === modalRef.current) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -49,14 +84,27 @@ export default function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShor
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
-      modalRef.current?.focus();
+      setTimeout(() => {
+        if (modalRef.current) {
+          const firstButton = modalRef.current.querySelector<HTMLElement>('button');
+          if (firstButton) {
+            firstButton.focus();
+          } else {
+            modalRef.current.focus();
+          }
+        }
+      }, 30);
     } else {
       document.body.style.overflow = '';
+      if (previousFocusRef.current) {
+        previousFocusRef.current.focus();
+      }
     }
     return () => {
       document.body.style.overflow = '';
     };
   }, [isOpen]);
+
 
   if (!isOpen) return null;
 
