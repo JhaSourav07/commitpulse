@@ -1,4 +1,16 @@
 import 'server-only';
+
+/**
+ * A structured error thrown when a GitHub user or resource is not found.
+ * Use this instead of string-based "not found" detection for robust, locale-independent error handling.
+ */
+export class NotFoundError extends Error {
+  constructor(resource: string, identifier?: string) {
+    const message = identifier ? `${resource} "${identifier}" not found` : `${resource} not found`;
+    super(message);
+    this.name = 'NotFoundError';
+  }
+}
 // Resolves Issue #6105 (Intelligent API Resilience)
 import type {
   ContributionCalendar,
@@ -1109,7 +1121,7 @@ async function fetchOrgNodeId(orgName: string, signal?: AbortSignal): Promise<st
 
   const id = data.data?.organization?.id;
   if (!id) {
-    throw new Error(`Organization "${orgName}" not found`);
+    throw new NotFoundError('Organization', orgName);
   }
 
   orgNodeIdCache.set(cacheKey, id);
@@ -1207,7 +1219,7 @@ async function fetchContributionsUncached(
   }
 
   if (!data.data?.user) {
-    throw new Error(`GitHub user "${username}" not found`);
+    throw new NotFoundError('GitHub user', username);
   }
 
   let calendar = data.data.user.contributionsCollection?.contributionCalendar;
@@ -1402,7 +1414,7 @@ async function fetchProfileUncached(
 
   if (!res.ok) {
     throwIfRateLimited(res);
-    if (res.status === 404) throw new Error('User not found');
+    if (res.status === 404) throw new NotFoundError('GitHub user', username);
     if (res.status === 403 && res.headers.get('x-ratelimit-remaining') === '0') {
       throw new Error('API Rate Limit Exceeded');
     }

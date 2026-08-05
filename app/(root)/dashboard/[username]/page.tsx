@@ -2,7 +2,12 @@ import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import DashboardClient from '@/components/dashboard/DashboardClient';
 import DashboardSkeleton from '@/components/dashboard/DashboardSkeleton';
-import { getFullDashboardData, fetchUserProfile, fetchUserRepos } from '@/lib/github';
+import {
+  getFullDashboardData,
+  fetchUserProfile,
+  fetchUserRepos,
+  NotFoundError,
+} from '@/lib/github';
 import { getUserGitHubToken } from '@/lib/githubtoken';
 import { auth } from '@/auth';
 
@@ -148,7 +153,7 @@ async function DashboardContent({
       excludeBots,
     });
   } catch (error) {
-    if (error instanceof Error && error.message.includes('not found')) {
+    if (error instanceof NotFoundError) {
       let fallbackProfile;
       try {
         fallbackProfile = await fetchUserProfile(username, {
