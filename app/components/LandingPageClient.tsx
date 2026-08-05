@@ -430,6 +430,10 @@ export default function LandingPageClient() {
   const badgeLoaded = badgeResult?.username === previewUsername && badgeResult?.status === 'loaded';
   const badgeError = badgeResult?.username === previewUsername && badgeResult?.status === 'error';
 
+  // Track which username the loading state belongs to — ensures the stats loading skeleton
+  // only shows when the fetch is for the currently displayed username.
+  const [loadingForUsername, setLoadingForUsername] = useState<string | null>(null);
+
   // Fetch lightweight user profile details and stats on debounced input change
   useEffect(() => {
     if (!mounted) return;
@@ -450,6 +454,7 @@ export default function LandingPageClient() {
       setUserDetailsError('Invalid username format');
       setGitHubSetupWarning(false);
       setUserDetailsLoading(false);
+      setLoadingForUsername(null);
       return;
     }
 
@@ -458,6 +463,7 @@ export default function LandingPageClient() {
 
     const fetchDetails = async () => {
       setUserDetailsLoading(true);
+      setLoadingForUsername(debouncedUsername);
       setUserDetailsError(null);
       setGitHubSetupWarning(false);
       try {
@@ -510,6 +516,7 @@ export default function LandingPageClient() {
         // Always clear loading state if not aborted
         if (!abortController.signal.aborted) {
           setUserDetailsLoading(false);
+          setLoadingForUsername(null);
         }
       }
     };
@@ -1053,7 +1060,7 @@ export default function LandingPageClient() {
                           <IconComponent size={14} />
                         </div>
                       </div>
-                      {userDetailsLoading ? (
+                      {loadingForUsername === previewUsername ? (
                         <div className="h-8 w-20 shimmer rounded-lg mt-1" />
                       ) : userDetailsError && previewUsername ? (
                         <div className="mt-1">
