@@ -397,7 +397,7 @@ export default function AdvancedColorPicker({
           {hexError && (
             <p className="-mt-1.5 text-[10px] text-red-400 dark:text-red-500">{hexError}</p>
           )}
-          {eyedropperSupported === false && (
+          {eyedropperSupported ! && (
             <p className="-mt-1.5 text-[10px] text-amber-500 dark:text-amber-400">
               Eyedropper not supported in this browser
             </p>
