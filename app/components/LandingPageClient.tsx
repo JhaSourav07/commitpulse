@@ -827,6 +827,7 @@ export default function LandingPageClient() {
                           className="w-6 h-6 rounded-full border border-emerald-500/20 object-cover"
                           onError={(e) => {
                             const img = e.currentTarget as HTMLImageElement;
+                            if (!userDetails?.login) return;
                             img.onerror = null;
                             img.src = `https://github.com/${userDetails.login}.png`;
                           }}
