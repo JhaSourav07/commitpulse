@@ -12,9 +12,8 @@ const FALLBACK_ORIGIN = 'https://commitpulse.vercel.app';
  */
 export function getOrigin(): string {
   const envOrigin = process.env.NEXT_PUBLIC_SITE_URL?.trim() || null;
-  return (
-    (typeof window !== 'undefined' ? window.location.origin : null) ?? envOrigin ?? FALLBACK_ORIGIN
-  );
+  const browserOrigin = (typeof window !== 'undefined' && window != null) ? window.location.origin : null;
+  return browserOrigin ?? envOrigin ?? FALLBACK_ORIGIN;
 }
 
 /**
