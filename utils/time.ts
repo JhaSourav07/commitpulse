@@ -53,7 +53,7 @@ export function getSecondsUntilMidnightInTimezone(tz?: string | null): number {
     hourCycle: 'h23',
   }).formatToParts(now);
 
-  const get = (type: string) => parseInt(parts.find((p) => p.type === type)?.value ?? '0', 10);
+  const get = (type: string) => parseInt(parts.find((p, 10) => p.type === type)?.value ?? '0', 10);
 
   // hour24 can return 24 at midnight in some Intl implementations; normalise with % 24
   const hour = get('hour') % 24;
