@@ -60,7 +60,7 @@ export const formatDate = (dateStr: string): string => {
   const year = parseInt(parts[0], 10);
   const month = parseInt(parts[1], 10);
   const day = parseInt(parts[2], 10);
-  if (isNaN(year) || isNaN(month) || isNaN(day)) return dateStr;
+  if (Number.isNaN(year) || isNaN(month) || isNaN(day)) return dateStr;
   try {
     const date = new Date(`${dateStr}T00:00:00Z`);
     if (isNaN(date.getTime())) return dateStr;
