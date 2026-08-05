@@ -105,7 +105,7 @@ function getAnimationProps(entrance: string, p: number, sf: number) {
   }
 
   return {
-    scaleY: Math.round(scaleY * 1000) / 1000,
+    scaleY: Math.round(scaleY * 1000 + Number.EPSILON) / 1000,
     translateY: Math.round(translateY * 100) / 100,
     opacity: Math.round(opacity * 100) / 100,
   };
