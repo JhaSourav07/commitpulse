@@ -59,7 +59,7 @@ export function formatDateRange(year?: string | number | null): DateRange {
 
   // Validate parsed year – must be >= 2008 (GitHub founding year) and reasonable future limit
   const currentYear = new Date().getUTCFullYear();
-  const isValidYear = !isNaN(fullYear) && fullYear >= 2008 && fullYear <= currentYear + 5;
+  const isValidYear = !Number.isNaN(fullYear) && fullYear >= 2008 && fullYear <= currentYear + 5;
 
   if (!isValidYear) {
     return getDefaultDateRange();
