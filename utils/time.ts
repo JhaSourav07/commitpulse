@@ -38,7 +38,7 @@ export function getSecondsUntilUTCMidnight(): number {
  * console.log(seconds);
  */
 export function getSecondsUntilMidnightInTimezone(tz?: string | null): number {
-  if (tz === undefined || tz === null || tz.trim() === '') {
+  if (tz === undefined || tz === null || tz.trim().length === 0) {
     return getSecondsUntilUTCMidnight();
   }
 
