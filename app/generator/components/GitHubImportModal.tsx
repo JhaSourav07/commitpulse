@@ -284,3 +284,5 @@ export function GitHubImportModal({ isOpen, onClose, onApply }: GitHubImportModa
     </div>
   );
 }
+
+.catch(err => console.error("Promise.all failed:", err));
