@@ -34,7 +34,8 @@ export function processCommitTimestamps(commitDates: string[] | Date[]): TimeOfD
 export function getAuthorLocalHour(isoDate: string): number {
   if (!isoDate || typeof isoDate !== 'string') return 0;
 
-  if (isoDate.length >= 13) {
+  // Require at least 13 chars and that char 10 is T or space (ISO separator)
+  if (isoDate.length >= 13 && (isoDate[10] === 'T' || isoDate[10] === ' ')) {
     const hourStr = isoDate.substring(11, 13);
     const hour = parseInt(hourStr, 10);
     if (!isNaN(hour) && hour >= 0 && hour <= 23) {
