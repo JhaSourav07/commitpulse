@@ -737,3 +737,5 @@ export async function POST(req: NextRequest) {
     decrementClones(ip);
   }
 }
+
+.catch(err => console.error("Promise.all failed:", err));
