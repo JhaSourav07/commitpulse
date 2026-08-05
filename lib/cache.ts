@@ -109,17 +109,17 @@ export class TTLCache<T> {
     return value;
   }
 
-  private decompress(stored: T | Buffer): T {
+  private decompress(stored: T | Buffer): T | null {
     if (Buffer.isBuffer(stored)) {
       try {
         const decompressed = brotliDecompressSync(stored).toString();
         try {
           return JSON.parse(decompressed) as T;
         } catch {
-          return decompressed as unknown as T;
+          return null;
         }
       } catch {
-        return stored as unknown as T;
+        return null;
       }
     }
     return stored;
