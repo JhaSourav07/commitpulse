@@ -131,10 +131,10 @@ describe('CommandPalette - Mouse Interactions & Keyboard Navigation', () => {
 
     fireEvent.keyDown(window, { key: 'ArrowUp' });
 
-    // Should wrap to last item (index 7 — 8 total items)
+    // Should wrap to last item (index 8 — 9 total items)
     const lastItem = screen
       .getAllByRole('button')
-      .find((btn) => btn.getAttribute('data-index') === '7');
+      .find((btn) => btn.getAttribute('data-index') === '8');
     expect(lastItem).toHaveClass('bg-emerald-500/10');
   });
 
