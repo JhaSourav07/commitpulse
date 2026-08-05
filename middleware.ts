@@ -187,6 +187,7 @@ export const config = {
     '/api/articles/:path*',
     '/api/languages/:path*',
     '/api/learning-curve/:path*',
+    '/api/languages/:path*',
     '/api/org/:path*',
     '/api/spotify/:path*',
     '/api/Auth/:path*',
