@@ -757,6 +757,7 @@ export default function DashboardClient({
                     activity={initialData.activity}
                     commitClock={initialData.commitClock}
                     rawCommits={initialData.rawCommits}
+                    username={username}
                   />
                 </section>
 

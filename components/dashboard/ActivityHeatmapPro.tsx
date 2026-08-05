@@ -14,13 +14,24 @@ import {
   Sunset,
   Globe,
   MapPin,
+  Download,
+  Share2,
+  FileImage,
+  FileText,
+  Code,
+  Check,
+  Loader2,
 } from 'lucide-react';
 import { getAuthorLocalHour, getViewerLocalHour } from '@/utils/dateHelpers';
+import { useExportImage } from '@/hooks/useExportImage';
+import { copyToClipboard } from '@/utils/clipboard';
+import { toast } from 'sonner';
 
 interface ActivityHeatmapProProps {
   activity: Array<{ date: string; count: number; intensity: 0 | 1 | 2 | 3 | 4 }>;
   commitClock?: Array<{ day: string; commits: number }>;
   rawCommits?: string[];
+  username?: string;
 }
 
 type ViewMode = 'heatmap' | 'hourly' | 'weekly' | 'monthly';
@@ -60,105 +71,22 @@ export default function ActivityHeatmapPro({
   activity,
   commitClock,
   rawCommits,
+  username,
 }: ActivityHeatmapProProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('heatmap');
   const [timeMode, setTimeMode] = useState<'author' | 'viewer'>('author');
   const [announcement, setAnnouncement] = useState<string>('');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const exportFilename = username ? `${username}-activity-heatmap` : 'repository-activity-heatmap';
+  const { exportImage, isExporting } = useExportImage({
+    targetSelector: '[data-export-target="activity-heatmap-pro"]',
+    filename: exportFilename,
+  });
+
   const slicedActivity = useMemo(() => activity.slice(-364), [activity]);
-
-  const handleHeatmapKeyDown = (
-    e: React.KeyboardEvent<HTMLDivElement>,
-    index: number,
-    total: number
-  ) => {
-    let targetIndex = index;
-    const dIndex = index % 7;
-
-    switch (e.key) {
-      case 'ArrowUp':
-        e.preventDefault();
-        if (dIndex > 0) {
-          targetIndex = index - 1;
-        }
-        break;
-      case 'ArrowDown':
-        e.preventDefault();
-        if (dIndex < 6 && index + 1 < total) {
-          targetIndex = index + 1;
-        }
-        break;
-      case 'ArrowLeft':
-        e.preventDefault();
-        if (index >= 7) {
-          targetIndex = index - 7;
-        }
-        break;
-      case 'ArrowRight':
-        e.preventDefault();
-        if (index + 7 < total) {
-          targetIndex = index + 7;
-        }
-        break;
-      default:
-        return;
-    }
-
-    if (targetIndex !== index) {
-      const targetCell = containerRef.current?.querySelector<HTMLDivElement>(
-        `[data-index="${targetIndex}"]`
-      );
-      targetCell?.focus();
-    }
-  };
-
-  // Compute weekly pattern from activity
-  const weeklyPattern = useMemo(() => {
-    const dayCounts: Record<string, { total: number; count: number }> = {};
-    dayLabels.forEach((d) => (dayCounts[d] = { total: 0, count: 0 }));
-
-    activity.forEach((a) => {
-      const date = new Date(a.date);
-      const dayName = dayLabels[date.getDay()];
-      if (dayCounts[dayName]) {
-        dayCounts[dayName].total += a.count;
-        dayCounts[dayName].count += 1;
-      }
-    });
-
-    return dayLabels.map((day) => ({
-      day,
-      total: dayCounts[day].total,
-      average:
-        dayCounts[day].count > 0 ? Math.round(dayCounts[day].total / dayCounts[day].count) : 0,
-    }));
-  }, [activity]);
-
-  // Monthly aggregation
-  const monthlyData = useMemo(() => {
-    const months: Record<string, { total: number; days: number }> = {};
-
-    activity.forEach((a) => {
-      const monthKey = a.date.slice(0, 7); // YYYY-MM
-      if (!months[monthKey]) months[monthKey] = { total: 0, days: 0 };
-      months[monthKey].total += a.count;
-      months[monthKey].days += 1;
-    });
-
-    return Object.entries(months)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .slice(-12)
-      .map(([key, val]) => {
-        const [year, month] = key.split('-');
-        return {
-          label: `${monthLabels[parseInt(month) - 1]} ${year.slice(2)}`,
-          total: val.total,
-          average: Math.round(val.total / val.days),
-          days: val.days,
-        };
-      });
-  }, [activity]);
 
   // Peak activity stats
   const stats = useMemo(() => {
@@ -176,6 +104,24 @@ export default function ActivityHeatmapPro({
       activeDays,
     };
   }, [activity]);
+
+  const handleShareSnapshot = async () => {
+    const summary =
+      `📊 Repository Activity Heatmap Snapshot${username ? ` (@${username})` : ''}\n` +
+      `• Total Contributions: ${stats.total.toLocaleString()}\n` +
+      `• Active Days: ${stats.activeDays}\n` +
+      `• Peak Activity: ${stats.peak} contributions (${stats.peakDate || 'N/A'})\n` +
+      `• Daily Average: ${stats.average}\n` +
+      `Exported via CommitPulse`;
+    try {
+      await copyToClipboard(summary);
+      setShareCopied(true);
+      toast.success('Analytics snapshot copied to clipboard!');
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch {
+      toast.error('Failed to copy analytics snapshot');
+    }
+  };
 
   // Hourly distribution (computed from rawCommits or fallback)
   const hourlyData = useMemo(() => {
@@ -231,6 +177,7 @@ export default function ActivityHeatmapPro({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
+      data-export-target="activity-heatmap-pro"
       className="rounded-2xl border border-black/10 bg-white/80 backdrop-blur-xl p-6 dark:border-[rgba(255,255,255,0.08)] dark:bg-[rgba(17,17,17,0.8)]"
       role="region"
       aria-label="Activity Heatmap Pro"
@@ -247,6 +194,93 @@ export default function ActivityHeatmapPro({
               {stats.activeDays} active days · {stats.total.toLocaleString()} contributions
             </p>
           </div>
+        </div>
+
+        {/* Export & Share Dropdown */}
+        <div className="relative inline-block">
+          <button
+            onClick={() => setDropdownOpen((prev) => !prev)}
+            disabled={isExporting}
+            aria-haspopup="true"
+            aria-expanded={dropdownOpen}
+            aria-label="Export activity heatmap"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-xs font-semibold text-gray-800 dark:text-gray-200 transition-all duration-150 disabled:opacity-50"
+          >
+            {isExporting ? (
+              <Loader2 className="animate-spin" size={14} />
+            ) : (
+              <Download size={14} className="text-emerald-500" />
+            )}
+            <span>Export</span>
+          </button>
+
+          {dropdownOpen && !isExporting && (
+            <>
+              <div className="fixed inset-0 z-20" onClick={() => setDropdownOpen(false)} />
+              <ul
+                role="menu"
+                className="absolute right-0 z-30 mt-1 w-48 rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-[#121212] shadow-xl overflow-hidden py-1 text-xs"
+              >
+                <li role="none">
+                  <button
+                    role="menuitem"
+                    onClick={async () => {
+                      setDropdownOpen(false);
+                      await exportImage('png');
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-left text-gray-700 dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                  >
+                    <FileImage size={14} className="text-blue-500" />
+                    <span>Download PNG</span>
+                  </button>
+                </li>
+                <li role="none">
+                  <button
+                    role="menuitem"
+                    onClick={async () => {
+                      setDropdownOpen(false);
+                      await exportImage('pdf');
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-left text-gray-700 dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                  >
+                    <FileText size={14} className="text-red-500" />
+                    <span>Download PDF</span>
+                  </button>
+                </li>
+                <li role="none">
+                  <button
+                    role="menuitem"
+                    onClick={async () => {
+                      setDropdownOpen(false);
+                      await exportImage('svg');
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-left text-gray-700 dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                  >
+                    <Code size={14} className="text-emerald-500" />
+                    <span>Download SVG</span>
+                  </button>
+                </li>
+                <li role="none" className="border-t border-black/5 dark:border-white/5 my-1" />
+                <li role="none">
+                  <button
+                    role="menuitem"
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      handleShareSnapshot();
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-left text-gray-700 dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                  >
+                    {shareCopied ? (
+                      <Check size={14} className="text-emerald-500" />
+                    ) : (
+                      <Share2 size={14} className="text-purple-500" />
+                    )}
+                    <span>Share Snapshot</span>
+                  </button>
+                </li>
+              </ul>
+            </>
+          )}
         </div>
       </div>
 
