@@ -26,7 +26,7 @@ interface TooltipState {
 }
 
 interface HeatmapProps {
-  data: ActivityData[];
+  data?: ActivityData[] | null;
   title?: string;
   subtitle?: string;
   emptyMessage?: string;
@@ -47,6 +47,31 @@ export default function Heatmap({
   const { t } = useTranslation();
 
   const effectiveTimeZone = timeZone || 'UTC';
+
+  if (!data) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.3 }}
+        className="rounded-xl border border-black/10 bg-white p-6 dark:border-[rgba(255,255,255,0.08)] dark:bg-[#0a0a0a]"
+      >
+        <div className="animate-pulse space-y-3">
+          <div className="h-4 w-32 rounded bg-zinc-200 dark:bg-zinc-800" />
+          <div className="flex gap-1">
+            {Array.from({ length: 52 }).map((_, i) => (
+              <div key={i} className="flex flex-col gap-1">
+                {Array.from({ length: 7 }).map((_, j) => (
+                  <div key={j} className="h-3.5 w-3.5 rounded-sm bg-zinc-200 dark:bg-zinc-800" />
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
 
   const getTimeZoneDateLabel = (input: string | Date) => {
     const date = typeof input === 'string' ? new Date(`${input}T00:00:00Z`) : input;
