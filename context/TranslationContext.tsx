@@ -59,7 +59,7 @@ const getNestedValue = (
   obj: Record<string, unknown> | null | undefined,
   path: string
 ): string | undefined => {
-  if (!obj) return undefined;
+  if (!obj) return;
   const parts = path.split('.');
   let current: unknown = obj;
   for (const part of parts) {
