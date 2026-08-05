@@ -344,6 +344,8 @@ We welcome contributions in three focused pillars. Staying within these areas en
 
 ### 🎨 Pillar 1 — New Theme Design
 
+For a detailed walkthrough, see the [Theme Development Guide](../THEME_DEVELOPMENT.md).
+
 Themes live in `lib/svg/themes.ts`. A theme is three properties: `bg`, `text`, and `accent` — but the _feeling_ a well-crafted theme creates is worth far more than the 3 lines of code.
 
 **What makes a great theme:**

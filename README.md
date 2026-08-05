@@ -274,6 +274,8 @@ For details on the project leads and roles, please see [MAINTAINER.md](MAINTAINE
 
 Browse all theme previews here: [Theme Gallery](THEMES.md).
 
+Want to create your own theme? Check out the [Theme Development Guide](THEME_DEVELOPMENT.md) for a step-by-step walkthrough.
+
 ---
 
 <div align="center">

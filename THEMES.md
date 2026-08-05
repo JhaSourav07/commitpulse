@@ -2,6 +2,8 @@
 
 All 35 available themes for your CommitPulse badge. Use the `?theme=<slug>` query parameter to apply a theme.
 
+Want to create a new theme? See the [Theme Development Guide](THEME_DEVELOPMENT.md) for step-by-step instructions.
+
 ```
 https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 ```
