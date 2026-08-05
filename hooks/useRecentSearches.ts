@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 
 export const STORAGE_KEY = 'recentSearches';
 export const MAX_SEARCHES = 5;
@@ -51,7 +51,6 @@ export function useRecentSearches() {
   // the react-hooks/set-state-in-effect rule which flags multiple synchronous
   // setState calls inside an effect body.
   const [state, setState] = useState<State>({ searches: [], mounted: false });
-  const isInitial = useRef(true);
 
   // SSR hydration guard + localStorage sync in a single batched update.
   // Starting with { searches: [], mounted: false } ensures the server and
@@ -62,22 +61,14 @@ export function useRecentSearches() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setState({ searches: loadFromStorage(), mounted: true });
   }, []);
-  // Single setState call — reads external system (localStorage) and syncs
-  // React state in one update, which is exactly what effects are for.
+  // Sync effect — writes localStorage whenever state.searches or state.mounted changes.
+  // The isInitial ref guards against writing the initial empty-state render to localStorage,
+  // but still writes when mounted transitions from false to true (initial hydration sync).
   useEffect(() => {
     if (!state.mounted) return;
 
-    if (isInitial.current) {
-      isInitial.current = false;
-      return;
-    }
-
-    if (state.searches.length === 0) {
-      writeStorage(null);
-    } else {
-      writeStorage(state.searches);
-    }
-  }, [state.searches, state.mounted]);
+    writeStorage(state.searches.length === 0 ? null : state.searches);
+  }, [state.mounted, state.searches]);
 
   const addSearch = (query: string) => {
     if (!query.trim()) return;
