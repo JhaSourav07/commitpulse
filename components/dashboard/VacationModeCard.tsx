@@ -65,7 +65,7 @@ export default function VacationModeCard({ username }: VacationModeCardProps) {
       toast.info('That date is already on your list.');
       return;
     }
-    const updated = [...dates, newDate].sort();
+    const updated = [...dates, newDate].sort((a, b) => a - b);
     saveDates(updated);
     setNewDate('');
   };
