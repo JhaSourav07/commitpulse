@@ -10,7 +10,8 @@ export const fallbackCopyToClipboard = (text: string): boolean => {
     document.body.appendChild(textArea);
 
     textArea.focus();
-    textArea.select();
+    const selected = textArea.select();
+    if (!selected) return false;
 
     return document.execCommand('copy');
   } catch {
