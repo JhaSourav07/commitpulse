@@ -597,7 +597,7 @@ export default function LandingPageClient() {
   const statsData = [
     {
       label: t('dashboard.stats.current_streak', { defaultValue: 'Current Streak' }),
-      value: userDetails?.stats?.currentStreak ?? (previewUsername ? 0 : 12),
+      value: Math.max(0, userDetails?.stats?.currentStreak ?? (previewUsername ? 0 : 12)),
       icon: Flame,
       color: 'from-orange-500/20 to-red-500/20 text-orange-400 border-orange-500/20',
       glow: 'shadow-orange-500/10',
@@ -605,7 +605,7 @@ export default function LandingPageClient() {
     },
     {
       label: t('dashboard.stats.peak_streak', { defaultValue: 'Longest Streak' }),
-      value: userDetails?.stats?.longestStreak ?? (previewUsername ? 0 : 34),
+      value: Math.max(0, userDetails?.stats?.longestStreak ?? (previewUsername ? 0 : 34)),
       icon: Trophy,
       color: 'from-amber-500/20 to-yellow-500/20 text-amber-400 border-yellow-500/20',
       glow: 'shadow-yellow-500/10',
@@ -613,7 +613,7 @@ export default function LandingPageClient() {
     },
     {
       label: t('dashboard.stats.contributions', { defaultValue: 'Contributions' }),
-      value: userDetails?.stats?.totalContributions ?? (previewUsername ? 0 : 420),
+      value: Math.max(0, userDetails?.stats?.totalContributions ?? (previewUsername ? 0 : 420)),
       icon: GitCommit,
       color: 'from-emerald-500/20 to-teal-500/20 text-emerald-400 border-emerald-500/20',
       glow: 'shadow-emerald-500/10',
@@ -621,7 +621,7 @@ export default function LandingPageClient() {
     },
     {
       label: t('dashboard.profile.repos', { defaultValue: 'Repositories' }),
-      value: userDetails?.public_repos ?? (previewUsername ? 0 : 24),
+      value: Math.max(0, userDetails?.public_repos ?? (previewUsername ? 0 : 24)),
       icon: Folder,
       color: 'from-cyan-500/20 to-blue-500/20 text-cyan-400 border-cyan-500/20',
       glow: 'shadow-cyan-500/10',
