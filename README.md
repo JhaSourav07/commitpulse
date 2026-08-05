@@ -194,6 +194,8 @@ To keep the repository clean and readable, technical details have been modulariz
 
 Get your own instance of CommitPulse running locally in 4 simple steps:
 
+**Prerequisites:** Node.js v20+ and npm.
+
 ````bash
 # 1. Clone the repository
 git clone https://github.com/JhaSourav07/commitpulse.git && cd commitpulse
@@ -239,6 +241,8 @@ npm run dev
 
 Then visit: `http://localhost:3000/api/streak?user=YOUR_USERNAME`
 
+> **Troubleshooting:** If you see errors after running `npm install`, try `npm install --ignore-scripts` to skip the Husky Git hooks setup (not required for local development).
+
 ### 🌐 Deploy to Vercel
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/JhaSourav07/commitpulse&env=GITHUB_PAT&envDescription=GitHub%20Personal%20Access%20Token%20with%20read%3Auser%20scope)
@@ -246,6 +250,17 @@ Then visit: `http://localhost:3000/api/streak?user=YOUR_USERNAME`
 For advanced self-hosting configurations (such as setting up the optional MongoDB user tracking), refer to the **[🚀 Self-Hosting & Deployment Guide](docs/self_hosting.md)**.
 
 ---
+
+## 🔍 Finding an Issue to Work On
+
+Looking for a place to start? Check the **[issue tracker](https://github.com/JhaSourav07/commitpulse/issues)** for issues labeled `good first issue` or `help wanted`. Look for issues tagged with `bug` (small fixes) or `enhancement` (new features) that match your skill level.
+
+**Tips for beginners:**
+
+- Start with `good first issue` labeled issues — they are specifically selected as accessible entry points
+- Read the **[CONTRIBUTING.md](CONTRIBUTING.md)** guide before making your first contribution
+- Read the **[ARCHITECTURE.md](ARCHITECTURE.md)** to understand how the project is structured
+- Check **[THEME_DEVELOPMENT.md](THEME_DEVELOPMENT.md)** if you are interested in designing themes
 
 ## 🤝 Contributing
 
