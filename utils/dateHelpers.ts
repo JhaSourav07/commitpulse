@@ -37,7 +37,7 @@ export function getAuthorLocalHour(isoDate: string): number {
   if (isoDate.length >= 13) {
     const hourStr = isoDate.substring(11, 13);
     const hour = parseInt(hourStr, 10);
-    if (!isNaN(hour) && hour >= 0 && hour <= 23) {
+    if (!Number.isNaN(hour) && hour >= 0 && hour <= 23) {
       return hour;
     }
   }
