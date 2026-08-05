@@ -123,6 +123,98 @@ export default function ActivityHeatmapPro({
     }
   };
 
+  const handleHeatmapKeyDown = (
+    e: React.KeyboardEvent<HTMLDivElement>,
+    index: number,
+    total: number
+  ) => {
+    let targetIndex = index;
+    const dIndex = index % 7;
+
+    switch (e.key) {
+      case 'ArrowUp':
+        e.preventDefault();
+        if (dIndex > 0) {
+          targetIndex = index - 1;
+        }
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        if (dIndex < 6 && index + 1 < total) {
+          targetIndex = index + 1;
+        }
+        break;
+      case 'ArrowLeft':
+        e.preventDefault();
+        if (index >= 7) {
+          targetIndex = index - 7;
+        }
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        if (index + 7 < total) {
+          targetIndex = index + 7;
+        }
+        break;
+      default:
+        return;
+    }
+
+    if (targetIndex !== index) {
+      const targetCell = containerRef.current?.querySelector<HTMLDivElement>(
+        `[data-index="${targetIndex}"]`
+      );
+      targetCell?.focus();
+    }
+  };
+
+  // Compute weekly pattern from activity
+  const weeklyPattern = useMemo(() => {
+    const dayCounts: Record<string, { total: number; count: number }> = {};
+    dayLabels.forEach((d) => (dayCounts[d] = { total: 0, count: 0 }));
+
+    activity.forEach((a) => {
+      const date = new Date(a.date);
+      const dayName = dayLabels[date.getDay()];
+      if (dayCounts[dayName]) {
+        dayCounts[dayName].total += a.count;
+        dayCounts[dayName].count += 1;
+      }
+    });
+
+    return dayLabels.map((day) => ({
+      day,
+      total: dayCounts[day].total,
+      average:
+        dayCounts[day].count > 0 ? Math.round(dayCounts[day].total / dayCounts[day].count) : 0,
+    }));
+  }, [activity]);
+
+  // Monthly aggregation
+  const monthlyData = useMemo(() => {
+    const months: Record<string, { total: number; days: number }> = {};
+
+    activity.forEach((a) => {
+      const monthKey = a.date.slice(0, 7); // YYYY-MM
+      if (!months[monthKey]) months[monthKey] = { total: 0, days: 0 };
+      months[monthKey].total += a.count;
+      months[monthKey].days += 1;
+    });
+
+    return Object.entries(months)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-12)
+      .map(([key, val]) => {
+        const [year, month] = key.split('-');
+        return {
+          label: `${monthLabels[parseInt(month) - 1]} ${year.slice(2)}`,
+          total: val.total,
+          average: Math.round(val.total / val.days),
+          days: val.days,
+        };
+      });
+  }, [activity]);
+
   // Hourly distribution (computed from rawCommits or fallback)
   const hourlyData = useMemo(() => {
     if (rawCommits && rawCommits.length > 0) {
