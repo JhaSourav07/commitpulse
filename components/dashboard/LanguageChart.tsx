@@ -25,7 +25,7 @@ export interface LanguageChartProps {
 export default function LanguageChart({ languages, username }: LanguageChartProps) {
   const { t } = useTranslation();
 
-  if (languages.length === 0) {
+  if (!languages || languages.length === 0) {
     return (
       <motion.div
         initial={{ opacity: 0, y: 12 }}
