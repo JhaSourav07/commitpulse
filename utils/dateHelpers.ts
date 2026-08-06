@@ -11,6 +11,7 @@ export function processCommitTimestamps(commitDates: string[] | Date[]): TimeOfD
   commitDates.forEach((dateString) => {
     if (!dateString) return;
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return;
     const hour = date.getHours();
 
     if (hour >= 6 && hour < 12) {
