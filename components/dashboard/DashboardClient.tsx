@@ -48,6 +48,7 @@ import ActivityHeatmapPro from './ActivityHeatmapPro';
 import DeveloperJourneyTimeline from './DeveloperJourneyTimeline';
 import RepositoryContributionExplorer from './RepositoryContributionExplorer';
 import BotFilterToggle from './BotFilterToggle';
+import CustomMetricCard from './CustomMetricCard';
 import VacationModeCard from './VacationModeCard';
 
 // Define the dashboard data structure
@@ -732,6 +733,10 @@ export default function DashboardClient({
                   }}
                 />
                 <BotFilterToggle />
+                <CustomMetricCard
+                  totalCommits={initialData.stats.totalContributions}
+                  activeDays={initialData.stats.peakStreak || 30}
+                />
                 {sessionUsername && sessionUsername.toLowerCase() === username.toLowerCase() && (
                   <VacationModeCard username={username} />
                 )}
