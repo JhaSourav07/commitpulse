@@ -90,3 +90,72 @@ describe('Spotify API Service', () => {
     expect(result.isPlaying).toBe(false);
   });
 });
+
+describe('[Bug fix] getCurrentlyPlaying — status code boundary', () => {
+  beforeEach(() => {
+    // Ensure environment variables are set so getCurrentlyPlaying gets past the check
+    process.env.SPOTIFY_CLIENT_ID = 'id';
+    process.env.SPOTIFY_CLIENT_SECRET = 'secret';
+    process.env.SPOTIFY_REFRESH_TOKEN = 'token';
+  });
+
+  it('returns isPlaying: false for a 401 response without attempting to parse it as a track', async () => {
+    global.fetch = vi.fn().mockImplementation(async (url: string) => {
+      // Allow the getAccessToken call to succeed
+      if (url.includes('token')) {
+        return {
+          ok: true,
+          json: async () => ({ access_token: 'mock-access-token' }),
+        };
+      }
+      // Return 401 for the NOW_PLAYING endpoint
+      return {
+        ok: false,
+        status: 401,
+        json: () =>
+          Promise.resolve({ error: { status: 401, message: 'The access token expired' } }),
+      };
+    }) as unknown as typeof fetch;
+
+    const result = await getCurrentlyPlaying();
+    expect(result).toEqual({ isPlaying: false });
+  });
+
+  it('returns isPlaying: false for a 400 response', async () => {
+    global.fetch = vi.fn().mockImplementation(async (url: string) => {
+      if (url.includes('token')) {
+        return {
+          ok: true,
+          json: async () => ({ access_token: 'mock-access-token' }),
+        };
+      }
+      return {
+        ok: false,
+        status: 400,
+        json: () => Promise.resolve({ error: { status: 400, message: 'Bad request' } }),
+      };
+    }) as unknown as typeof fetch;
+
+    const result = await getCurrentlyPlaying();
+    expect(result).toEqual({ isPlaying: false });
+  });
+
+  it('still returns isPlaying: false for a 204 (nothing playing)', async () => {
+    global.fetch = vi.fn().mockImplementation(async (url: string) => {
+      if (url.includes('token')) {
+        return {
+          ok: true,
+          json: async () => ({ access_token: 'mock-access-token' }),
+        };
+      }
+      return {
+        ok: true,
+        status: 204,
+        json: () => Promise.resolve(null),
+      };
+    }) as unknown as typeof fetch;
+
+    const result = await getCurrentlyPlaying();
+    expect(result).toEqual({ isPlaying: false });
+  });
+});

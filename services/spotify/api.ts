@@ -78,7 +78,13 @@ export async function getCurrentlyPlaying(): Promise<SpotifyTrackData> {
       cache: 'no-store',
     });
 
-    if (response.status === 204 || response.status > 400) {
+    // response.status === 204: nothing currently playing.
+    // !response.ok (status outside 200-299): any error response,
+    // including 400 (bad request) and 401 (expired/invalid access
+    // token — the most common real-world failure for this endpoint).
+    // Previously `response.status > 400` incorrectly excluded exactly
+    // 400 and 401 from this early return.
+    if (response.status === 204 || !response.ok) {
       return { isPlaying: false };
     }
 

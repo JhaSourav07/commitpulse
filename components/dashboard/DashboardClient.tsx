@@ -48,6 +48,7 @@ import ActivityHeatmapPro from './ActivityHeatmapPro';
 import DeveloperJourneyTimeline from './DeveloperJourneyTimeline';
 import RepositoryContributionExplorer from './RepositoryContributionExplorer';
 import BotFilterToggle from './BotFilterToggle';
+import VacationModeCard from './VacationModeCard';
 
 // Define the dashboard data structure
 export interface DashboardData {
@@ -101,6 +102,7 @@ export interface DashboardData {
   starredRepos?: Repository[];
   deployments?: DeploymentData[];
   hallOfFame?: HallOfFameAward[];
+  rawCommits?: string[];
 }
 
 interface DashboardClientProps {
@@ -109,6 +111,7 @@ interface DashboardClientProps {
   username: string;
   compareData?: DashboardData | null;
   period: DashboardPeriod;
+  sessionUsername?: string | null;
 }
 
 export interface ProfileMetrics {
@@ -331,6 +334,7 @@ export default function DashboardClient({
   username,
   compareData = null,
   period,
+  sessionUsername = null,
 }: DashboardClientProps) {
   const isLoading = useSyncExternalStore(
     () => () => {},
@@ -728,6 +732,9 @@ export default function DashboardClient({
                   }}
                 />
                 <BotFilterToggle />
+                {sessionUsername && sessionUsername.toLowerCase() === username.toLowerCase() && (
+                  <VacationModeCard username={username} />
+                )}
                 <Achievements achievements={initialData.achievements} />
                 <ResumeProfileSection githubUsername={username} />
                 <DeploymentTracker data={initialData.deployments} />
@@ -749,6 +756,7 @@ export default function DashboardClient({
                   <ActivityHeatmapPro
                     activity={initialData.activity}
                     commitClock={initialData.commitClock}
+                    rawCommits={initialData.rawCommits}
                   />
                 </section>
 
@@ -757,7 +765,7 @@ export default function DashboardClient({
                 </section>
 
                 <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <LanguageChart languages={initialData.languages} />
+                  <LanguageChart languages={initialData.languages} username={username} />
                   <CommitClock data={initialData.commitClock} />
                 </section>
 

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useTranslation } from '@/context/TranslationContext';
 import {
   Home,
+  Mail,
   Zap,
   GitCompare,
   Sliders,
@@ -87,6 +88,7 @@ const NAV_ICON_MAP: Record<string, React.ReactNode> = {
   '/customize': <Sliders size={15} className="shrink-0" />,
   '/contributors': <Users size={15} className="shrink-0" />,
   '/support': <MessageCircle size={15} className="shrink-0" />,
+  '/contact': <Mail size={15} className="shrink-0" />,
 };
 
 const RESOURCE_ICON_MAP: Record<string, React.ReactNode> = {
@@ -109,6 +111,11 @@ export function Footer() {
     { label: t('footer.customization'), href: '/customize', isExternal: false },
     { label: t('footer.contributors'), href: '/contributors', isExternal: false },
     { label: t('footer.support'), href: '/support', isExternal: false },
+    {
+      label: t('footer.contact', { defaultValue: 'Contact' }),
+      href: '/contact',
+      isExternal: false,
+    },
   ];
 
   const resourceLinks: FooterLink[] = [

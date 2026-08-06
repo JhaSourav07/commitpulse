@@ -53,6 +53,12 @@ const NAV_LINKS: NavLink[] = [
     isPrimary: false,
   },
   {
+    label: 'Contact',
+    href: '/contact',
+    isExternal: false,
+    isPrimary: false,
+  },
+  {
     label: 'GitHub Repo',
     href: 'https://github.com/JhaSourav07/commitpulse',
     isExternal: true,
@@ -213,7 +219,7 @@ export default function Navbar() {
   });
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(min-width: 1024px)');
+    const mediaQuery = window.matchMedia('(min-width: 1100px)');
 
     const handleBreakpointChange = (event: MediaQueryListEvent) => {
       if (event.matches) {
@@ -278,6 +284,7 @@ export default function Navbar() {
     if (label === 'Burnout Radar') return t('navbar.burnout_radar');
     if (label === 'Customization Studio') return t('navbar.customization_studio');
     if (label === 'Generator') return t('navbar.generator');
+    if (label === 'Contact') return t('navbar.contact', { defaultValue: 'Contact' });
     return label;
   };
 
@@ -338,7 +345,7 @@ export default function Navbar() {
                 </span>
               </Link>
 
-              <div className="hidden items-center gap-2 lg:flex">
+              <div className="hidden items-center gap-2 min-[1100px]:flex">
                 <NavbarSearch />
                 <LanguageSelector />
                 {NAV_LINKS.map((link) => {
@@ -413,7 +420,7 @@ export default function Navbar() {
               </div>
 
               {/* Mobile Menu Buttons */}
-              <div className="lg:hidden inline-flex items-center justify-center gap-1">
+              <div className="min-[1100px]:hidden inline-flex items-center justify-center gap-1">
                 <button
                   type="button"
                   onClick={toggleTheme}
@@ -438,7 +445,7 @@ export default function Navbar() {
                 </button>
                 <button
                   type="button"
-                  className="lg:hidden inline-flex items-center justify-center rounded-xl p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white cursor-pointer"
+                  className="min-[1100px]:hidden inline-flex items-center justify-center rounded-xl p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white cursor-pointer"
                   aria-label={open ? t('navbar.menu_close') : t('navbar.menu_open')}
                   aria-expanded={open}
                   onClick={() => {
@@ -479,7 +486,7 @@ export default function Navbar() {
 
             {/* Mobile Dropdown Menu */}
             {open ? (
-              <div className="border-t border-gray-100 dark:border-white/10 px-4 py-4 lg:hidden">
+              <div className="border-t border-gray-100 dark:border-white/10 px-4 py-4 min-[1100px]:hidden">
                 <ul className="space-y-1">
                   <li className="mb-2">
                     <NavbarSearch variant="mobile" onNavigate={() => setOpen(false)} />

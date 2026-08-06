@@ -53,7 +53,7 @@ describe('CodeBlock Mock Integrations', () => {
   it('calls the clipboard service for each copy action', async () => {
     mockWriteText.mockResolvedValue(undefined);
 
-    const { getByRole } = render(<CodeBlock code={'console.log("Hello");'} />);
+    const { getByRole, findByRole } = render(<CodeBlock code={'console.log("Hello");'} />);
 
     const copyButton = getByRole('button', {
       name: /copy code snippet/i,
@@ -65,8 +65,8 @@ describe('CodeBlock Mock Integrations', () => {
       expect(mockWriteText).toHaveBeenCalledTimes(1);
     });
 
-    // After the first click, the button's aria-label changes to "Copied snippet"
-    const copiedButton = getByRole('button', {
+    // After the first click, the button's aria-label updates asynchronously to "Copied snippet".
+    const copiedButton = await findByRole('button', {
       name: /copied snippet/i,
     });
 

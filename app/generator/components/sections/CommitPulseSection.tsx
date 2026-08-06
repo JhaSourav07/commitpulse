@@ -1,11 +1,14 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Loader2, Search, X, ExternalLink, PlaySquare } from 'lucide-react';
 import type { ActivityData } from '@/types/dashboard';
+import dynamic from 'next/dynamic';
 
-const ContributionCity3D = lazy(() => import('@/components/dashboard/ContributionCity3D'));
+const ContributionCity3D = dynamic(() => import('@/components/dashboard/ContributionCity3D'), {
+  ssr: false,
+});
 
 import { SectionCard, FieldLabel } from '../SectionCard';
 import { validateGitHubUsername } from '@/lib/validations';
