@@ -46,7 +46,7 @@ function parseCidr(cidr: string): ParsedCidr | null {
   try {
     const [range, bitsStr] = cidr.split('/');
     const bits = parseInt(bitsStr, 10);
-    if (isNaN(bits) || bits < 0 || bits > 32) return null;
+    if (Number.isNaN(bits) || bits < 0 || bits > 32) return null;
     const rangeInt = ip4ToInt(range);
     const mask = bits === 0 ? 0 : bits === 32 ? 0xffffffff : ~((1 << (32 - bits)) - 1) >>> 0;
     return { rangeInt, mask };
