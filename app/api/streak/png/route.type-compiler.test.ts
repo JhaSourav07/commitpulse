@@ -44,6 +44,7 @@ describe('ApiStreakPngRoute - TypeScript Compiler Validation & Schema Constraint
       | 'commit_clock'
       | 'weekday'
       | 'punchcard'
+      | 'techstack'
     >();
     expectTypeOf<StreakParams['scale']>().toEqualTypeOf<'linear' | 'log' | 'sqrt'>();
     expectTypeOf<StreakParams['size']>().toEqualTypeOf<'small' | 'medium' | 'large'>();

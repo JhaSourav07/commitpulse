@@ -30,6 +30,7 @@ import {
   generateLanguagesSVG,
   generateActivityGraphSVG,
   buildInlineErrorSVG,
+  generateTechStackSVG,
 } from '@/lib/svg/generator';
 import { generateConstellationSVG } from '@/lib/svg/constellation';
 import { generateRadarSVG } from '@/lib/svg/radar';
@@ -188,7 +189,8 @@ export async function GET(request: Request) {
       | 'activity_graph'
       | 'commit_clock'
       | 'weekday'
-      | 'punchcard';
+      | 'punchcard'
+      | 'techstack';
     const themeKey = getNormalizedThemeKey(theme);
     const themeName = themeKey === 'default' && theme ? theme : themeKey;
 
@@ -439,7 +441,10 @@ export async function GET(request: Request) {
         });
         calendar = orgData.calendar;
         individualCalendars = orgData.individualCalendars;
-        repoContributions = normalizedView === 'languages' ? orgData.repoContributions || [] : [];
+        repoContributions =
+          normalizedView === 'languages' || normalizedView === 'techstack'
+            ? orgData.repoContributions || []
+            : [];
       } else if (user.includes(',')) {
         const users = user
           .split(',')
@@ -494,7 +499,7 @@ export async function GET(request: Request) {
           calendar: d.calendar,
         }));
         repoContributions =
-          normalizedView === 'languages'
+          normalizedView === 'languages' || normalizedView === 'techstack'
             ? successfulData.flatMap((d) => d.repoContributions || [])
             : [];
         if (hasOfflineFallback) {
@@ -508,7 +513,10 @@ export async function GET(request: Request) {
           signal: controller.signal,
         });
         calendar = userData.calendar;
-        repoContributions = normalizedView === 'languages' ? userData.repoContributions || [] : [];
+        repoContributions =
+          normalizedView === 'languages' || normalizedView === 'techstack'
+            ? userData.repoContributions || []
+            : [];
         if (userData.isOfflineFallback) {
           params.isOfflineFallback = true;
           servedFromStaleCache = true;
@@ -729,6 +737,8 @@ export async function GET(request: Request) {
         Array.from({ length: 7 }, () => new Array(24).fill(0))
       );
       svg = generatePunchcardSVG(punchCard, fullStats, params);
+    } else if (normalizedView === 'techstack') {
+      svg = generateTechStackSVG(fullStats, params, calendar, repoContributions);
     } else if (normalizedView === 'weekday') {
       const normalizedCalendar = normalizeCalendarToTimezone(calendar, timezone);
       svg = generateWeekdaySVG(fullWeekdayStats || fullStats, params, normalizedCalendar);
