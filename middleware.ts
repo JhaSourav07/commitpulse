@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 import { rateLimit, getRateLimitHeaders } from './lib/rate-limit';
 import { getClientIp } from './utils/getClientIp';
 import { auth } from './auth';
+import { generateRateLimitSVG } from './lib/svg/generator';
 
 const securityHeaders = {
   'Content-Security-Policy':
@@ -69,6 +70,28 @@ function addSecurityHeaders(response: NextResponse): NextResponse {
     response.headers.set(key, value);
   });
   return response;
+}
+
+function isStreakBadgeRequest(path: string): boolean {
+  return path === '/api/streak' || path.startsWith('/api/streak/');
+}
+
+function createStreakRateLimitResponse(limitResult: {
+  success: boolean;
+  limit: number;
+  remaining: number;
+  reset: number;
+}): NextResponse {
+  const svg = generateRateLimitSVG('0d1117', '58a6ff', 'c9d1d9', 8, '8s');
+
+  return new NextResponse(svg, {
+    status: 429,
+    headers: {
+      'Content-Type': 'image/svg+xml',
+      'Cache-Control': 'no-store',
+      ...getRateLimitHeaders(limitResult),
+    },
+  });
 }
 
 /**
@@ -141,6 +164,10 @@ export async function middleware(request: NextRequest) {
     }
 
     if (!limitResult.success) {
+      if (isStreakBadgeRequest(path)) {
+        return addSecurityHeaders(createStreakRateLimitResponse(limitResult));
+      }
+
       return addSecurityHeaders(
         NextResponse.json(
           { error: 'Too many requests' },
@@ -199,6 +226,7 @@ export const config = {
     '/api/languages/:path*',
     '/api/health/:path*',
     '/api/insights-og/:path*',
+    '/api/languages/:path*',
     '/api/repo-burnout/:path*',
     '/api/reviews/:path*',
     '/api/spotlight/:path*',
