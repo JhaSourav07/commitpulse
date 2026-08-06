@@ -64,7 +64,7 @@ const SVG_CSP_HEADER =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
 
 function getMonthlyReferenceDate(year: string | undefined, timezone: string): Date | undefined {
-  if (!year) return undefined;
+  if (!year) return;
 
   const selectedYear = Number(year);
   const currentYear = Number(
