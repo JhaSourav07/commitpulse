@@ -10,12 +10,33 @@ function diImg(iconUrl: string, name: string, size = 40): string {
   return `<img src="${iconUrl}" alt="${name}" width="${size}" height="${size}" title="${name}" />`;
 }
 
-function buildBadgeUrl(username: string, accentHex: string): string {
+function buildBadgeUrl(username: string, state: GeneratorState): string {
   const params = new URLSearchParams({ user: username });
-  const cleaned = accentHex.replace(/^#/, '');
-  if (/^[0-9a-fA-F]{6}$/.test(cleaned)) {
-    params.set('accent', cleaned);
+
+  if (state.commitPulseAccent) {
+    const cleaned = state.commitPulseAccent.replace(/^#/, '');
+    if (/^[0-9a-fA-F]{6}$/.test(cleaned)) {
+      params.set('accent', cleaned);
+    }
   }
+
+  if (state.themeBg) {
+    const cleaned = state.themeBg.replace(/^#/, '');
+    if (/^[0-9a-fA-F]{6}$/.test(cleaned)) params.set('bg', cleaned);
+  }
+  if (state.themeText) {
+    const cleaned = state.themeText.replace(/^#/, '');
+    if (/^[0-9a-fA-F]{6}$/.test(cleaned)) params.set('text', cleaned);
+  }
+  if (state.themeBorder) {
+    const cleaned = state.themeBorder.replace(/^#/, '');
+    if (/^[0-9a-fA-F]{6}$/.test(cleaned)) params.set('border', cleaned);
+  }
+  if (state.themeIcon) {
+    const cleaned = state.themeIcon.replace(/^#/, '');
+    if (/^[0-9a-fA-F]{6}$/.test(cleaned)) params.set('accent', cleaned);
+  }
+
   return `${BADGE_BASE}?${params.toString()}`;
 }
 
@@ -216,7 +237,7 @@ export function generateReadme(state: GeneratorState): string {
   // 4. CommitPulse Badge Section
   if (state.showCommitPulse && state.githubUsername.trim()) {
     const username = state.githubUsername.trim();
-    const badgeUrl = buildBadgeUrl(username, state.commitPulseAccent);
+    const badgeUrl = buildBadgeUrl(username, state);
     const dashboardUrl = `${DASHBOARD_BASE}/${username}`;
     const altText = `CommitPulse Contribution Graph for ${username}`;
 
@@ -239,10 +260,31 @@ export function generateReadme(state: GeneratorState): string {
     const repo = state.spotlightRepo.trim();
 
     const params = new URLSearchParams({ user: username, repo });
-    const cleaned = state.commitPulseAccent.replace(/^#/, '');
-    if (/^[0-9a-fA-F]{6}$/.test(cleaned)) {
-      params.set('accent', cleaned);
+
+    if (state.commitPulseAccent) {
+      const cleaned = state.commitPulseAccent.replace(/^#/, '');
+      if (/^[0-9a-fA-F]{6}$/.test(cleaned)) {
+        params.set('accent', cleaned);
+      }
     }
+
+    if (state.themeBg) {
+      const cleaned = state.themeBg.replace(/^#/, '');
+      if (/^[0-9a-fA-F]{6}$/.test(cleaned)) params.set('bg', cleaned);
+    }
+    if (state.themeText) {
+      const cleaned = state.themeText.replace(/^#/, '');
+      if (/^[0-9a-fA-F]{6}$/.test(cleaned)) params.set('text', cleaned);
+    }
+    if (state.themeBorder) {
+      const cleaned = state.themeBorder.replace(/^#/, '');
+      if (/^[0-9a-fA-F]{6}$/.test(cleaned)) params.set('border', cleaned);
+    }
+    if (state.themeIcon) {
+      const cleaned = state.themeIcon.replace(/^#/, '');
+      if (/^[0-9a-fA-F]{6}$/.test(cleaned)) params.set('accent', cleaned);
+    }
+
     const spotlightBadgeUrl = `https://commitpulse.vercel.app/api/spotlight?${params.toString()}`;
     const repoUrl = `https://github.com/${username}/${repo}`;
     const altText = `Repository Spotlight: ${repo}`;
@@ -272,6 +314,23 @@ export function generateReadme(state: GeneratorState): string {
       if (/^[0-9a-fA-F]{6}$/.test(cleaned)) {
         params.set('accent', cleaned);
       }
+    }
+
+    if (state.themeBg) {
+      const cleaned = state.themeBg.replace(/^#/, '');
+      if (/^[0-9a-fA-F]{6}$/.test(cleaned)) params.set('bg', cleaned);
+    }
+    if (state.themeText) {
+      const cleaned = state.themeText.replace(/^#/, '');
+      if (/^[0-9a-fA-F]{6}$/.test(cleaned)) params.set('text', cleaned);
+    }
+    if (state.themeBorder) {
+      const cleaned = state.themeBorder.replace(/^#/, '');
+      if (/^[0-9a-fA-F]{6}$/.test(cleaned)) params.set('border', cleaned);
+    }
+    if (state.themeIcon) {
+      const cleaned = state.themeIcon.replace(/^#/, '');
+      if (/^[0-9a-fA-F]{6}$/.test(cleaned)) params.set('accent', cleaned);
     }
 
     const articlesBadgeUrl = `https://commitpulse.vercel.app/api/articles?${params.toString()}`;
