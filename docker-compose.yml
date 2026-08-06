@@ -11,16 +11,23 @@ services:
     environment:
       MONGODB_URI: mongodb://mongodb:27017/commitpulse
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
     restart: unless-stopped
 
   mongodb:
-    image: mongo:8
+    image: mongo:8.0
     container_name: commitpulse-mongodb
     ports:
       - '27017:27017'
     volumes:
       - mongodb_data:/data/db
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     restart: unless-stopped
 
 volumes:
