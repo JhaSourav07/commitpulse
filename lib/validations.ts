@@ -423,6 +423,30 @@ const baseStreakParamsSchema = z.object({
         return;
       }
     }),
+  compare_years: z
+    .string()
+    .optional()
+    .superRefine((val, ctx) => {
+      if (!val) return;
+      const years = val.split(',').map((y) => y.trim());
+      if (years.length !== 2) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            'compare_years must contain exactly two years separated by a comma (e.g., 2023,2024).',
+        });
+        return;
+      }
+      for (const y of years) {
+        if (!/^\\d{4}$/.test(y)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Invalid year parameter: ${y}. Must be a 4-digit year.`,
+          });
+          return;
+        }
+      }
+    }),
   from: z
     .string()
     .optional()
