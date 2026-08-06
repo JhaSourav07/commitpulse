@@ -171,7 +171,7 @@ export async function GET(request: Request) {
   const rawSpeed = searchParams.get('speed');
   const speedNum = rawSpeed ? parseFloat(rawSpeed) : 8;
   const scanSpeed =
-    !isNaN(speedNum) && isFinite(speedNum) && speedNum >= 1 && speedNum <= 60 ? speedNum : 8;
+    !Number.isNaN(speedNum) && isFinite(speedNum) && speedNum >= 1 && speedNum <= 60 ? speedNum : 8;
 
   // Pre-calculate frame count
   const totalFrames = Math.max(1, Math.round(duration * fps));
