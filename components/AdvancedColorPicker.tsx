@@ -205,7 +205,7 @@ export default function AdvancedColorPicker({
   };
 
   const handleRgbChange = (channel: 'r' | 'g' | 'b', raw: string) => {
-    const num = Math.max(0, Math.min(255, parseInt(raw) || 0));
+    const num = Math.max(0, Math.min(255, parseInt(raw, 10) || 0));
     const current = hexToRgb(value) || { r: 0, g: 0, b: 0 };
     const newRgb = { ...current, [channel]: num };
     const newHex = rgbToHex(newRgb.r, newRgb.g, newRgb.b);
