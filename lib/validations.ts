@@ -38,7 +38,9 @@ export function coerceQueryParams(
 }
 
 export function toBooleanFlag(val?: string): boolean {
-  return val === 'true' || val === '1';
+  if (!val) return false;
+  const lower = val.toLowerCase();
+  return lower === 'true' || lower === '1' || lower === 'yes' || lower === 'on';
 }
 
 export function toGlowFlag(val?: string): boolean {
