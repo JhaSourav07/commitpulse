@@ -176,6 +176,7 @@ export const config = {
   matcher: [
     '/api/streak/:path*',
     '/api/github/:path*',
+    '/api/languages/:path*',
     '/api/track-user/:path*',
     '/api/stats/:path*',
     '/api/og/:path*',

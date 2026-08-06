@@ -248,9 +248,8 @@ export function calculateStreak(
         (new Date(effectiveTodayStr).getTime() - new Date(lastDateStr).getTime()) / 86400000
       );
 
-      // Issue #6171:
-      // only reject when today is missing AND gap > grace
-      if (gapDays > (safeGrace > 0 ? safeGrace : 1)) {
+      //The conditional block now properly dictates the value of todayIndex without being overriden
+      if (gapDays > Math.max(1, grace)) {
         todayIndex = -1;
       } else {
         todayIndex = lastIndex;
