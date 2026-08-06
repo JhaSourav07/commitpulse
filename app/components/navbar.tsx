@@ -209,7 +209,18 @@ export default function Navbar() {
   }, [open]);
 
   const handleOpenShortcuts = () => setShortcutsOpen(true);
-  useKeyboardShortcuts({ onOpenShortcuts: handleOpenShortcuts });
+  const handleToggleCommandPalette = () => setCommandPaletteOpen((prev) => !prev);
+  const handleCloseActiveModal = () => {
+    setShortcutsOpen(false);
+    setCommandPaletteOpen(false);
+    setOpen(false);
+  };
+
+  useKeyboardShortcuts({
+    onOpenShortcuts: handleOpenShortcuts,
+    onToggleCommandPalette: handleToggleCommandPalette,
+    onCloseActiveModal: handleCloseActiveModal,
+  });
 
   const { shellRef, shellVars, handleMouseEnter, handleMouseMove, handleMouseLeave } =
     useGlowEffect();

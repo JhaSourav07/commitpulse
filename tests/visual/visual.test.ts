@@ -17,6 +17,7 @@ import {
   generatePulseSVG,
   generateSkylineSVG,
   generateAutoThemeSkylineSVG,
+  generateSideBySideSkylineSVG,
   generateRateLimitSVG,
   generateLanguagesSVG,
   generateActivityGraphSVG,
@@ -263,6 +264,19 @@ describe('Visual Regression Tests - SVG Generators', () => {
   it('11. generateAutoThemeSkylineSVG', () => {
     const svg = generateAutoThemeSkylineSVG(mockStats, mockParams, mockCalendar);
     compareOrUpdateVisualBaseline('generateAutoThemeSkylineSVG', svg);
+  });
+
+  it('11.5. generateSideBySideSkylineSVG', () => {
+    const svg = generateSideBySideSkylineSVG(
+      mockStats,
+      mockStats,
+      mockParams,
+      mockCalendar,
+      mockCalendar,
+      '2023',
+      '2024'
+    );
+    compareOrUpdateVisualBaseline('generateSideBySideSkylineSVG', svg);
   });
 
   it('12. generateRateLimitSVG', () => {
