@@ -17,8 +17,23 @@ export function clearRequestId(): void {
   currentRequestId = null;
 }
 
-// Define sensitive keys that should be masked
-const SENSITIVE_KEYS = ['token', 'key', 'secret', 'password', 'authorization', 'cookie', 'email'];
+/**
+ * List of case-insensitive key substrings that identify sensitive data.
+ * Used by `redact()` to mask values in log output.
+ * Exported so callers can reuse the same detection logic.
+ *
+ * @example
+ * const isSensitive = SENSITIVE_KEYS.some((k) => fieldName.toLowerCase().includes(k));
+ */
+export const SENSITIVE_KEYS = [
+  'token',
+  'key',
+  'secret',
+  'password',
+  'authorization',
+  'cookie',
+  'email',
+] as const;
 
 /**
  * Recursively scans and redacts sensitive information from an object.

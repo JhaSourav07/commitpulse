@@ -134,7 +134,7 @@ describe('DownloadReportMenu Export & Download Functionality', () => {
       );
     });
 
-    expect(screen.getByText(/Share link copied to clipboard!/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Share link copied to clipboard!/i)).toBeInTheDocument();
   });
 
   it('copies summary and displays toast when "Copy Markdown Summary" is clicked', async () => {
@@ -150,6 +150,6 @@ describe('DownloadReportMenu Export & Download Functionality', () => {
       );
     });
 
-    expect(screen.getByText(/Markdown report copied to clipboard!/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Markdown report copied to clipboard!/i)).toBeInTheDocument();
   });
 });

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Activity,
@@ -12,11 +12,15 @@ import {
   Moon,
   Sunrise,
   Sunset,
+  Globe,
+  MapPin,
 } from 'lucide-react';
+import { getAuthorLocalHour, getViewerLocalHour } from '@/utils/dateHelpers';
 
 interface ActivityHeatmapProProps {
   activity: Array<{ date: string; count: number; intensity: 0 | 1 | 2 | 3 | 4 }>;
   commitClock?: Array<{ day: string; commits: number }>;
+  rawCommits?: string[];
 }
 
 type ViewMode = 'heatmap' | 'hourly' | 'weekly' | 'monthly';
@@ -52,8 +56,62 @@ function getTimeOfDayIcon(hour: number) {
   return <Moon size={14} className="text-indigo-400" />;
 }
 
-export default function ActivityHeatmapPro({ activity, commitClock }: ActivityHeatmapProProps) {
+export default function ActivityHeatmapPro({
+  activity,
+  commitClock,
+  rawCommits,
+}: ActivityHeatmapProProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('heatmap');
+  const [timeMode, setTimeMode] = useState<'author' | 'viewer'>('author');
+  const [announcement, setAnnouncement] = useState<string>('');
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const slicedActivity = useMemo(() => activity.slice(-364), [activity]);
+
+  const handleHeatmapKeyDown = (
+    e: React.KeyboardEvent<HTMLDivElement>,
+    index: number,
+    total: number
+  ) => {
+    let targetIndex = index;
+    const dIndex = index % 7;
+
+    switch (e.key) {
+      case 'ArrowUp':
+        e.preventDefault();
+        if (dIndex > 0) {
+          targetIndex = index - 1;
+        }
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        if (dIndex < 6 && index + 1 < total) {
+          targetIndex = index + 1;
+        }
+        break;
+      case 'ArrowLeft':
+        e.preventDefault();
+        if (index >= 7) {
+          targetIndex = index - 7;
+        }
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        if (index + 7 < total) {
+          targetIndex = index + 7;
+        }
+        break;
+      default:
+        return;
+    }
+
+    if (targetIndex !== index) {
+      const targetCell = containerRef.current?.querySelector<HTMLDivElement>(
+        `[data-index="${targetIndex}"]`
+      );
+      targetCell?.focus();
+    }
+  };
 
   // Compute weekly pattern from activity
   const weeklyPattern = useMemo(() => {
@@ -119,8 +177,25 @@ export default function ActivityHeatmapPro({ activity, commitClock }: ActivityHe
     };
   }, [activity]);
 
-  // Hourly distribution (simulated from commitClock or activity patterns)
+  // Hourly distribution (computed from rawCommits or fallback)
   const hourlyData = useMemo(() => {
+    if (rawCommits && rawCommits.length > 0) {
+      const counts = new Array(24).fill(0);
+      rawCommits.forEach((isoDate) => {
+        const hour =
+          timeMode === 'author' ? getAuthorLocalHour(isoDate) : getViewerLocalHour(isoDate);
+        if (hour >= 0 && hour <= 23) {
+          counts[hour]++;
+        }
+      });
+      return counts.map((count, i) => ({
+        hour: i,
+        label: `${i.toString().padStart(2, '0')}:00`,
+        commits: count,
+      }));
+    }
+
+    // Backward compatibility for old cached data: Use commitClock if available
     if (commitClock && commitClock.length > 0) {
       return commitClock.map((c, i) => ({
         hour: i,
@@ -128,7 +203,8 @@ export default function ActivityHeatmapPro({ activity, commitClock }: ActivityHe
         commits: c.commits,
       }));
     }
-    // Simulate hourly pattern from activity intensity
+
+    // Fallback: Simulate hourly pattern from activity intensity
     return Array.from({ length: 24 }, (_, i) => {
       const pseudoRandom = ((i * 1867 + stats.average * 997) % 100) / 100;
       return {
@@ -137,7 +213,7 @@ export default function ActivityHeatmapPro({ activity, commitClock }: ActivityHe
         commits: Math.round(pseudoRandom * stats.average * 2),
       };
     });
-  }, [commitClock, stats.average]);
+  }, [rawCommits, commitClock, timeMode, stats.average]);
 
   const maxHourly = Math.max(...hourlyData.map((h) => h.commits), 1);
   const maxMonthly = Math.max(...monthlyData.map((m) => m.total), 1);
@@ -222,20 +298,41 @@ export default function ActivityHeatmapPro({ activity, commitClock }: ActivityHe
             exit={{ opacity: 0, y: -10 }}
             className="space-y-2"
           >
+            <div
+              className="sr-only"
+              aria-live="polite"
+              aria-atomic="true"
+              data-testid="activity-pro-aria-live"
+            >
+              {announcement}
+            </div>
             <div className="overflow-x-auto">
               <div
+                ref={containerRef}
                 className="grid gap-[3px]"
                 style={{
-                  gridTemplateColumns: `repeat(${Math.min(52, Math.ceil(activity.length / 7))}, 1fr)`,
+                  gridTemplateColumns: `repeat(${Math.min(52, Math.ceil(slicedActivity.length / 7))}, 1fr)`,
                 }}
+                role="grid"
+                aria-label="Activity heatmap grid"
               >
-                {activity.slice(-364).map((a) => (
-                  <div
-                    key={a.date}
-                    className={`w-3 h-3 rounded-[2px] ${intensityColors[a.intensity]} transition-all duration-150 hover:ring-2 hover:ring-emerald-500/50 cursor-pointer`}
-                    title={`${a.date}: ${a.count} contributions`}
-                  />
-                ))}
+                {slicedActivity.map((a, index) => {
+                  const label = `${a.count} contribution${a.count === 1 ? '' : 's'} on ${a.date}`;
+                  return (
+                    <div
+                      key={a.date}
+                      role="gridcell"
+                      tabIndex={0}
+                      aria-label={label}
+                      data-index={index}
+                      onFocus={() => setAnnouncement(label)}
+                      onBlur={() => setAnnouncement('')}
+                      onKeyDown={(e) => handleHeatmapKeyDown(e, index, slicedActivity.length)}
+                      className={`w-3 h-3 rounded-[2px] ${intensityColors[a.intensity]} transition-all duration-150 hover:ring-2 hover:ring-emerald-500/50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 dark:focus:ring-emerald-400 dark:focus:ring-offset-gray-900 cursor-pointer`}
+                      title={label}
+                    />
+                  );
+                })}
               </div>
             </div>
             <div className="flex items-center justify-end gap-1 mt-2">
@@ -254,7 +351,35 @@ export default function ActivityHeatmapPro({ activity, commitClock }: ActivityHe
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
+            className="flex flex-col gap-4"
           >
+            <div className="flex items-center justify-end mb-2">
+              <div className="inline-flex items-center rounded-xl bg-black/5 dark:bg-white/5 p-1">
+                <button
+                  onClick={() => setTimeMode('author')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                    timeMode === 'author'
+                      ? 'bg-white dark:bg-[#1A1A1A] text-emerald-600 dark:text-emerald-400 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-black/5 dark:hover:bg-white/5'
+                  }`}
+                >
+                  <MapPin size={12} />
+                  <span>Author&apos;s Local Time</span>
+                </button>
+                <button
+                  onClick={() => setTimeMode('viewer')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                    timeMode === 'viewer'
+                      ? 'bg-white dark:bg-[#1A1A1A] text-emerald-600 dark:text-emerald-400 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 hover:bg-black/5 dark:hover:bg-white/5'
+                  }`}
+                >
+                  <Globe size={12} />
+                  <span>Viewer&apos;s Local Time</span>
+                </button>
+              </div>
+            </div>
+
             <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-12 gap-2">
               {hourlyData.map((h) => {
                 const height = (h.commits / maxHourly) * 100;

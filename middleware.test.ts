@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest, NextResponse } from 'next/server';
-import { middleware } from './middleware';
+import fs from 'node:fs';
+import path from 'node:path';
+import { middleware, config } from './middleware';
 import { rateLimit, getRateLimitHeaders } from '@/lib/rate-limit';
 
 const { mockConfig } = vi.hoisted(() => {
@@ -327,5 +329,32 @@ describe('middleware integration tests (rate-limit spoofing prevention)', () => 
     });
     const response61 = await middleware(request61);
     expect(response61.status).toBe(429);
+  });
+});
+
+describe('[Bug fix] middleware matcher covers every real API route folder', () => {
+  it('has a matcher entry for every top-level folder under app/api', () => {
+    const apiDir = path.join(__dirname, 'app/api');
+
+    // Safety check just in case the tests run from a directory where this path isn't perfectly mapped
+    if (fs.existsSync(apiDir)) {
+      const routeFolders = fs
+        .readdirSync(apiDir, { withFileTypes: true })
+        .filter((d) => d.isDirectory())
+        .map((d) => d.name);
+
+      const matchedPrefixes = config.matcher.map((m) =>
+        m.replace('/api/', '').replace('/:path*', '')
+      );
+
+      for (const folder of routeFolders) {
+        expect(
+          matchedPrefixes,
+          `middleware.ts's matcher is missing '/api/${folder}/:path*'`
+        ).toContain(folder);
+      }
+    } else {
+      console.warn(`Test skipped or missing directory: ${apiDir}`);
+    }
   });
 });

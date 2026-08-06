@@ -10,6 +10,8 @@ describe('WallOfLove type compiler validation', () => {
       message: string;
       platform: 'twitter' | 'github';
       accentColor: string;
+      rating?: number;
+      date?: string;
     }>();
   });
 

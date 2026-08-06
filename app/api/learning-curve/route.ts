@@ -1,15 +1,13 @@
-// app/api/learning-curve/route.ts
-
 import { NextRequest, NextResponse } from 'next/server';
 import { calculateLearningCurve, RawCommitActivity } from '@/utils/calculateLearningCurve';
+import { fetchGithubUserActivity, transformToRawActivity } from '@/lib/github';
 
 /**
  * GET /api/learning-curve?username=your_github_username
- * * Fetches recent developer activity and processes it through the
+ * Fetches recent developer activity and processes it through the
  * Educational Syllabus Mapper to generate a structured learning timeline.
  */
 export async function GET(req: NextRequest) {
-  // 1. Extract username from query parameters
   const searchParams = req.nextUrl.searchParams;
   const username = searchParams.get('username');
 
@@ -21,77 +19,33 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // 2. Fetch data (Hook this up to your existing lib/github.ts later)
-    // Normally, you would query GitHub's GraphQL API here to get
-    // `contributionsCollection.commitContributionsByRepository` to find languages used per commit.
+    // 1. Fetch real commit/contribution data using the resilient fetcher
+    const githubData = await fetchGithubUserActivity(username);
 
-    // const githubData = await fetchGithubUserActivity(username);
-    // const formattedActivities = transformToRawActivity(githubData);
+    // 2. Transform the GraphQL nodes into a flat map
+    const formattedActivities = transformToRawActivity(githubData);
 
-    // --- FALLBACK / MOCK DATA FOR IMMEDIATE TESTING ---
-    // We are generating dates relative to today so the frontend will always show active streaks!
-    const today = new Date();
-    const yesterday = new Date(today.getTime() - 86400000);
-    const twoDaysAgo = new Date(today.getTime() - 86400000 * 2);
-    const threeDaysAgo = new Date(today.getTime() - 86400000 * 3);
+    // 3. Adapt the GitHub type to match the Calculation Engine's expected type.
+    // The current GraphQL query doesn't fetch lines added/deleted, so we default to 0.
+    const compatibleActivities: RawCommitActivity[] = formattedActivities.map((activity) => ({
+      date: activity.date,
+      language: activity.language,
+      commits: activity.commits,
+      linesAdded: 0,
+      linesDeleted: 0,
+    }));
 
-    const mockActivities: RawCommitActivity[] = [
-      // A burst of Data Mining / AI work today
-      {
-        date: today.toISOString().split('T')[0],
-        language: 'Python',
-        linesAdded: 150,
-        linesDeleted: 20,
-      },
-      {
-        date: today.toISOString().split('T')[0],
-        language: 'Jupyter Notebook',
-        linesAdded: 300,
-        linesDeleted: 50,
-      },
+    // 4. Process the raw data through the Calculation Engine (Phase 2)
+    const learningCurveData = calculateLearningCurve(compatibleActivities);
 
-      // Some Full-Stack work yesterday
-      {
-        date: yesterday.toISOString().split('T')[0],
-        language: 'TypeScript',
-        linesAdded: 80,
-        linesDeleted: 10,
-      },
-      {
-        date: yesterday.toISOString().split('T')[0],
-        language: 'Tailwind',
-        linesAdded: 45,
-        linesDeleted: 5,
-      },
-
-      // Heavy Computer Architecture work two days ago
-      {
-        date: twoDaysAgo.toISOString().split('T')[0],
-        language: 'C++',
-        linesAdded: 400,
-        linesDeleted: 100,
-      },
-
-      // More AI work three days ago
-      {
-        date: threeDaysAgo.toISOString().split('T')[0],
-        language: 'Python',
-        linesAdded: 50,
-        linesDeleted: 0,
-      },
-    ];
-
-    // 3. Process the raw data through the Calculation Engine (Phase 2)
-    const learningCurveData = calculateLearningCurve(mockActivities);
-
-    // 4. Return the structured payload matching types/student.ts
+    // 5. Return the structured payload matching types/student.ts
     return NextResponse.json(
       {
         success: true,
         username,
         data: learningCurveData,
         meta: {
-          analyzedDays: 30, // Assuming a 30-day rolling window
+          analyzedDays: 30, // Assuming a 30-day rolling window based on 'first: 100' nodes
           generatedAt: new Date().toISOString(),
         },
       },

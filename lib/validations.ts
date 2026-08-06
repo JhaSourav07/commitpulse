@@ -652,13 +652,43 @@ const baseStreakParamsSchema = z.object({
     }),
 });
 
-export const streakParamsSchema = baseStreakParamsSchema.refine(
-  (data) => !data.from || !data.to || Date.parse(data.from) <= Date.parse(data.to),
-  {
+const TWO_YEARS_MS = 2 * 365.25 * 24 * 60 * 60 * 1000;
+
+export const streakParamsSchema = baseStreakParamsSchema
+  .refine((data) => !data.from || !data.to || Date.parse(data.from) <= Date.parse(data.to), {
     message: '"to" date must be after or equal to "from" date',
     path: ['to'],
-  }
-);
+  })
+  .refine(
+    (data) =>
+      !data.start_date ||
+      !data.end_date ||
+      Date.parse(data.start_date) <= Date.parse(data.end_date),
+    {
+      message: 'startDate must be before endDate',
+      path: ['end_date'],
+    }
+  )
+  .refine(
+    (data) => {
+      const start = data.start_date
+        ? Date.parse(data.start_date)
+        : data.from
+          ? Date.parse(data.from)
+          : null;
+      const end = data.end_date ? Date.parse(data.end_date) : data.to ? Date.parse(data.to) : null;
+      if (start && end) {
+        return end - start <= TWO_YEARS_MS;
+      }
+      return true;
+    },
+    {
+      message: 'Date range cannot exceed 2 years',
+      path: ['end_date'],
+    }
+  );
+
+export const languagesParamsSchema = streakParamsSchema;
 
 const HEX_REGEX = /^([A-Fa-f0-9]{3,4}|[A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$/;
 
@@ -1229,3 +1259,4 @@ export type ResumeConfirmData = z.infer<typeof resumeConfirmDataSchema>;
 export type SpotifyParams = z.infer<typeof spotifyParamsSchema>;
 export type WakatimeParams = z.infer<typeof wakatimeParamsSchema>;
 export type LeetCodeParams = z.infer<typeof leetcodeParamsSchema>;
+export type LanguagesParams = z.infer<typeof languagesParamsSchema>;

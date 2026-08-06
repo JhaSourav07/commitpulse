@@ -4,6 +4,8 @@ import BurnoutAnalyzerPage from './page';
 
 let mockOwnerParam: string | null = null;
 let mockRepoParam: string | null = null;
+const mockHistoryBack = vi.fn();
+const mockRouterPush = vi.fn();
 
 vi.mock('next/navigation', () => ({
   useSearchParams: () => ({
@@ -13,11 +15,16 @@ vi.mock('next/navigation', () => ({
       return null;
     },
   }),
+  useRouter: () => ({
+    push: mockRouterPush,
+  }),
 }));
 
 describe('BurnoutAnalyzerPage repository input handling', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockHistoryBack.mockReset();
+    mockRouterPush.mockReset();
     mockOwnerParam = null;
     mockRepoParam = null;
   });
@@ -90,5 +97,83 @@ describe('BurnoutAnalyzerPage repository input handling', () => {
     expect(fetchMock.mock.calls[0][0]).toBe(
       '/api/repo-burnout?owner=vercel&repo=next.js&excludeBots=false'
     );
+  });
+
+  it('goes back to the previous page when browser history exists', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        repoName: 'facebook/react',
+        totalCommits: 1,
+        totalContributors: 1,
+        busFactor: 1,
+        dependencyRisk: 'Low',
+        sustainabilityScore: 96,
+        contributors: [],
+        inactivityAlerts: [],
+        recommendations: [],
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    Object.defineProperty(window, 'history', {
+      value: { length: 2, back: mockHistoryBack },
+      configurable: true,
+    });
+    Object.defineProperty(document, 'referrer', {
+      value: 'http://localhost/burnout-analyzer',
+      configurable: true,
+    });
+
+    render(<BurnoutAnalyzerPage />);
+    fireEvent.change(screen.getByPlaceholderText(/facebook\/react/i), {
+      target: { value: 'facebook/react' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /analyze/i }));
+
+    await screen.findByText(/Owned by/i);
+    const backButton = screen.getByRole('button', { name: /back to search/i });
+    fireEvent.click(backButton);
+
+    expect(mockHistoryBack).toHaveBeenCalledTimes(1);
+    expect(mockRouterPush).not.toHaveBeenCalled();
+  });
+
+  it('redirects to the burnout analyzer search page when there is no browser history', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        repoName: 'vercel/next.js',
+        totalCommits: 1,
+        totalContributors: 1,
+        busFactor: 1,
+        dependencyRisk: 'Low',
+        sustainabilityScore: 94,
+        contributors: [],
+        inactivityAlerts: [],
+        recommendations: [],
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    Object.defineProperty(window, 'history', {
+      value: { length: 1, back: mockHistoryBack },
+      configurable: true,
+    });
+    Object.defineProperty(document, 'referrer', {
+      value: 'http://localhost/another-page',
+      configurable: true,
+    });
+
+    render(<BurnoutAnalyzerPage />);
+    fireEvent.change(screen.getByPlaceholderText(/facebook\/react/i), {
+      target: { value: 'vercel/next.js' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /analyze/i }));
+
+    await screen.findByText(/Owned by/i);
+    const backButton = screen.getByRole('button', { name: /back to search/i });
+    fireEvent.click(backButton);
+
+    expect(mockRouterPush).toHaveBeenCalledWith('/burnout-analyzer');
+    expect(mockHistoryBack).not.toHaveBeenCalled();
   });
 });

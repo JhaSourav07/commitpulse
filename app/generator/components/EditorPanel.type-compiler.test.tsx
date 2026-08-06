@@ -9,6 +9,9 @@ describe('EditorPanel Type Compiler Validation', () => {
       name: string;
       description: string;
       selectedTechs: string[];
+      techIconDisplay?: 'logo' | 'logo-name';
+      techBadgeBgColor?: string;
+      techBadgeLogoColor?: string;
       selectedSocials: string[];
       socialLinks: Record<string, string>;
       githubUsername: string;
@@ -22,6 +25,11 @@ describe('EditorPanel Type Compiler Validation', () => {
       showArticles?: boolean;
       articlesPlatform?: 'devto' | 'hashnode';
       articlesUsername?: string;
+      showHeroImage?: boolean;
+      heroImageUrl?: string;
+      heroImageWidth?: string;
+      heroImageAlign?: 'left' | 'center' | 'right';
+      heroImageAlt?: string;
     }>();
   });
 

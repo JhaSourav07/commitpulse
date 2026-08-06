@@ -101,7 +101,7 @@ describe('Navbar Responsive Breakpoints & Menu Toggle', () => {
     expect(screen.queryByText('Switch to Dark Mode')).toBeNull();
   });
 
-  it('3. Closes the mobile menu automatically when the window is resized to desktop (min-width: 1024px)', () => {
+  it('3. Closes the mobile menu automatically when the window is resized to desktop (min-width: 1100px)', () => {
     let changeHandler: ((e: MediaQueryListEvent) => void) | null = null;
 
     // Override the mock specifically to capture the resize event listener
@@ -147,12 +147,14 @@ describe('Navbar Responsive Breakpoints & Menu Toggle', () => {
 
     const desktopNavRow =
       container.querySelector('.hidden.items-center.gap-2.md\\:flex') ||
-      container.querySelector('.hidden.items-center.gap-2.lg\\:flex');
+      container.querySelector('.hidden.items-center.gap-2.min-\\[1100px\\]\\:flex');
     expect(desktopNavRow).toBeInTheDocument();
 
     const mobileControls =
       container.querySelector('.md\\:hidden.inline-flex.items-center.justify-center.gap-1') ||
-      container.querySelector('.lg\\:hidden.inline-flex.items-center.justify-center.gap-1');
+      container.querySelector(
+        '.min-\\[1100px\\]\\:hidden.inline-flex.items-center.justify-center.gap-1'
+      );
     expect(mobileControls).toBeInTheDocument();
   });
 
