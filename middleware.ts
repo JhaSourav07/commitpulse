@@ -196,6 +196,7 @@ export const config = {
     '/api/ci-analytics/:path*',
     '/api/cicd/:path*',
     '/api/enterprise/:path*',
+    '/api/languages/:path*',
     '/api/health/:path*',
     '/api/insights-og/:path*',
     '/api/repo-burnout/:path*',
