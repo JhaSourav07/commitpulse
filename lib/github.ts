@@ -34,10 +34,18 @@ export interface GitHubRepo {
   participation?: number[];
 }
 
-const MAX_RETRIES = Number(process.env.GITHUB_MAX_RETRIES ?? '3');
-const BASE_DELAY_MS = Number(process.env.GITHUB_BASE_DELAY_MS ?? '500');
-const MAX_RETRY_DELAY_MS = Number(process.env.GITHUB_MAX_RETRY_DELAY_MS ?? '5000');
+/** Maximum number of retry attempts for GitHub API calls. Configurable via GITHUB_MAX_RETRIES env var (default: 3). */
+export const MAX_RETRIES = Number(process.env.GITHUB_MAX_RETRIES ?? '3');
+/** Base delay in milliseconds before the first retry. Configurable via GITHUB_BASE_DELAY_MS env var (default: 500). */
+export const BASE_DELAY_MS = Number(process.env.GITHUB_BASE_DELAY_MS ?? '500');
+/** Maximum delay in milliseconds between retries. Configurable via GITHUB_MAX_RETRY_DELAY_MS env var (default: 5000). */
+export const MAX_RETRY_DELAY_MS = Number(process.env.GITHUB_MAX_RETRY_DELAY_MS ?? '5000');
 
+/**
+ * Calculates a jittered backoff delay for retry logic.
+ * @param attempt - The zero-based retry attempt number.
+ * @returns The delay in milliseconds with random jitter applied.
+ */
 export function getJitteredBackoff(attempt: number): number {
   const base = BASE_DELAY_MS * Math.pow(2, attempt);
   const jitter = 0.5 + Math.random() * 0.5;
@@ -618,9 +626,13 @@ export interface CachedContributions {
 }
 
 export const contributionsCache = new DistributedCache<CachedContributions>(1000);
-const profileCache = new DistributedCache<GitHubUserProfile>(1000);
+export const profileCache = new DistributedCache<GitHubUserProfile>(1000);
 const reposCache = new DistributedCache<GitHubRepo[]>(500);
 const contributedReposCache = new DistributedCache<ContributedRepo[]>(500);
+const popularReposCache = new DistributedCache<PopularRepo[]>(500);
+const pinnedReposCache = new DistributedCache<PopularRepo[]>(500);
+const starredReposCache = new DistributedCache<PopularRepo[]>(500);
+const deploymentsCache = new DistributedCache<import('../types/dashboard').DeploymentData[]>(500);
 
 interface GitHubUserProfile {
   login: string;
@@ -669,21 +681,45 @@ function sanitizeRepo(repo: GitHubRepo): GitHubRepo {
 }
 
 export function cacheKey(
-  kind: 'contributions' | 'profile' | 'repos' | 'repos:contributed',
+  kind:
+    | 'contributions'
+    | 'profile'
+    | 'repos'
+    | 'repos:contributed'
+    | 'popular'
+    | 'pinned'
+    | 'starred'
+    | 'deployments',
   username: string,
   year?: string,
   to?: string,
   org?: string
 ): string;
 export function cacheKey(
-  kind: 'contributions' | 'profile' | 'repos' | 'repos:contributed',
+  kind:
+    | 'contributions'
+    | 'profile'
+    | 'repos'
+    | 'repos:contributed'
+    | 'popular'
+    | 'pinned'
+    | 'starred'
+    | 'deployments',
   username: string,
   from?: string,
   to?: string,
   org?: string
 ): string;
 export function cacheKey(
-  kind: 'contributions' | 'profile' | 'repos' | 'repos:contributed',
+  kind:
+    | 'contributions'
+    | 'profile'
+    | 'repos'
+    | 'repos:contributed'
+    | 'popular'
+    | 'pinned'
+    | 'starred'
+    | 'deployments',
   username: string,
   yearOrFrom?: string,
   to?: string,
@@ -708,6 +744,10 @@ export function clearGitHubApiCacheForTests(): void {
   profileCache.clear();
   reposCache.clear();
   contributedReposCache.clear();
+  popularReposCache.clear();
+  pinnedReposCache.clear();
+  starredReposCache.clear();
+  deploymentsCache.clear();
   rateLimitedTokens.clear();
   orgNodeIdCache.clear();
   tokenStats.clear();
@@ -716,6 +756,8 @@ export function clearGitHubApiCacheForTests(): void {
   // Issue #7380: reset the mutex so tests start from a clean (unlocked) state.
   tokenIndexLock = Promise.resolve();
   globalCircuitBreakerOpenUntil = 0;
+  activeProfilePromises.clear();
+  activeContributionsPromises.clear();
 }
 
 function getGitHubToken(): string {
@@ -881,6 +923,7 @@ export function getCircuitTelemetry() {
 
 const FETCH_TIMEOUT_MS = Number(process.env.GITHUB_FETCH_TIMEOUT_MS ?? '4000');
 const activeContributionsPromises = new Map<string, Promise<ExtendedContributionData>>();
+const activeProfilePromises = new Map<string, Promise<GitHubUserProfile>>();
 
 export function getMockContributions(): ExtendedContributionData {
   return {
@@ -1176,6 +1219,10 @@ async function fetchContributionsUncached(
       `[CommitPulse API] Empty profile or null repository nodes discovered for user "${username}". Falling back to baseline collection.`
     );
     repoContributions = [];
+  } else {
+    repoContributions = repoContributions.filter(
+      (c) => c && c.repository !== null && c.repository !== undefined
+    );
   }
   // 🔼 END OF CHANGE 🔼
 
@@ -1242,6 +1289,28 @@ export function getMockProfile(username: string): GitHubUserProfile {
   };
 }
 
+function wrapWithSignal<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) return promise;
+  if (signal.aborted) return Promise.reject(new Error('AbortError'));
+
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => {
+      reject(new Error('AbortError'));
+    };
+    signal.addEventListener('abort', onAbort);
+    promise.then(
+      (val) => {
+        signal.removeEventListener('abort', onAbort);
+        resolve(val);
+      },
+      (err) => {
+        signal.removeEventListener('abort', onAbort);
+        reject(err);
+      }
+    );
+  });
+}
+
 export async function fetchUserProfile(
   username: string,
   options: FetchOptions = {}
@@ -1249,14 +1318,29 @@ export async function fetchUserProfile(
   const key = cacheKey('profile', username);
   const encodedUsername = encodeURIComponent(username);
 
-  const load = async () => {
-    return fetchProfileUncached(encodedUsername, key, options);
+  const getPendingPromise = () => {
+    let pending = activeProfilePromises.get(key);
+    if (!pending) {
+      const load = async () => {
+        const fetchOptions = { ...options, signal: undefined };
+        return fetchProfileUncached(encodedUsername, key, fetchOptions);
+      };
+      pending = load().finally(() => {
+        activeProfilePromises.delete(key);
+      });
+      activeProfilePromises.set(key, pending);
+    }
+    return pending;
   };
 
   if (options.bypassCache || options.forceRefresh) {
     try {
-      return await load();
+      const pending = getPendingPromise();
+      return await wrapWithSignal(pending, options.signal);
     } catch (err) {
+      if (options.signal?.aborted) {
+        throw err;
+      }
       if (shouldFallbackOnError(err)) {
         const stale = await profileCache.get(key);
         if (stale) {
@@ -1273,8 +1357,17 @@ export async function fetchUserProfile(
   }
 
   try {
-    return await profileCache.getOrSet(key, load, GITHUB_CACHE_TTL_MS);
+    const cached = await profileCache.get(key);
+    if (cached !== null) {
+      return cached;
+    }
+
+    const pending = getPendingPromise();
+    return await wrapWithSignal(pending, options.signal);
   } catch (err) {
+    if (options.signal?.aborted) {
+      throw err;
+    }
     if (shouldFallbackOnError(err)) {
       const stale = await profileCache.get(key);
       if (stale) {
@@ -1809,8 +1902,11 @@ export async function fetchContributedRepos(
 
       const connection = data?.data?.user?.repositoriesContributedTo;
       const nodes = connection?.nodes ?? [];
+      const validNodes = nodes.filter(
+        (node): node is ContributedRepo => node !== null && node !== undefined
+      );
 
-      allRepos.push(...nodes);
+      allRepos.push(...validNodes);
 
       const pageInfo = connection?.pageInfo;
 
@@ -1976,12 +2072,62 @@ export interface PopularRepo {
 }
 
 export async function fetchPinnedRepos(username: string, token?: string): Promise<PopularRepo[]> {
-  const query = `
-    query($login: String!) {
-      user(login: $login) {
-        pinnedItems(first: 6, types: REPOSITORY) {
-          nodes {
-            ... on Repository {
+  const key = cacheKey('pinned', username);
+  const load = async () => {
+    const query = `
+      query($login: String!) {
+        user(login: $login) {
+          pinnedItems(first: 6, types: REPOSITORY) {
+            nodes {
+              ... on Repository {
+                name
+                description
+                stargazerCount
+                forkCount
+                url
+                createdAt
+                updatedAt
+                primaryLanguage {
+                  name
+                  color
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+    try {
+      const res = await fetchWithRetry(
+        GITHUB_GRAPHQL_URL,
+        {
+          method: 'POST',
+          headers: getHeaders(token),
+          body: JSON.stringify({ query, variables: { login: username } }),
+          cache: 'no-store',
+        },
+        0,
+        undefined,
+        token
+      );
+      if (!res.ok) return [];
+      const data = await res.json();
+      return (data?.data?.user?.pinnedItems?.nodes ?? []) as PopularRepo[];
+    } catch {
+      return [];
+    }
+  };
+  return await pinnedReposCache.getOrSet(key, load, GITHUB_CACHE_TTL_MS);
+}
+
+async function fetchPopularRepos(username: string, token?: string): Promise<PopularRepo[]> {
+  const key = cacheKey('popular', username);
+  const load = async () => {
+    const query = `
+      query($login: String!) {
+        user(login: $login) {
+          repositories(first: 6, orderBy: { field: STARGAZERS, direction: DESC }, ownerAffiliations: OWNER, isFork: false) {
+            nodes {
               name
               description
               stargazerCount
@@ -1997,113 +2143,75 @@ export async function fetchPinnedRepos(username: string, token?: string): Promis
           }
         }
       }
+    `;
+    try {
+      const res = await fetchWithRetry(
+        GITHUB_GRAPHQL_URL,
+        {
+          method: 'POST',
+          headers: getHeaders(token),
+          body: JSON.stringify({ query, variables: { login: username } }),
+          cache: 'no-store',
+        },
+        0,
+        undefined,
+        token
+      );
+      if (!res.ok) return [];
+      const data = await res.json();
+      return (data?.data?.user?.repositories?.nodes ?? []) as PopularRepo[];
+    } catch {
+      return [];
     }
-  `;
-  try {
-    const res = await fetchWithRetry(
-      GITHUB_GRAPHQL_URL,
-      {
-        method: 'POST',
-        headers: getHeaders(token),
-        body: JSON.stringify({ query, variables: { login: username } }),
-        cache: 'no-store',
-      },
-      0,
-      undefined,
-      token
-    );
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data?.data?.user?.pinnedItems?.nodes ?? []) as PopularRepo[];
-  } catch {
-    return [];
-  }
-}
-
-async function fetchPopularRepos(username: string, token?: string): Promise<PopularRepo[]> {
-  const query = `
-    query($login: String!) {
-      user(login: $login) {
-        repositories(first: 6, orderBy: { field: STARGAZERS, direction: DESC }, ownerAffiliations: OWNER, isFork: false) {
-          nodes {
-            name
-            description
-            stargazerCount
-            forkCount
-            url
-            createdAt
-            updatedAt
-            primaryLanguage {
-              name
-              color
-            }
-          }
-        }
-      }
-    }
-  `;
-  try {
-    const res = await fetchWithRetry(
-      GITHUB_GRAPHQL_URL,
-      {
-        method: 'POST',
-        headers: getHeaders(token),
-        body: JSON.stringify({ query, variables: { login: username } }),
-        cache: 'no-store',
-      },
-      0,
-      undefined,
-      token
-    );
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data?.data?.user?.repositories?.nodes ?? []) as PopularRepo[];
-  } catch {
-    return [];
-  }
+  };
+  return await popularReposCache.getOrSet(key, load, GITHUB_CACHE_TTL_MS);
 }
 
 async function fetchStarredRepos(username: string, token?: string): Promise<PopularRepo[]> {
-  const query = `
-    query($login: String!) {
-      user(login: $login) {
-        starredRepositories(first: 6, orderBy: { field: STARRED_AT, direction: DESC }) {
-          nodes {
-            name
-            description
-            stargazerCount
-            forkCount
-            url
-            createdAt
-            updatedAt
-            primaryLanguage {
+  const key = cacheKey('starred', username);
+  const load = async () => {
+    const query = `
+      query($login: String!) {
+        user(login: $login) {
+          starredRepositories(first: 6, orderBy: { field: STARRED_AT, direction: DESC }) {
+            nodes {
               name
-              color
+              description
+              stargazerCount
+              forkCount
+              url
+              createdAt
+              updatedAt
+              primaryLanguage {
+                name
+                color
+              }
             }
           }
         }
       }
+    `;
+    try {
+      const res = await fetchWithRetry(
+        GITHUB_GRAPHQL_URL,
+        {
+          method: 'POST',
+          headers: getHeaders(token),
+          body: JSON.stringify({ query, variables: { login: username } }),
+          cache: 'no-store',
+        },
+        0,
+        undefined,
+        token
+      );
+      if (!res.ok) return [];
+      const data = await res.json();
+      return (data?.data?.user?.starredRepositories?.nodes ?? []) as PopularRepo[];
+    } catch {
+      return [];
     }
-  `;
-  try {
-    const res = await fetchWithRetry(
-      GITHUB_GRAPHQL_URL,
-      {
-        method: 'POST',
-        headers: getHeaders(token),
-        body: JSON.stringify({ query, variables: { login: username } }),
-        cache: 'no-store',
-      },
-      0,
-      undefined,
-      token
-    );
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data?.data?.user?.starredRepositories?.nodes ?? []) as PopularRepo[];
-  } catch {
-    return [];
-  }
+  };
+  return await starredReposCache.getOrSet(key, load, GITHUB_CACHE_TTL_MS);
 }
 
 /* ==========================================================================
@@ -2224,66 +2332,70 @@ async function fetchDeploymentTrackerData(
   limit = 3,
   token?: string
 ): Promise<import('../types/dashboard').DeploymentData[]> {
-  // Only consider non-fork repos, most-recently-pushed first (reposData is
-  // already sorted by `pushed` from fetchUserRepos). Check a slightly larger
-  // candidate pool than `limit` since some repos won't have any deployments.
-  const candidates = reposData.filter((r) => !r.fork).slice(0, limit * 4);
-  if (candidates.length === 0) return [];
+  const key = cacheKey('deployments', username);
+  const load = async () => {
+    // Only consider non-fork repos, most-recently-pushed first (reposData is
+    // already sorted by `pushed` from fetchUserRepos). Check a slightly larger
+    // candidate pool than `limit` since some repos won't have any deployments.
+    const candidates = reposData.filter((r) => !r.fork).slice(0, limit * 4);
+    if (candidates.length === 0) return [];
 
-  const results = await Promise.all(
-    candidates.map(async (repo) => {
-      const owner = repo.owner?.login || username;
-      const [workflowRun, deploymentInfo] = await Promise.all([
-        fetchLatestWorkflowRun(owner, repo.name, token),
-        fetchLatestDeployment(owner, repo.name, token),
-      ]);
+    const results = await Promise.all(
+      candidates.map(async (repo) => {
+        const owner = repo.owner?.login || username;
+        const [workflowRun, deploymentInfo] = await Promise.all([
+          fetchLatestWorkflowRun(owner, repo.name, token),
+          fetchLatestDeployment(owner, repo.name, token),
+        ]);
 
-      // Skip repos with no shipping signal at all
-      if (!workflowRun && !deploymentInfo) return null;
+        // Skip repos with no shipping signal at all
+        if (!workflowRun && !deploymentInfo) return null;
 
-      const liveUrl = deploymentInfo?.deploymentStatus?.environment_url || repo.homepage || null;
+        const liveUrl = deploymentInfo?.deploymentStatus?.environment_url || repo.homepage || null;
 
-      const status = workflowRun
-        ? mapConclusionToStatus(workflowRun.status, workflowRun.conclusion)
-        : deploymentInfo?.deploymentStatus
-          ? deploymentInfo.deploymentStatus.state === 'success'
-            ? 'success'
-            : deploymentInfo.deploymentStatus.state === 'failure' ||
-                deploymentInfo.deploymentStatus.state === 'error'
-              ? 'failure'
-              : deploymentInfo.deploymentStatus.state === 'pending' ||
-                  deploymentInfo.deploymentStatus.state === 'in_progress'
-                ? 'in_progress'
-                : 'unknown'
-          : 'unknown';
+        const status = workflowRun
+          ? mapConclusionToStatus(workflowRun.status, workflowRun.conclusion)
+          : deploymentInfo?.deploymentStatus
+            ? deploymentInfo.deploymentStatus.state === 'success'
+              ? 'success'
+              : deploymentInfo.deploymentStatus.state === 'failure' ||
+                  deploymentInfo.deploymentStatus.state === 'error'
+                ? 'failure'
+                : deploymentInfo.deploymentStatus.state === 'pending' ||
+                    deploymentInfo.deploymentStatus.state === 'in_progress'
+                  ? 'in_progress'
+                  : 'unknown'
+            : 'unknown';
 
-      const deployedAt =
-        deploymentInfo?.deploymentStatus?.created_at ||
-        deploymentInfo?.deployment.created_at ||
-        workflowRun?.created_at ||
-        null;
+        const deployedAt =
+          deploymentInfo?.deploymentStatus?.created_at ||
+          deploymentInfo?.deployment.created_at ||
+          workflowRun?.created_at ||
+          null;
 
-      const deployment: import('../types/dashboard').DeploymentData = {
-        repoName: repo.name,
-        repoUrl: `https://github.com/${owner}/${repo.name}`,
-        liveUrl,
-        status,
-        deployedAt,
-        environment: deploymentInfo?.deployment.environment || 'production',
-        workflowName: workflowRun?.name || null,
-      };
-      return deployment;
-    })
-  );
+        const deployment: import('../types/dashboard').DeploymentData = {
+          repoName: repo.name,
+          repoUrl: `https://github.com/${owner}/${repo.name}`,
+          liveUrl,
+          status,
+          deployedAt,
+          environment: deploymentInfo?.deployment.environment || 'production',
+          workflowName: workflowRun?.name || null,
+        };
+        return deployment;
+      })
+    );
 
-  return results
-    .filter((d): d is import('../types/dashboard').DeploymentData => d !== null)
-    .sort((a, b) => {
-      const aTime = a.deployedAt ? new Date(a.deployedAt).getTime() : 0;
-      const bTime = b.deployedAt ? new Date(b.deployedAt).getTime() : 0;
-      return bTime - aTime;
-    })
-    .slice(0, limit);
+    return results
+      .filter((d): d is import('../types/dashboard').DeploymentData => d !== null)
+      .sort((a, b) => {
+        const aTime = a.deployedAt ? new Date(a.deployedAt).getTime() : 0;
+        const bTime = b.deployedAt ? new Date(b.deployedAt).getTime() : 0;
+        return bTime - aTime;
+      })
+      .slice(0, limit);
+  };
+  return await deploymentsCache.getOrSet(key, load, GITHUB_CACHE_TTL_MS);
 }
 
 export async function getFullDashboardData(username: string, options: FetchOptions = {}) {
@@ -2350,8 +2462,10 @@ export async function getFullDashboardData(username: string, options: FetchOptio
 
   const langCounts: Record<string, number> = {};
   repoContributions.forEach((c) => {
-    const l = c.repository.primaryLanguage?.name;
-    if (l) langCounts[l] = (langCounts[l] || 0) + c.contributions.totalCount;
+    const l = c?.repository?.primaryLanguage?.name;
+    if (l && c?.contributions?.totalCount) {
+      langCounts[l] = (langCounts[l] || 0) + c.contributions.totalCount;
+    }
   });
   const total = Object.values(langCounts).reduce((a, b) => a + b, 0);
   const languages = Object.entries(langCounts)
@@ -2658,6 +2772,7 @@ export async function getFullDashboardData(username: string, options: FetchOptio
       streakStats.longestStreak
     ),
     commitClock,
+    rawCommits: await fetchRawCommitTimestamps(username, options.token),
     popularRepos,
     pinnedRepos,
     starredRepos,
@@ -2689,9 +2804,24 @@ export async function getWrappedData(
     token: options?.token,
   };
 
-  const [userData, repos] = await Promise.all([
+  const prevYear = (parseInt(normalizedYear, 10) - 1).toString();
+  const prevFrom = convertLocalToUtc(parseInt(prevYear, 10), 1, 1, 0, 0, 0, timezone);
+  const prevTo = convertLocalToUtc(parseInt(prevYear, 10), 12, 31, 23, 59, 59, timezone);
+  const prevFetchOptions: FetchOptions = {
+    ...fetchOptions,
+    from: prevFrom,
+    to: prevTo,
+  };
+
+  const [userData, prevUserData, hourDistribution] = await Promise.all([
     fetchGitHubContributions(username, fetchOptions),
-    fetchUserRepos(username, fetchOptions),
+    fetchGitHubContributions(username, prevFetchOptions).catch(() => ({
+      calendar: { totalContributions: 0, weeks: [] },
+      repoContributions: [],
+    })),
+    fetchCommitHourDistribution(username, options?.token, timezone).catch(() =>
+      new Array(24).fill(0)
+    ),
   ]);
   const calendar = userData.calendar;
   const allDays = calendar.weeks.flatMap((w) => w.contributionDays);
@@ -2721,11 +2851,107 @@ export async function getWrappedData(
   const weekendRatio =
     totalContributions > 0 ? Math.round((weekendTotal / totalContributions) * 100) : 0;
 
+  const streakStats = calculateStreak(calendar, timezone);
+  const longestStreak = streakStats.longestStreak;
+
+  const previousYearContributions = prevUserData?.calendar?.totalContributions || 0;
+  const diff = totalContributions - previousYearContributions;
+  const contributionGrowth =
+    previousYearContributions > 0
+      ? Math.round((diff / previousYearContributions) * 100)
+      : totalContributions > 0
+        ? 100
+        : 0;
+
+  const mostActiveRepos = (userData.repoContributions || [])
+    .map((rc) => ({
+      name: rc.repository.name,
+      commits: rc.contributions.totalCount,
+    }))
+    .sort((a, b) => b.commits - a.commits)
+    .slice(0, 5);
+
   const langCounts: Record<string, number> = {};
-  for (const repo of repos) {
-    if (repo.language) langCounts[repo.language] = (langCounts[repo.language] || 0) + 1;
+  for (const rc of userData.repoContributions || []) {
+    const lang = rc.repository.primaryLanguage?.name;
+    if (lang) {
+      langCounts[lang] = (langCounts[lang] || 0) + rc.contributions.totalCount;
+    }
   }
-  const topLanguage = Object.entries(langCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'Unknown';
+  const totalLangContributions = Object.values(langCounts).reduce((a, b) => a + b, 0);
+  const primaryLanguages = Object.entries(langCounts)
+    .map(([name, count]) => ({
+      name,
+      percentage:
+        totalLangContributions > 0 ? Math.round((count / totalLangContributions) * 100) : 0,
+      color: LANGUAGE_COLORS[name] ?? '#a855f7',
+    }))
+    .sort((a, b) => b.percentage - a.percentage)
+    .slice(0, 5);
+
+  const topLanguage = primaryLanguages[0]?.name || 'Unknown';
+
+  const weekdayCounts = new Array(7).fill(0);
+  for (const day of allDays) {
+    if (!day || !day.date) continue;
+    const dow = new Date(day.date + 'T12:00:00Z').getUTCDay();
+    weekdayCounts[dow] += day.contributionCount;
+  }
+  const DAYS_OF_WEEK = [
+    'Sunday',
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+  ];
+  const maxDayIndex = weekdayCounts.reduce(
+    (maxIdx, currentVal, currentIdx, arr) => (currentVal > arr[maxIdx] ? currentIdx : maxIdx),
+    0
+  );
+  const mostProductiveDay = DAYS_OF_WEEK[maxDayIndex];
+
+  const maxVal = Math.max(...hourDistribution);
+  const mostActiveHour = maxVal > 0 ? hourDistribution.indexOf(maxVal) : 12;
+
+  const milestones = [
+    {
+      name: 'First 100 Contributions',
+      description: 'Crossed 100 contributions in a single year.',
+      unlocked: totalContributions >= 100,
+    },
+    {
+      name: 'Century Contributor',
+      description: 'Crossed 500 contributions in a single year.',
+      unlocked: totalContributions >= 500,
+    },
+    {
+      name: 'Elite Developer',
+      description: 'Crossed 1000 contributions in a single year.',
+      unlocked: totalContributions >= 1000,
+    },
+    {
+      name: 'Grandmaster Contributor',
+      description: 'Crossed 2500 contributions in a single year.',
+      unlocked: totalContributions >= 2500,
+    },
+    {
+      name: 'Consistent Coder',
+      description: 'Achieved a contribution streak of 7+ days.',
+      unlocked: longestStreak >= 7,
+    },
+    {
+      name: 'Unstoppable Streak',
+      description: 'Achieved a contribution streak of 30+ days.',
+      unlocked: longestStreak >= 30,
+    },
+    {
+      name: 'Dev Dedicated',
+      description: 'Achieved a contribution streak of 100+ days.',
+      unlocked: longestStreak >= 100,
+    },
+  ];
 
   return {
     totalContributions,
@@ -2735,39 +2961,21 @@ export async function getWrappedData(
     weekendRatio,
     topLanguage,
     calendar,
+    longestStreak,
+    previousYearContributions,
+    contributionGrowth,
+    mostActiveRepos,
+    primaryLanguages,
+    milestones,
+    mostProductiveDay,
+    mostActiveHour,
   };
 }
 
-export async function fetchCommitHourDistribution(
+export async function fetchRawCommitTimestamps(
   username: string,
-  token?: string,
-  timezone: string = 'UTC'
-): Promise<number[]> {
-  const hourCounts = new Array(24).fill(0);
-
-  // Extracts the hour-of-day (0-23) for a commit timestamp in the given
-  // IANA timezone. Mirrors the Intl.DateTimeFormat pattern already used in
-  // utils/time.ts's getSecondsUntilMidnightInTimezone(), rather than
-  // Date.getHours()/getUTCHours() which ignore the requested timezone.
-  const getHourInTimezone = (isoDate: string, tz: string): number => {
-    try {
-      const parts = new Intl.DateTimeFormat('en-US', {
-        timeZone: tz,
-        hour: 'numeric',
-        hour12: false,
-        hourCycle: 'h23',
-      }).formatToParts(new Date(isoDate));
-      const hourPart = parts.find((p) => p.type === 'hour')?.value;
-      const hour = hourPart ? parseInt(hourPart, 10) % 24 : new Date(isoDate).getUTCHours();
-      return hour;
-    } catch {
-      // Invalid timezone string — fall back to UTC rather than throwing,
-      // consistent with how other views degrade on a bad ?tz= value.
-      return new Date(isoDate).getUTCHours();
-    }
-  };
-
-  // Fetch top repos by contribution count
+  token?: string
+): Promise<string[]> {
   const query = `
     query($login: String!) {
       user(login: $login) {
@@ -2776,9 +2984,6 @@ export async function fetchCommitHourDistribution(
             repository {
               name
               owner { login }
-            }
-            contributions {
-              totalCount
             }
           }
         }
@@ -2804,16 +3009,23 @@ export async function fetchCommitHourDistribution(
       const data = await res.json();
       const repos =
         data?.data?.user?.contributionsCollection?.commitContributionsByRepository ?? [];
-      topRepos = repos.map((r: { repository: { owner: { login: string }; name: string } }) => ({
-        owner: r.repository.owner.login,
-        name: r.repository.name,
-      }));
+      topRepos = repos
+        .filter(
+          (
+            r: { repository: { owner: { login: string } | null; name: string } | null } | null
+          ): r is { repository: { owner: { login: string }; name: string } } =>
+            !!(r && r.repository && r.repository.owner && r.repository.owner.login)
+        )
+        .map((r: { repository: { owner: { login: string }; name: string } }) => ({
+          owner: r.repository.owner.login,
+          name: r.repository.name,
+        }));
     }
   } catch {
-    // silent — return empty distribution
+    // silent
   }
 
-  if (topRepos.length === 0) return hourCounts;
+  if (topRepos.length === 0) return [];
 
   const commitQuery = `
     query($owner: String!, $name: String!) {
@@ -2823,7 +3035,9 @@ export async function fetchCommitHourDistribution(
             ... on Commit {
               history(first: 100) {
                 nodes {
-                  committedDate
+                  author {
+                    date
+                  }
                 }
               }
             }
@@ -2833,7 +3047,7 @@ export async function fetchCommitHourDistribution(
     }
   `;
 
-  await runCappedConcurrency(topRepos, 3, async ({ owner, name }) => {
+  const results = await runCappedConcurrency(topRepos, 3, async ({ owner, name }) => {
     try {
       const res = await fetchGraphQLWithRetry(
         GITHUB_GRAPHQL_URL,
@@ -2847,19 +3061,49 @@ export async function fetchCommitHourDistribution(
         undefined,
         token
       );
-      if (!res.ok) return null;
+      if (!res.ok) return [];
       const data = await res.json();
-      const nodes: { committedDate: string }[] =
+      const nodes: { author: { date: string } }[] =
         data?.data?.repository?.defaultBranchRef?.target?.history?.nodes ?? [];
-      for (const node of nodes) {
-        const hour = getHourInTimezone(node.committedDate, timezone);
-        hourCounts[hour]++;
-      }
+      return nodes.map((n) => n.author?.date).filter(Boolean);
     } catch {
-      // skip unavailable repos
+      return [];
     }
-    return null;
   });
+
+  return results.flat();
+}
+
+export async function fetchCommitHourDistribution(
+  username: string,
+  token?: string,
+  timezone: string = 'UTC'
+): Promise<number[]> {
+  const hourCounts = new Array(24).fill(0);
+
+  const getHourInTimezone = (isoDate: string, tz: string): number => {
+    try {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
+        hour: 'numeric',
+        hour12: false,
+        hourCycle: 'h23',
+      }).formatToParts(new Date(isoDate));
+      const hourPart = parts.find((p) => p.type === 'hour')?.value;
+      const hour = hourPart ? parseInt(hourPart, 10) % 24 : new Date(isoDate).getUTCHours();
+      return hour;
+    } catch {
+      return new Date(isoDate).getUTCHours();
+    }
+  };
+
+  const rawTimestamps = await fetchRawCommitTimestamps(username, token);
+  for (const dateStr of rawTimestamps) {
+    const hour = getHourInTimezone(dateStr, timezone);
+    if (hour >= 0 && hour <= 23) {
+      hourCounts[hour]++;
+    }
+  }
 
   return hourCounts;
 }
@@ -2938,10 +3182,17 @@ export async function fetchCommitPunchCard(
       const data = await res.json();
       const repos =
         data?.data?.user?.contributionsCollection?.commitContributionsByRepository ?? [];
-      topRepos = repos.map((r: { repository: { owner: { login: string }; name: string } }) => ({
-        owner: r.repository.owner.login,
-        name: r.repository.name,
-      }));
+      topRepos = repos
+        .filter(
+          (
+            r: { repository: { owner: { login: string } | null; name: string } | null } | null
+          ): r is { repository: { owner: { login: string }; name: string } } =>
+            !!(r && r.repository && r.repository.owner && r.repository.owner.login)
+        )
+        .map((r: { repository: { owner: { login: string }; name: string } }) => ({
+          owner: r.repository.owner.login,
+          name: r.repository.name,
+        }));
     }
   } catch {
     // silent
@@ -3153,4 +3404,124 @@ export async function checkGitHubHealth(): Promise<void> {
   if (data.errors) {
     throw new Error(getGraphQLErrorMessage(data.errors));
   }
+}
+
+export interface RawCommitActivity {
+  date: string;
+  language: string;
+  commits: number;
+}
+
+export interface RawCommitActivity {
+  date: string;
+  language: string;
+  commits: number;
+}
+
+// 1. Define the specific type for the GraphQL response
+export interface GitHubUserActivityData {
+  data?: {
+    user?: {
+      contributionsCollection?: {
+        commitContributionsByRepository?: Array<{
+          repository?: {
+            primaryLanguage?: {
+              name: string;
+            } | null;
+          } | null;
+          contributions?: {
+            nodes?: Array<{
+              occurredAt?: string;
+              commitCount?: number;
+            }>;
+          } | null;
+        }>;
+      };
+    };
+  };
+  errors?: unknown;
+}
+
+/**
+ * Fetches raw per-repository, per-day commit data to determine learning curves.
+ * Integrates with existing API resilience, rate limiting, and retry mechanics.
+ */
+export async function fetchGithubUserActivity(
+  username: string,
+  options: FetchOptions = {}
+): Promise<GitHubUserActivityData> {
+  const query = `
+    query($login: String!) {
+      user(login: $login) {
+        contributionsCollection {
+          commitContributionsByRepository(maxRepositories: 50) {
+            repository {
+              primaryLanguage {
+                name
+              }
+            }
+            contributions(first: 100) {
+              nodes {
+                occurredAt
+                commitCount
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  const res = await fetchGraphQLWithRetry(
+    GITHUB_GRAPHQL_URL,
+    {
+      method: 'POST',
+      headers: getHeaders(options.token),
+      body: JSON.stringify({ query, variables: { login: username } }),
+      cache: 'no-store',
+      signal: options.signal,
+    },
+    0,
+    undefined,
+    options.token
+  );
+
+  if (!res.ok) {
+    throwIfRateLimited(res);
+    throw new Error(`GitHub API error: ${res.status}`);
+  }
+
+  const data = (await res.json()) as GitHubUserActivityData;
+  if (data.errors) {
+    throw new Error(getGraphQLErrorMessage(data.errors));
+  }
+
+  return data;
+}
+
+/**
+ * Transforms the deeply nested GraphQL response into a flat array of daily commit activities.
+ */
+// 2. Replace 'any' with the new GitHubUserActivityData type
+export function transformToRawActivity(githubData: GitHubUserActivityData): RawCommitActivity[] {
+  const activities: RawCommitActivity[] = [];
+  const repos =
+    githubData?.data?.user?.contributionsCollection?.commitContributionsByRepository || [];
+
+  for (const repoData of repos) {
+    const language = repoData?.repository?.primaryLanguage?.name || 'Unknown';
+    const nodes = repoData?.contributions?.nodes || [];
+
+    for (const contribution of nodes) {
+      if (!contribution?.occurredAt) continue;
+
+      activities.push({
+        date: contribution.occurredAt.split('T')[0],
+        language,
+        commits: contribution.commitCount || 0,
+      });
+    }
+  }
+
+  return activities;
 }

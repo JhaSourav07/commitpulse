@@ -100,6 +100,14 @@ export interface WrappedStats {
   weekendRatio: number;
   topLanguage: string;
   calendar: ContributionCalendar;
+  longestStreak?: number;
+  previousYearContributions?: number;
+  contributionGrowth?: number;
+  mostActiveRepos?: Array<{ name: string; commits: number }>;
+  primaryLanguages?: Array<{ name: string; percentage: number; color: string }>;
+  milestones?: Array<{ name: string; description: string; unlocked: boolean }>;
+  mostProductiveDay?: string;
+  mostActiveHour?: number;
 }
 
 export interface OrgDashboardData {
@@ -160,4 +168,5 @@ export interface DashboardData {
   starredRepos?: Repository[];
   deployments?: DeploymentData[];
   hallOfFame?: HallOfFameAward[];
+  rawCommits?: string[]; // Raw ISO timestamps of recent commits for accurate hourly pulse
 }

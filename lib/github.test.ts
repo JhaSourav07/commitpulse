@@ -6,22 +6,15 @@ import {
   fetchUserRepos,
   fetchContributedRepos,
   getFullDashboardData,
-  generateAchievements,
-  buildCommitClock,
   clearGitHubApiCacheForTests,
-  GITHUB_CACHE_TTL_MS,
   cacheKey,
-  displayName,
-  fetchOrgMembers,
-  getOrgDashboardData,
-  getWrappedData,
   computeDeveloperScore,
-  runCappedConcurrency,
   buildProfileData,
   aggregateLanguages,
   buildInsights,
   buildActivityMap,
   contributionsCache,
+  profileCache,
 } from './github';
 import type { ContributionCalendar } from '../types';
 
@@ -579,7 +572,7 @@ describe('fetchCommitHourDistribution', () => {
             defaultBranchRef: {
               target: {
                 history: {
-                  nodes: [{ committedDate: isoTimestamp }],
+                  nodes: [{ author: { date: isoTimestamp } }],
                 },
               },
             },
@@ -631,7 +624,7 @@ describe('fetchCommitHourDistribution', () => {
             defaultBranchRef: {
               target: {
                 history: {
-                  nodes: [{ committedDate: isoTimestamp }],
+                  nodes: [{ author: { date: isoTimestamp } }],
                 },
               },
             },
@@ -647,7 +640,11 @@ describe('fetchCommitHourDistribution', () => {
 });
 
 describe('fetchUserProfile', () => {
-  beforeEach(() => vi.spyOn(global, 'fetch'));
+  beforeEach(() => {
+    vi.spyOn(global, 'fetch');
+    vi.spyOn(profileCache, 'get').mockResolvedValue(null);
+    vi.spyOn(profileCache, 'set').mockResolvedValue(undefined);
+  });
   afterEach(() => vi.restoreAllMocks());
 
   it('returns all profile fields on success', async () => {
@@ -735,6 +732,79 @@ describe('fetchUserProfile', () => {
   it('throws status code error on other failures', async () => {
     vi.mocked(fetch).mockResolvedValue(mockResponse({ message: 'Error' }, 500));
     await expect(fetchUserProfile('octocat')).rejects.toThrow('GitHub REST API error: 500');
+  });
+
+  it('dedupes concurrent profile requests for the same cold cache key', async () => {
+    let resolveFetch!: (response: Response) => void;
+    vi.mocked(fetch).mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveFetch = resolve;
+        })
+    );
+
+    const mockProfile = {
+      login: 'octocat',
+      name: 'The Octocat',
+      avatar_url: 'https://avatar.url',
+      public_repos: 8,
+      followers: 100,
+      following: 5,
+      created_at: '2011-01-25T18:44:36Z',
+      bio: 'GitHub mascot',
+      location: 'San Francisco',
+    };
+
+    const requests = Promise.all([
+      fetchUserProfile('octocat', { bypassCache: true }),
+      fetchUserProfile('octocat', { bypassCache: true }),
+      fetchUserProfile('octocat', { bypassCache: true }),
+    ]);
+
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+
+    resolveFetch(mockResponse(mockProfile));
+
+    const results = await requests;
+    expect(results.map((r) => r.login)).toEqual(['octocat', 'octocat', 'octocat']);
+  });
+
+  it('aborts only the requesting caller if its signal aborts while deduplicating profile request', async () => {
+    let resolveFetch!: (response: Response) => void;
+    vi.mocked(fetch).mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveFetch = resolve;
+        })
+    );
+
+    const mockProfile = {
+      login: 'octocat',
+      name: 'The Octocat',
+      avatar_url: 'https://avatar.url',
+      public_repos: 8,
+      followers: 100,
+      following: 5,
+      created_at: '2011-01-25T18:44:36Z',
+      bio: 'GitHub mascot',
+      location: 'San Francisco',
+    };
+
+    const controller = new AbortController();
+
+    const p1 = fetchUserProfile('octocat', { bypassCache: true });
+    const p2 = fetchUserProfile('octocat', { bypassCache: true, signal: controller.signal });
+
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+
+    controller.abort();
+
+    await expect(p2).rejects.toThrow('AbortError');
+
+    resolveFetch(mockResponse(mockProfile));
+
+    const res1 = await p1;
+    expect(res1.login).toBe('octocat');
   });
 });
 
@@ -1841,5 +1911,65 @@ describe('cacheKey', () => {
     expect(cacheKey('profile', 'octocat', undefined, undefined, 'github')).toBe(
       'profile:octocat:org:github'
     );
+  });
+});
+
+describe('Nullable repository handling', () => {
+  beforeEach(() => {
+    vi.spyOn(global, 'fetch');
+    clearGitHubApiCacheForTests();
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('fetchContributedRepos filters out null repository nodes gracefully', async () => {
+    const mockNodes = [
+      { name: 'repo1', nameWithOwner: 'octocat/repo1' },
+      null,
+      { name: 'repo2', nameWithOwner: 'octocat/repo2' },
+    ];
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({ data: { user: { repositoriesContributedTo: { nodes: mockNodes } } } })
+    );
+
+    const result = await fetchContributedRepos('octocat', { bypassCache: true });
+    expect(result).toEqual([
+      { name: 'repo1', nameWithOwner: 'octocat/repo1' },
+      { name: 'repo2', nameWithOwner: 'octocat/repo2' },
+    ]);
+  });
+
+  it('fetchGitHubContributions filters out commitContributionsByRepository with null repository', async () => {
+    const mockCommitRepoContributions = [
+      {
+        repository: { name: 'repo1', primaryLanguage: { name: 'TypeScript' } },
+        contributions: { totalCount: 5 },
+      },
+      {
+        repository: null,
+        contributions: { totalCount: 10 },
+      },
+    ];
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: { totalContributions: 15, weeks: [] },
+              commitContributionsByRepository: mockCommitRepoContributions,
+            },
+          },
+        },
+      })
+    );
+
+    const result = await fetchGitHubContributions('octocat', { bypassCache: true });
+    expect(result.repoContributions).toEqual([
+      {
+        repository: { name: 'repo1', primaryLanguage: { name: 'TypeScript' } },
+        contributions: { totalCount: 5 },
+      },
+    ]);
   });
 });

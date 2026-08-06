@@ -1,5 +1,6 @@
 import withSerwist from '@serwist/next';
 import type { NextConfig } from 'next';
+import withBundleAnalyzer from '@next/bundle-analyzer';
 
 const nextConfig: NextConfig = {
   output: 'standalone',
@@ -26,6 +27,7 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
+    dangerouslyAllowSVG: true,
     remotePatterns: [
       {
         protocol: 'https',
@@ -38,6 +40,10 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'cdn.simpleicons.org',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.jsdelivr.net',
       },
     ],
   },
@@ -52,4 +58,8 @@ const withSerwistConfig = withSerwist({
   disable: process.env.NODE_ENV === 'development',
 });
 
-export default withSerwistConfig(nextConfig);
+const withAnalyzer = withBundleAnalyzer({
+  enabled: process.env.ANALYZE === 'true',
+});
+
+export default withAnalyzer(withSerwistConfig(nextConfig));

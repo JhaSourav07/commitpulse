@@ -57,12 +57,14 @@ function buildActivityFixture(
   days: number,
   pattern: number[] = [5, 3, 0, 8, 1, 0, 12]
 ): ActivityData[] {
-  const startDate = '2024-01-01';
+  // Use a known Sunday as the start date so test data aligns perfectly
+  // into 7-day columns without bleeding into extra columns mid-week.
+  const startDate = '2023-12-31'; // Sunday
   const activity: ActivityData[] = [];
 
   for (let i = 0; i < days; i++) {
-    const d = new Date(startDate);
-    d.setDate(d.getDate() + i);
+    const d = new Date(`${startDate}T12:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + i);
     const iso = d.toISOString().split('T')[0];
     const count = pattern[i % pattern.length];
     activity.push({

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import RepositoryImpactAnalyzer, { formatAge } from './RepositoryImpactAnalyzer';
 
 // Mock framer-motion to render clean HTML containers for testing
@@ -21,14 +21,18 @@ vi.mock('framer-motion', () => ({
   },
 }));
 
-// Helper to create dates relative to today
-function getRelativeDateString(monthsAgo: number): string {
-  const d = new Date();
-  d.setMonth(d.getMonth() - monthsAgo);
-  return d.toISOString();
-}
-
 describe('RepositoryImpactAnalyzer', () => {
+  // Freeze time to a mid-month date to avoid JavaScript end-of-month rollover bugs
+  // System Date: July 15, 2024
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2024-07-15T00:00:00Z'));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('renders an empty state when no repositories are provided', () => {
     render(<RepositoryImpactAnalyzer repositories={[]} />);
 
@@ -37,14 +41,17 @@ describe('RepositoryImpactAnalyzer', () => {
   });
 
   it('correctly ranks repositories and limits to top 5 based on weighted impact score', () => {
+    // 10 Months Ago = September 15, 2023
+    const tenMonthsAgo = '2023-09-15T00:00:00Z';
+
     // Score formulas: (commits * 3) + (stars * 5) + (forks * 10)
     const repos = [
-      { name: 'Repo1', commits: 10, stars: 10, forks: 10, createdAt: getRelativeDateString(10) }, // 30 + 50 + 100 = 180
-      { name: 'Repo2', commits: 50, stars: 20, forks: 5, createdAt: getRelativeDateString(10) }, // 150 + 100 + 50 = 300
-      { name: 'Repo3', commits: 5, stars: 2, forks: 0, createdAt: getRelativeDateString(10) }, // 15 + 10 + 0 = 25
-      { name: 'Repo4', commits: 100, stars: 100, forks: 50, createdAt: getRelativeDateString(10) }, // 300 + 500 + 500 = 1300
-      { name: 'Repo5', commits: 20, stars: 50, forks: 12, createdAt: getRelativeDateString(10) }, // 60 + 250 + 120 = 430
-      { name: 'Repo6', commits: 80, stars: 40, forks: 8, createdAt: getRelativeDateString(10) }, // 240 + 200 + 80 = 520
+      { name: 'Repo1', commits: 10, stars: 10, forks: 10, createdAt: tenMonthsAgo }, // 30 + 50 + 100 = 180
+      { name: 'Repo2', commits: 50, stars: 20, forks: 5, createdAt: tenMonthsAgo }, // 150 + 100 + 50 = 300
+      { name: 'Repo3', commits: 5, stars: 2, forks: 0, createdAt: tenMonthsAgo }, // 15 + 10 + 0 = 25
+      { name: 'Repo4', commits: 100, stars: 100, forks: 50, createdAt: tenMonthsAgo }, // 300 + 500 + 500 = 1300
+      { name: 'Repo5', commits: 20, stars: 50, forks: 12, createdAt: tenMonthsAgo }, // 60 + 250 + 120 = 430
+      { name: 'Repo6', commits: 80, stars: 40, forks: 8, createdAt: tenMonthsAgo }, // 240 + 200 + 80 = 520
     ];
 
     render(<RepositoryImpactAnalyzer repositories={repos} />);
@@ -68,8 +75,8 @@ describe('RepositoryImpactAnalyzer', () => {
   });
 
   it('accurately calculates and renders growth metrics', () => {
-    // Create a repo exactly 10 months old
-    const tenMonthsAgo = getRelativeDateString(10);
+    // 10 Months Ago = September 15, 2023
+    const tenMonthsAgo = '2023-09-15T00:00:00Z';
     const repos = [
       {
         name: 'Repo-Growth',
@@ -117,17 +124,20 @@ describe('RepositoryImpactAnalyzer', () => {
   });
 
   it('complies with accessibility (a11y) standards', () => {
+    // 5 Months Ago = February 15, 2024
+    const fiveMonthsAgo = '2024-02-15T00:00:00Z';
+
     const repos = [
       {
         name: 'A11y-Repo',
         commits: 10,
         stars: 5,
         forks: 2,
-        createdAt: getRelativeDateString(5),
+        createdAt: fiveMonthsAgo,
       },
     ];
 
-    const { container } = render(<RepositoryImpactAnalyzer repositories={repos} />);
+    render(<RepositoryImpactAnalyzer repositories={repos} />);
 
     // Region role and labelling check
     const region = screen.getByRole('region');

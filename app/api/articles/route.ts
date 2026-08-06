@@ -41,7 +41,14 @@ export async function GET(request: Request) {
     }
 
     const radius = searchParams.get('radius') || '4';
-    const size = searchParams.get('size') || '1';
+    // getSizeScale() (lib/svg/generator.ts) only recognizes 'small' and
+    // 'large' as non-default scales; 'medium' — and any other value,
+    // including undefined — falls through to its 1.0-scale default.
+    // Using 'medium' explicitly here (rather than a numeric-looking
+    // string like '1', which was silently a no-op) keeps this default
+    // self-documenting and consistent with getSizeScale()'s actual
+    // accepted type.
+    const size = searchParams.get('size') || 'medium';
 
     const params = {
       user,

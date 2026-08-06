@@ -2,9 +2,15 @@
 
 import { useState, useMemo } from 'react';
 import { Search, X } from 'lucide-react';
-import { TECHNOLOGIES, TECH_CATEGORIES } from '../../data/technologies';
+import {
+  TECHNOLOGIES,
+  TECH_CATEGORIES,
+  getShieldsBadgeUrl,
+  DEFAULT_SHIELDS_BG_COLOR,
+  DEFAULT_SHIELDS_LOGO_COLOR,
+} from '../../data/technologies';
 import { SectionCard, FieldLabel } from '../SectionCard';
-import type { Technology } from '../../types';
+import type { Technology, TechIconDisplay } from '../../types';
 import { getRecommendations } from '@/lib/graph/recommendationEngine';
 import Image from 'next/image';
 
@@ -12,7 +18,18 @@ interface TechnologiesSectionProps {
   selected: string[];
   onChange: (ids: string[]) => void;
   onReset?: () => void;
+  iconDisplay?: TechIconDisplay;
+  onIconDisplayChange?: (v: TechIconDisplay) => void;
+  badgeBgColor?: string;
+  onBadgeBgColorChange?: (v: string) => void;
+  badgeLogoColor?: string;
+  onBadgeLogoColorChange?: (v: string) => void;
 }
+
+const ICON_DISPLAY_OPTIONS: { value: TechIconDisplay; label: string }[] = [
+  { value: 'logo', label: 'Logo Only' },
+  { value: 'logo-name', label: 'Logo + Name' },
+];
 
 function TechIcon({ tech, isDark }: { tech: Technology; isDark: boolean }) {
   const filterClass = tech.type === 'simpleicon' && isDark ? 'invert brightness-200' : '';
@@ -33,8 +50,18 @@ export function TechnologiesSection({
   selected = [],
   onChange,
   onReset,
+  iconDisplay = 'logo',
+  onIconDisplayChange = () => {},
+  badgeBgColor = '',
+  onBadgeBgColorChange = () => {},
+  badgeLogoColor = '',
+  onBadgeLogoColorChange = () => {},
 }: TechnologiesSectionProps) {
   const safeSelected = useMemo(() => (Array.isArray(selected) ? selected : []), [selected]);
+  const safeBgColor = badgeBgColor.replace(/^#/, '');
+  const safeLogoColor = badgeLogoColor.replace(/^#/, '');
+  const bgColorIsValid = /^[0-9a-fA-F]{6}$/.test(safeBgColor);
+  const logoColorIsValid = /^[0-9a-fA-F]{6}$/.test(safeLogoColor);
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [recCategory, setRecCategory] = useState<string>('All');
@@ -91,92 +118,6 @@ export function TechnologiesSection({
         badge={safeSelected.length}
         defaultOpen
       >
-        <div className="relative mb-3">
-          <Search
-            size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-white/30 pointer-events-none"
-          />
-          <input
-            id="tech-search"
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search technologies..."
-            className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 pl-9 pr-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-colors"
-          />
-          {search && (
-            <button
-              type="button"
-              onClick={() => setSearch('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-white/30 dark:hover:text-white/60"
-            >
-              <X size={14} />
-            </button>
-          )}
-        </div>
-
-        <div className="flex flex-wrap gap-1.5 mb-4 overflow-x-auto pb-1">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => setActiveCategory(cat)}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors ${
-                activeCategory === cat
-                  ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                  : 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-white/50 border border-transparent hover:bg-gray-200 dark:hover:bg-white/10'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-
-        {safeSelected.length > 0 && (
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <FieldLabel>Selected ({safeSelected.length})</FieldLabel>
-              <button
-                type="button"
-                onClick={clearAll}
-                className="text-[10px] text-red-500 dark:text-red-400 hover:underline"
-              >
-                Clear all
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {safeSelected.map((id) => {
-                const tech = TECHNOLOGIES.find((t) => t.id === id);
-                if (!tech) return null;
-                return (
-                  <div
-                    key={id}
-                    className="inline-flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-700 dark:text-emerald-300"
-                  >
-                    <Image
-                      src={tech.iconUrl}
-                      alt=""
-                      width={14}
-                      height={14}
-                      className={`w-3.5 h-3.5 object-contain ${
-                        tech.type === 'simpleicon' && isDark ? 'invert brightness-200' : ''
-                      }`}
-                    />
-                    <span>{tech.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => toggle(id)}
-                      className="p-0.5 rounded hover:bg-emerald-500/20 transition-colors"
-                    >
-                      <X size={10} />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
         {safeSelected.length > 0 && (
           <div className="mb-6 mt-4 p-4 rounded-2xl border border-gray-200/50 dark:border-white/10 bg-white/40 dark:bg-white/[0.02] backdrop-blur-md shadow-sm">
             <div className="flex items-center justify-between mb-1">
@@ -336,6 +277,212 @@ export function TechnologiesSection({
                 </div>
               </>
             )}
+          </div>
+        )}
+
+        <div className="relative mb-3">
+          <Search
+            size={14}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-white/30 pointer-events-none"
+          />
+          <input
+            id="tech-search"
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search technologies..."
+            className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 pl-9 pr-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-colors"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-white/30 dark:hover:text-white/60"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
+        <div className="mb-4">
+          <FieldLabel>Icon Style</FieldLabel>
+          <div
+            role="tablist"
+            aria-label="Technology icon display style"
+            className="flex rounded-xl bg-gray-100 dark:bg-white/5 p-1 gap-1 w-full"
+          >
+            {ICON_DISPLAY_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                role="tab"
+                aria-selected={iconDisplay === opt.value}
+                onClick={() => onIconDisplayChange(opt.value)}
+                className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                  iconDisplay === opt.value
+                    ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          {iconDisplay === 'logo-name' && (
+            <div className="mt-3 flex flex-wrap items-start gap-4 p-3 rounded-xl border border-gray-200/70 dark:border-white/10 bg-gray-50/60 dark:bg-white/[0.02]">
+              <div>
+                <FieldLabel htmlFor="tech-badge-bg-color">Background Colour</FieldLabel>
+                <div className="flex items-center gap-2">
+                  <div className="relative flex items-center">
+                    <span className="absolute left-3 text-xs text-gray-400 dark:text-white/30 select-none">
+                      #
+                    </span>
+                    <input
+                      id="tech-badge-bg-color"
+                      type="text"
+                      value={safeBgColor}
+                      onChange={(e) => onBadgeBgColorChange(e.target.value.replace(/^#/, ''))}
+                      placeholder={DEFAULT_SHIELDS_BG_COLOR}
+                      maxLength={6}
+                      spellCheck={false}
+                      className="w-28 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 pl-7 pr-3 py-2 text-sm font-mono text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40 transition-colors"
+                    />
+                  </div>
+                  <div
+                    className="w-8 h-8 rounded-lg border border-gray-200 dark:border-white/10 flex-shrink-0 transition-colors"
+                    style={{
+                      background: bgColorIsValid
+                        ? `#${safeBgColor}`
+                        : `#${DEFAULT_SHIELDS_BG_COLOR}`,
+                    }}
+                  />
+                </div>
+                {safeBgColor && !bgColorIsValid && (
+                  <p className="text-[11px] text-amber-500 mt-1">Invalid hex</p>
+                )}
+              </div>
+
+              <div>
+                <FieldLabel htmlFor="tech-badge-logo-color">Logo Colour</FieldLabel>
+                <div className="flex items-center gap-2">
+                  <div className="relative flex items-center">
+                    <span className="absolute left-3 text-xs text-gray-400 dark:text-white/30 select-none">
+                      #
+                    </span>
+                    <input
+                      id="tech-badge-logo-color"
+                      type="text"
+                      value={safeLogoColor}
+                      onChange={(e) => onBadgeLogoColorChange(e.target.value.replace(/^#/, ''))}
+                      placeholder={DEFAULT_SHIELDS_LOGO_COLOR}
+                      maxLength={6}
+                      spellCheck={false}
+                      className="w-28 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 pl-7 pr-3 py-2 text-sm font-mono text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40 transition-colors"
+                    />
+                  </div>
+                  <div
+                    className="w-8 h-8 rounded-lg border border-gray-200 dark:border-white/10 flex-shrink-0 transition-colors"
+                    style={{
+                      background: logoColorIsValid
+                        ? `#${safeLogoColor}`
+                        : `#${DEFAULT_SHIELDS_LOGO_COLOR}`,
+                    }}
+                  />
+                </div>
+                {safeLogoColor && !logoColorIsValid && (
+                  <p className="text-[11px] text-amber-500 mt-1">Invalid hex</p>
+                )}
+              </div>
+
+              {(safeBgColor || safeLogoColor) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onBadgeBgColorChange('');
+                    onBadgeLogoColorChange('');
+                  }}
+                  className="self-center text-[11px] text-red-500 dark:text-red-400 hover:underline"
+                >
+                  Reset colours
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-wrap gap-1.5 mb-4 overflow-x-auto pb-1">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setActiveCategory(cat)}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors ${
+                activeCategory === cat
+                  ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                  : 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-white/50 border border-transparent hover:bg-gray-200 dark:hover:bg-white/10'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+
+        {safeSelected.length > 0 && (
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <FieldLabel>Selected ({safeSelected.length})</FieldLabel>
+              <button
+                type="button"
+                onClick={clearAll}
+                className="text-[10px] text-red-500 dark:text-red-400 hover:underline"
+              >
+                Clear all
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {safeSelected.map((id) => {
+                const tech = TECHNOLOGIES.find((t) => t.id === id);
+                if (!tech) return null;
+                return (
+                  <div
+                    key={id}
+                    className="inline-flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-700 dark:text-emerald-300"
+                  >
+                    {iconDisplay === 'logo-name' ? (
+                      // shields.io badges are variable-width SVGs, so a plain <img>
+                      // is used here instead of next/image.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={getShieldsBadgeUrl(tech, badgeBgColor, badgeLogoColor)}
+                        alt={tech.name}
+                        className="h-4 object-contain my-1"
+                      />
+                    ) : (
+                      <>
+                        <Image
+                          src={tech.iconUrl}
+                          alt=""
+                          width={14}
+                          height={14}
+                          className={`w-3.5 h-3.5 object-contain ${
+                            tech.type === 'simpleicon' && isDark ? 'invert brightness-200' : ''
+                          }`}
+                        />
+                        <span>{tech.name}</span>
+                      </>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => toggle(id)}
+                      className="p-0.5 rounded hover:bg-emerald-500/20 transition-colors"
+                    >
+                      <X size={10} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 

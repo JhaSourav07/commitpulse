@@ -3,8 +3,9 @@ import { copyToClipboard } from '@/utils/clipboard';
 import { useState, useRef, useEffect } from 'react';
 import { toPng, toCanvas } from 'html-to-image';
 import type { DashboardExportData } from '@/types/dashboard';
-import { getDashboardUrl, getOrigin } from '@/utils/urls';
+import { getDashboardUrl } from '@/utils/urls';
 import { activityToTowers, generateMonolithSTL } from '@/lib/export3d';
+import { BADGE_BASE_URL } from '@/lib/constants';
 
 type OptionState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -45,7 +46,13 @@ function sanitizeFilenameSegment(value: string): string {
 }
 
 function buildStreakSvgUrl(username: string): string {
-  const url = new URL('/api/streak', getOrigin());
+  const url = new URL(BADGE_BASE_URL);
+  url.searchParams.set('user', sanitizeUsernameForUrl(username));
+  return url.toString();
+}
+
+export function buildLanguagesSvgUrl(username: string): string {
+  const url = new URL('/api/languages', BADGE_BASE_URL);
   url.searchParams.set('user', sanitizeUsernameForUrl(username));
   return url.toString();
 }
@@ -325,6 +332,26 @@ export function useShareActions(
     }
   };
 
+  const handleDownloadLanguagesSVG = async () => {
+    setOptionState('languagesSvg', 'loading');
+    try {
+      const response = await fetch(buildLanguagesSvgUrl(username));
+      if (!response.ok) throw new Error('Failed to fetch Languages SVG');
+      const svgText = sanitizeAndCanonicalizeSvg(await response.text());
+      const blob = new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = `${sanitizeFilenameSegment(username)}-languages.svg`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+      setOptionState('languagesSvg', 'success');
+    } catch (err) {
+      console.error('[useShareActions] Languages SVG download failed:', err);
+      setOptionState('languagesSvg', 'error');
+    }
+  };
+
   const handleCopyMarkdown = async () => {
     setOptionState('markdown', 'loading');
     try {
@@ -511,6 +538,7 @@ export function useShareActions(
     handleDownloadWEBP,
     handleCopyImage,
     handleDownloadSVG,
+    handleDownloadLanguagesSVG,
     handleCopyMarkdown,
     handleDownloadCSV,
     handleDownloadJSON,

@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { GitFork, Users, GitCommit, RefreshCw, ChevronLeft, ShieldAlert } from 'lucide-react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import DownloadReportMenu from './DownloadReportMenu';
 import type { BurnoutReport } from '@/services/github/burnout-analyzer';
 
@@ -14,6 +14,7 @@ interface RepoHeaderProps {
   onRefresh: () => void;
   isRefreshing: boolean;
   report?: BurnoutReport;
+  onBackToSearch?: () => void;
 }
 
 export default function RepoHeader({
@@ -24,8 +25,27 @@ export default function RepoHeader({
   onRefresh,
   isRefreshing,
   report,
+  onBackToSearch,
 }: RepoHeaderProps) {
+  const router = useRouter();
   const [owner, name] = repoName.split('/');
+
+  const handleBackToSearch = () => {
+    if (onBackToSearch) {
+      onBackToSearch();
+      return;
+    }
+
+    if (typeof window === 'undefined') return;
+
+    const targetPath = '/burnout-analyzer';
+    if (window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+
+    router.push(targetPath);
+  };
 
   // Circular gauge parameters
   const radius = 40;
@@ -58,13 +78,14 @@ export default function RepoHeader({
   return (
     <div className="z-30 flex flex-col gap-6 md:flex-row md:items-center md:justify-between p-6 rounded-2xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#0a0a0a]/70 backdrop-blur-xl shadow-sm">
       <div className="flex flex-col gap-4">
-        <Link
-          href="/burnout-analyzer"
+        <button
+          type="button"
+          onClick={handleBackToSearch}
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-gray-900 dark:text-zinc-400 dark:hover:text-white transition-colors w-fit"
         >
           <ChevronLeft size={14} />
           Back to Search
-        </Link>
+        </button>
         <div className="flex items-center gap-3">
           <div className="p-3 rounded-xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 text-indigo-500 dark:text-indigo-400">
             <GitFork size={22} className="rotate-90" />

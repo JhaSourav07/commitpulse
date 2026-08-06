@@ -1,9 +1,12 @@
 'use client';
 
-import { useState, lazy, Suspense, type SyntheticEvent } from 'react';
+import { memo } from 'react';
+
+import { useState, Suspense, type SyntheticEvent } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { ActivityData } from '@/types/dashboard';
 import VisualizationTooltip from './VisualizationTooltip';
+import dynamic from 'next/dynamic';
 import {
   formatTooltipDate,
   formatTooltipRange,
@@ -14,7 +17,7 @@ import { useTranslation } from '@/context/TranslationContext';
 import { use3DTheme } from '@/hooks/use3dtheme';
 
 // Lazy-load the 3D city so it never increases the initial JS bundle
-const ContributionCity3D = lazy(() => import('./ContributionCity3D'));
+const ContributionCity3D = dynamic(() => import('./ContributionCity3D'), { ssr: false });
 
 const tabs = ['1W', '1M', '3M', '1Y'];
 
@@ -71,7 +74,7 @@ interface TooltipState {
   y: number;
 }
 
-export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
+const ActivityLandscape = memo(function ActivityLandscape({ data }: { data: ActivityData[] }) {
   const [activeTab, setActiveTab] = useState('3M');
   const [mode, setMode] = useState<'commits' | 'loc'>('commits');
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
@@ -390,4 +393,6 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
       </AnimatePresence>
     </>
   );
-}
+});
+
+export default ActivityLandscape;

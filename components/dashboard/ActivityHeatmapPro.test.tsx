@@ -106,4 +106,63 @@ describe('ActivityHeatmapPro Component', () => {
     fireEvent.click(monthlyTab);
     expect(screen.getByText('Jan 24')).toBeDefined();
   });
+
+  it('renders focusable cells with gridcell role and tabIndex={0}', () => {
+    render(<ActivityHeatmapPro {...baseProps} />);
+    const cells = screen.getAllByRole('gridcell');
+    expect(cells.length).toBeGreaterThan(0);
+    cells.forEach((cell) => {
+      expect(cell).toHaveAttribute('tabIndex', '0');
+    });
+  });
+
+  it('updates aria-live announcement on cell focus', () => {
+    render(<ActivityHeatmapPro {...baseProps} />);
+    const liveRegion = screen.getByTestId('activity-pro-aria-live');
+    expect(liveRegion).toHaveAttribute('aria-live', 'polite');
+
+    const cells = screen.getAllByRole('gridcell');
+    fireEvent.focus(cells[0]);
+    expect(liveRegion).toHaveTextContent('5 contributions on 2024-01-01');
+
+    fireEvent.focus(cells[1]);
+    expect(liveRegion).toHaveTextContent('3 contributions on 2024-01-02');
+  });
+
+  it('navigates across heatmap cells using arrow keys', () => {
+    // 14 days of activity
+    const FourteenDays = {
+      activity: Array.from({ length: 14 }, (_, i) => ({
+        date: `2024-01-${String(i + 1).padStart(2, '0')}`,
+        count: i + 1,
+        intensity: 1 as const,
+      })),
+    };
+    render(<ActivityHeatmapPro {...FourteenDays} />);
+
+    const cells = screen.getAllByRole('gridcell');
+    const cell0 = cells[0];
+    const cell1 = cells[1];
+    const cell7 = cells[7];
+
+    cell0.focus();
+    expect(document.activeElement).toBe(cell0);
+
+    // ArrowDown moves down 1 day in same column (index 0 -> index 1)
+    fireEvent.keyDown(cell0, { key: 'ArrowDown' });
+    expect(document.activeElement).toBe(cell1);
+
+    // ArrowRight moves 7 days right (index 1 -> index 8)
+    const cell8 = cells[8];
+    fireEvent.keyDown(cell1, { key: 'ArrowRight' });
+    expect(document.activeElement).toBe(cell8);
+
+    // ArrowUp moves up 1 day (index 8 -> index 7)
+    fireEvent.keyDown(cell8, { key: 'ArrowUp' });
+    expect(document.activeElement).toBe(cell7);
+
+    // ArrowLeft moves 7 days left (index 7 -> index 0)
+    fireEvent.keyDown(cell7, { key: 'ArrowLeft' });
+    expect(document.activeElement).toBe(cell0);
+  });
 });
