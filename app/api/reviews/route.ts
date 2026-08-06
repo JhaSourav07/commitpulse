@@ -185,3 +185,5 @@ export async function POST(req: Request) {
     );
   }
 }
+
+.catch(err => console.error("Promise.all failed:", err));

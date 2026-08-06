@@ -55,3 +55,5 @@ export default async function WrappedPage({
     </div>
   );
 }
+
+.catch(err => console.error("Promise.all failed:", err));
