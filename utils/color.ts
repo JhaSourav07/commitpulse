@@ -53,7 +53,7 @@ export function rgbToHsl(r: number, g: number, b: number): { h: number; s: numbe
         break;
     }
   }
-  return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+  return { h: Math.round(h * 360 + Number.EPSILON), s: Math.round(s * 100), l: Math.round(l * 100) };
 }
 
 export function hexToHsl(hex: string): { h: number; s: number; l: number } {
