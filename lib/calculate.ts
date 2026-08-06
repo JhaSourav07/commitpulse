@@ -315,7 +315,7 @@ export function calculateStreak(
   } else {
     currentStreak = 0;
   }
-  let resolvedTodayDate = localTodayStr;
+  let resolvedTodayDate = effectiveTodayStr;
   const hasTodayEntry = nonVacationUniqueDays.some((d) => d.date === effectiveTodayStr);
 
   // Only fallback if calendar has no entry for today at all
