@@ -241,7 +241,7 @@ Then visit: `http://localhost:3000/api/streak?user=YOUR_USERNAME`
 
 ### 🌐 Deploy to Vercel
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/JhaSourav07/commitpulse&env=GITHUB_PAT&envDescription=GitHub%20Personal%20Access%20Token%20with%20read%3Auser%20scope)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/JhaSourav07/commitpulse&env=GITHUB_TOKEN&envDescription=GitHub%20Personal%20Access%20Token%20with%20read%3Auser%20scope)
 
 For advanced self-hosting configurations (such as setting up the optional MongoDB user tracking), refer to the **[🚀 Self-Hosting & Deployment Guide](docs/self_hosting.md)**.
 
