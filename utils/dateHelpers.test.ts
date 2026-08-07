@@ -68,12 +68,12 @@ describe('dateHelpers', () => {
     });
 
     it('returns zero metrics for an array containing only Invalid Date strings', () => {
-      const result = processCommitTimestamps(['2024-13-99T25:99:00Z', 'hello world']);
+      const result = processCommitTimestamps(['2024-13-99T25:99:00', 'hello world']);
       expect(result).toEqual({ morning: 0, afternoon: 0, evening: 0, night: 0 });
     });
 
     it('counts valid morning commits correctly', () => {
-      const result = processCommitTimestamps(['2024-03-10T09:00:00Z', '2024-03-10T11:30:00Z']);
+      const result = processCommitTimestamps(['2024-03-10T09:00:00', '2024-03-10T11:30:00']);
       expect(result.morning).toBe(2);
       expect(result.afternoon).toBe(0);
       expect(result.evening).toBe(0);
@@ -81,26 +81,26 @@ describe('dateHelpers', () => {
     });
 
     it('counts valid afternoon commits correctly', () => {
-      const result = processCommitTimestamps(['2024-03-10T12:00:00Z', '2024-03-10T17:59:00Z']);
+      const result = processCommitTimestamps(['2024-03-10T12:00:00', '2024-03-10T17:59:00']);
       expect(result.morning).toBe(0);
       expect(result.afternoon).toBe(2);
     });
 
     it('counts valid evening commits correctly', () => {
-      const result = processCommitTimestamps(['2024-03-10T18:00:00Z', '2024-03-10T23:59:00Z']);
+      const result = processCommitTimestamps(['2024-03-10T18:00:00', '2024-03-10T23:59:00']);
       expect(result.evening).toBe(2);
     });
 
     it('counts valid night commits correctly', () => {
-      const result = processCommitTimestamps(['2024-03-10T00:00:00Z', '2024-03-10T05:59:00Z']);
+      const result = processCommitTimestamps(['2024-03-10T00:00:00', '2024-03-10T05:59:00']);
       expect(result.night).toBe(2);
     });
 
     it('ignores invalid dates while counting valid ones', () => {
       const result = processCommitTimestamps([
-        '2024-03-10T09:00:00Z',
+        '2024-03-10T09:00:00',
         'invalid-date',
-        '2024-03-10T14:00:00Z',
+        '2024-03-10T14:00:00',
       ]);
       expect(result.morning).toBe(1);
       expect(result.afternoon).toBe(1);
