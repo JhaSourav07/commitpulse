@@ -11,6 +11,7 @@ export function processCommitTimestamps(commitDates: string[] | Date[]): TimeOfD
   commitDates.forEach((dateString) => {
     if (!dateString) return;
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return;
     const hour = date.getHours();
 
     if (hour >= 6 && hour < 12) {
@@ -33,6 +34,12 @@ export function processCommitTimestamps(commitDates: string[] | Date[]): TimeOfD
  */
 export function getAuthorLocalHour(isoDate: string): number {
   if (!isoDate || typeof isoDate !== 'string') return 0;
+
+  // Validate ISO 8601 date format: YYYY-MM-DDTHH:MM:SS...
+  if (!/^\d{4}-\d{2}-\d{2}T/.test(isoDate)) {
+    const parsed = new Date(isoDate);
+    return isNaN(parsed.getTime()) ? 0 : parsed.getHours();
+  }
 
   if (isoDate.length >= 13) {
     const hourStr = isoDate.substring(11, 13);

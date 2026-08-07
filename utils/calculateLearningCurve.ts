@@ -11,6 +11,7 @@ export interface RawCommitActivity {
   language: string;
   linesAdded: number;
   linesDeleted: number;
+  commits?: number;
 }
 
 export function calculateLearningCurve(activities: RawCommitActivity[]): LearningCurveData {
@@ -35,7 +36,7 @@ export function calculateLearningCurve(activities: RawCommitActivity[]): Learnin
     }
 
     const dayData = timelineMap.get(activity.date)!;
-    dayData.totalDailyCommits += 1;
+    dayData.totalDailyCommits += activity.commits ?? 1;
 
     // Initialize or update domain stats for that specific day
     if (!dayData.domains[domain]) {
@@ -49,7 +50,7 @@ export function calculateLearningCurve(activities: RawCommitActivity[]): Learnin
     }
 
     const domainStat = dayData.domains[domain]!;
-    domainStat.commitCount += 1;
+    domainStat.commitCount += activity.commits ?? 1;
     domainStat.linesAdded += activity.linesAdded;
     domainStat.linesDeleted += activity.linesDeleted;
 
