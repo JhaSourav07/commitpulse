@@ -156,8 +156,9 @@ export class QuotaMonitor {
         continue;
       }
 
-      // Changed to <= to ensure edge cases exactly at 10% are caught
-      if (state.remaining <= state.limit * 0.1) {
+      // Reverted to strictly less than (<) to pass the test asserting that
+      // exactly 10% (500/5000) is NOT flagged as low quota.
+      if (state.remaining < state.limit * 0.1) {
         return true;
       }
     }
