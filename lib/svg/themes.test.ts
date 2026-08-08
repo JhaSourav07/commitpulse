@@ -41,11 +41,11 @@ describe('themes object', () => {
 // ── Theme count ───────────────────────────────────────────────────────────────
 
 describe('theme count', () => {
-  it('contains exactly 35 preset themes matching THEMES.md documentation', () => {
+  it('contains exactly 37 preset themes matching THEMES.md documentation', () => {
     // If this fails, either a theme was added to themes.ts without updating
     // THEMES.md, or a theme was removed without updating the docs.
     // Update this count when intentionally adding/removing themes.
-    expect(themeNames).toHaveLength(35);
+    expect(themeNames).toHaveLength(37);
   });
 
   it('contains all expected theme keys', () => {
@@ -79,6 +79,8 @@ describe('theme count', () => {
       'cyberpunk_neon',
       'tokyo_night',
       'monokai',
+      'sakura',
+      'midnight_ember',
       'midnight_ocean',
       'india',
       'catppuccin_mocha',
