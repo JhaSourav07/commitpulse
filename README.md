@@ -137,6 +137,8 @@ Transform your GitHub contribution history into a cinematic 3D monolith.
 | `lumos`            | Void black & mint gold       | `0a0a0a` | `fbbf24` | `a7f3d0` |
 | `tokyo_night`      | Deep navy & soft pastel blue | `1a1b26` | `7aa2f7` | `c0caf5` |
 | `monokai`          | Classic vibrant dark         | `272822` | `a6e22e` | `f8f8f2` |
+| `sakura`           | Cherry blossom inspired      | `1a1225` | `f472b6` | `f5e6f0` |
+| `midnight_ember`   | Warm campfire dark           | `0c1222` | `e85d26` | `e8d5c4` |
 | `midnight_ocean`   | Deep navy bioluminescent     | `020c1b` | `0af5ff` | `ccd6f6` |
 | `india`            | Saffron & India green        | `0a0a0a` | `FF9933` | `ffffff` |
 | `ocean`            | Deep sea teal & navy         | `0a192f` | `64ffda` | `ccd6f6` |

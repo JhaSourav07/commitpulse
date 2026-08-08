@@ -62,6 +62,8 @@ export const themes: Record<string, BadgeTheme> = {
   cyberpunk_neon: makeTheme('0d0d14', '00f3ff', 'ff0055', 'b800ff'),
   tokyo_night: makeTheme('1a1b26', 'c0caf5', '7aa2f7'),
   monokai: makeTheme('272822', 'f8f8f2', 'a6e22e', 'f92672'),
+  sakura: makeTheme('1a1225', 'f5e6f0', 'f472b6', 'ef4444'),
+  midnight_ember: makeTheme('0c1222', 'e8d5c4', 'e85d26', 'dc2626'),
   midnight_ocean: makeTheme('020c1b', 'ccd6f6', '0af5ff', 'ff4d6d'),
   enterprise: makeTheme('1a1a2e', 'e2e8f0', '6366f1', '8b5cf6'),
   // India theme — saffron accent (#FF9933), India green negative (#138808)
