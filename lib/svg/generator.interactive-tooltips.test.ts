@@ -2,7 +2,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { generateSVG } from './generator';
-import type { BadgeParams, ContributionCalendar, StreakStats } from '../types';
+import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
 
 const mockStats: StreakStats = {
   currentStreak: 5,
@@ -12,6 +12,7 @@ const mockStats: StreakStats = {
 };
 
 const mockCalendar: ContributionCalendar = {
+  totalContributions: 5,
   weeks: [
     {
       contributionDays: [
@@ -39,6 +40,7 @@ describe('Interactive SVG Tower Tooltips', () => {
 
   it('escapes XML reserved characters in tower tooltip elements', () => {
     const calendarWithUnsafeDate: ContributionCalendar = {
+      totalContributions: 3,
       weeks: [
         {
           contributionDays: [
