@@ -396,7 +396,6 @@ export async function GET(request: Request) {
       ),
 
       mode,
-      repo,
       org,
       labels,
       labelColor,

@@ -277,7 +277,6 @@ export interface BadgeParams {
 
   /** Target repository for repo-scoped contribution stats (formatted as 'owner/repo'). */
   repo?: string;
-
   /** Custom text to display as the subtitle. */
   custom_subtitle?: string;
 
@@ -322,9 +321,6 @@ export interface BadgeParams {
 
   /** Rendering mode. 'commits' is the default. 'loc' switches to Lines of Code landscape. */
   mode?: 'commits' | 'loc';
-
-  /** Render the monolith for a specific repository (e.g. "owner/repo") instead of the whole profile. */
-  repo?: string;
 
   /** Organization name to generate a Mega-City for. */
   org?: string;
