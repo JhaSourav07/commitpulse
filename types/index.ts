@@ -132,7 +132,10 @@ export interface RepoContribution {
     nameWithOwner?: string;
     primaryLanguage: { name: string } | null;
   };
-  contributions: { totalCount: number };
+  contributions: {
+    totalCount: number;
+    nodes?: { occurredAt: string; commitCount: number }[];
+  };
 }
 
 /**
@@ -271,6 +274,9 @@ export interface BadgeParams {
 
   /** Custom text to display as the title. */
   custom_title?: string;
+
+  /** Target repository for repo-scoped contribution stats (formatted as 'owner/repo'). */
+  repo?: string;
 
   /** Custom text to display as the subtitle. */
   custom_subtitle?: string;

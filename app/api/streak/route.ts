@@ -379,7 +379,7 @@ export async function GET(request: Request) {
       font,
       autoTheme: isAutoTheme,
       hide_title,
-      custom_title,
+      custom_title: custom_title || (repo ? `CommitPulse for ${repo}` : undefined),
       custom_subtitle: autoSubtitle,
       hideBackground: hide_background,
       hide_stats,
@@ -476,6 +476,7 @@ export async function GET(request: Request) {
                 bypassCache: shouldBypassCache,
                 from,
                 to,
+                repo,
                 signal: controller.signal,
               });
               if (userData.isOfflineFallback) {
@@ -519,12 +520,14 @@ export async function GET(request: Request) {
             bypassCache: shouldBypassCache,
             from: from1,
             to: to1,
+            repo,
             signal: controller.signal,
           }),
           fetchGitHubContributions(user, {
             bypassCache: shouldBypassCache,
             from: from2,
             to: to2,
+            repo,
             signal: controller.signal,
           }),
         ]);
@@ -541,6 +544,7 @@ export async function GET(request: Request) {
           bypassCache: shouldBypassCache,
           from,
           to,
+          repo,
           signal: controller.signal,
         });
 
@@ -549,6 +553,7 @@ export async function GET(request: Request) {
               bypassCache: shouldBypassCache,
               from,
               to,
+              repo,
               signal: controller.signal,
             })
           : Promise.resolve(null);

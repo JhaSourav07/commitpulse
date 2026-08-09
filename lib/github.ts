@@ -612,6 +612,7 @@ type FetchOptions = {
   rangeLabel?: string;
   signal?: AbortSignal;
   org?: string;
+  repo?: string;
   excludeBots?: boolean;
   // Authenticated user's OAuth token. When set, GitHub calls use THIS token
   // (the user's personal rate-limit quota) instead of the global PAT pool.
@@ -693,7 +694,8 @@ export function cacheKey(
   username: string,
   year?: string,
   to?: string,
-  org?: string
+  org?: string,
+  repo?: string
 ): string;
 export function cacheKey(
   kind:
@@ -708,7 +710,8 @@ export function cacheKey(
   username: string,
   from?: string,
   to?: string,
-  org?: string
+  org?: string,
+  repo?: string
 ): string;
 export function cacheKey(
   kind:
@@ -723,7 +726,8 @@ export function cacheKey(
   username: string,
   yearOrFrom?: string,
   to?: string,
-  org?: string
+  org?: string,
+  repo?: string
 ): string {
   let keyStr = '';
   if (yearOrFrom && to) {
@@ -735,6 +739,9 @@ export function cacheKey(
   }
   if (org) {
     keyStr += `:org:${org.toLowerCase()}`;
+  }
+  if (repo) {
+    keyStr += `:repo:${repo.toLowerCase()}`;
   }
   return keyStr;
 }
@@ -944,7 +951,14 @@ export async function fetchGitHubContributions(
   username: string,
   options: FetchOptions = {}
 ): Promise<ExtendedContributionData> {
-  const key = cacheKey('contributions', username, options.from, options.to, options.org);
+  const key = cacheKey(
+    'contributions',
+    username,
+    options.from,
+    options.to,
+    options.org,
+    options.repo
+  );
   const LONG_CACHE_TTL = Number(
     process.env.GITHUB_LONG_CACHE_TTL_MS ?? String(7 * 24 * 60 * 60 * 1000)
   );
@@ -1150,8 +1164,12 @@ async function fetchContributionsUncached(
                   name
                 }
               }
-              contributions {
+              contributions(first: 100) {
                 totalCount
+                nodes {
+                  occurredAt
+                  commitCount
+                }
               }
             }
           }
@@ -1231,6 +1249,57 @@ async function fetchContributionsUncached(
       totalContributions: 0,
       weeks: [],
     };
+  }
+
+  if (options.repo && calendar && calendar.weeks) {
+    const targetRepoName = options.repo.toLowerCase();
+    const matchingRepoItem = repoContributions.find(
+      (c) => c.repository?.nameWithOwner?.toLowerCase() === targetRepoName
+    );
+
+    if (matchingRepoItem) {
+      repoContributions = [matchingRepoItem];
+      const repoDateMap = new Map<string, number>();
+
+      const nodes =
+        (
+          matchingRepoItem.contributions as {
+            nodes?: { occurredAt?: string; commitCount?: number }[];
+          }
+        )?.nodes || [];
+      for (const node of nodes) {
+        if (node?.occurredAt) {
+          const dateStr = node.occurredAt.split('T')[0];
+          const count = node.commitCount || 1;
+          repoDateMap.set(dateStr, (repoDateMap.get(dateStr) || 0) + count);
+        }
+      }
+
+      let repoTotalContributions = 0;
+      calendar.weeks = calendar.weeks.map((week) => ({
+        ...week,
+        contributionDays: (week.contributionDays || []).map((day) => {
+          const repoCount = repoDateMap.get(day.date) || 0;
+          repoTotalContributions += repoCount;
+          return {
+            ...day,
+            contributionCount: repoCount,
+          };
+        }),
+      }));
+      calendar.totalContributions =
+        matchingRepoItem.contributions.totalCount || repoTotalContributions;
+    } else {
+      repoContributions = [];
+      calendar.weeks = calendar.weeks.map((week) => ({
+        ...week,
+        contributionDays: (week.contributionDays || []).map((day) => ({
+          ...day,
+          contributionCount: 0,
+        })),
+      }));
+      calendar.totalContributions = 0;
+    }
   }
 
   const totalPRs = data.data.user.contributionsCollection?.totalPullRequestContributions || 0;
