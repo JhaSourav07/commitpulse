@@ -377,6 +377,7 @@ export function ExportPanel({
           {/* GitHub Background Simulator Toggle */}
           {onPreviewBgChange && (
             <div
+              role="group"
               className="flex items-center gap-1 rounded-xl border border-black/10 bg-white/60 backdrop-blur-md dark:border-white/10 dark:bg-white/[0.03] p-1"
               aria-label="Background Simulator"
             >

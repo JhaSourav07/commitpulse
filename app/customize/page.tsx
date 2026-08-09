@@ -564,6 +564,7 @@ function CustomizePageInner(): ReactElement {
 
                 {/* GitHub Background Simulator Toggle */}
                 <div
+                  role="group"
                   className="flex items-center gap-1 bg-gray-100 dark:bg-white/5 border border-black/5 dark:border-white/10 p-1 rounded-xl"
                   aria-label="GitHub Background Simulator"
                 >
