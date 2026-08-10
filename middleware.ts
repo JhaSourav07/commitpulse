@@ -214,6 +214,7 @@ export const config = {
     '/api/pr-insights/:path*',
     '/api/architecture/:path*',
     '/api/articles/:path*',
+    '/api/languages/:path*',
     '/api/learning-curve/:path*',
     '/api/languages/:path*',
     '/api/org/:path*',
