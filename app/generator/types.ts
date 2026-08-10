@@ -46,7 +46,10 @@ export interface Social {
   siSlug?: string;
 }
 
+export type LayoutTemplate = 'classic' | 'minimalist' | 'data-heavy' | 'storyteller';
+
 export interface GeneratorState {
+  layoutTemplate?: LayoutTemplate;
   name: string;
   description: string;
   selectedTechs: string[];

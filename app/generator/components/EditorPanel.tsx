@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Sparkles } from 'lucide-react';
+import { LayoutTemplateSection } from './sections/LayoutTemplateSection';
 import { NameSection } from './sections/NameSection';
 import { DescriptionSection } from './sections/DescriptionSection';
 import { HeroImageSection } from './sections/HeroImageSection';
@@ -14,11 +15,12 @@ import { ArticlesSection } from './sections/ArticlesSection';
 import { GitHubImportModal } from './GitHubImportModal';
 import { FaGithub } from 'react-icons/fa';
 import { PROFILE_PRESETS } from '../data/presets';
-import type { GeneratorState, TechIconDisplay } from '../types';
+import type { GeneratorState, TechIconDisplay, LayoutTemplate } from '../types';
 import type { ImportedData } from '../utils/githubMapper';
 
 export interface EditorPanelProps {
   state: GeneratorState;
+  onLayoutTemplateChange?: (v: LayoutTemplate) => void;
   onNameChange: (v: string) => void;
   onDescriptionChange: (v: string) => void;
   onShowHeroImageChange?: (v: boolean) => void;
@@ -54,6 +56,7 @@ export interface EditorPanelProps {
 
 export function EditorPanel({
   state,
+  onLayoutTemplateChange = () => {},
   onNameChange,
   onDescriptionChange,
   onShowHeroImageChange = () => {},
@@ -145,6 +148,12 @@ export function EditorPanel({
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         onApply={onApplyImport}
+      />
+
+      <LayoutTemplateSection
+        layoutTemplate={state.layoutTemplate ?? 'classic'}
+        onChange={onLayoutTemplateChange}
+        onReset={() => onLayoutTemplateChange('classic')}
       />
 
       <NameSection value={state.name} onChange={onNameChange} onReset={() => onNameChange('')} />
