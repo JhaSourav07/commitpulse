@@ -11,11 +11,8 @@ export function isFontKey(font: string): font is FontKey {
 
 /**
  * Maximum number of characters displayed in the username title before
- * truncation with '...'. Chosen to fit within SVG_WIDTH=600 at the
- * Syncopate font size of 18px with letter-spacing of 6px — approximately
- * 550px of text width, leaving comfortable edge margin on all badge sizes.
- *
- * Increasing this value may cause title overflow on small (400px) and
- * medium (600px) badges. Coordinate any change with SVG_WIDTH in this file.
+ * truncation with '...'. Set to 39 to accommodate full GitHub usernames
+ * (which can be up to 39 characters long) without truncation, utilizing dynamic
+ * font scaling to fit safely within SVG cards.
  */
-export const MAX_USERNAME_DISPLAY_LENGTH = 20;
+export const MAX_USERNAME_DISPLAY_LENGTH = 39;

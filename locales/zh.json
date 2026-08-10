@@ -35,7 +35,9 @@
     "faq": "常见问题",
     "support": "支持",
     "privacy": "隐私政策",
-    "terms": "使用条款"
+    "terms": "使用条款",
+    "login": "登录",
+    "signup": "注册"
   },
   "faq": {
     "q1": "What is CommitPulse?",
