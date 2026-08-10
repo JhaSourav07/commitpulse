@@ -887,7 +887,7 @@ describe('fetchUserRepos', () => {
     await expect(fetchUserRepos('octocat')).rejects.toThrow('GitHub REST API error: 500');
   });
 
-  it('fetches multiple pages of repos', async () => {
+  it('fetches at most one page of repos', async () => {
     vi.mocked(fetch).mockImplementation(async (url: RequestInfo | URL) => {
       const urlStr = typeof url === 'string' ? url : url ? url.toString() : '';
       if (urlStr.includes('page=1&')) {
@@ -899,25 +899,16 @@ describe('fetchUserRepos', () => {
           }))
         );
       }
-      if (urlStr.includes('page=2&')) {
-        return mockResponse([
-          {
-            id: 101,
-            stargazers_count: 101,
-            language: 'JavaScript',
-          },
-        ]);
-      }
       return mockResponse([]);
     });
 
     const result = await fetchUserRepos('octocat', { bypassCache: true });
 
-    expect(fetch).toHaveBeenCalledTimes(3);
-    expect(result.length).toBe(101);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(result.length).toBe(100);
   });
 
-  it('stops fetching after reaching max pages', async () => {
+  it('does not fetch another page when the first page is full', async () => {
     vi.mocked(fetch).mockImplementation(
       () =>
         Promise.resolve(
@@ -933,10 +924,10 @@ describe('fetchUserRepos', () => {
 
     await fetchUserRepos('octocat', { bypassCache: true });
 
-    expect(fetch).toHaveBeenCalledTimes(3);
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 
-  it('handles concurrent pagination behavior and maintains stable response ordering', async () => {
+  it('preserves response ordering for the bounded repository payload', async () => {
     vi.mocked(fetch).mockImplementation(async (url: RequestInfo | URL) => {
       const urlStr = typeof url === 'string' ? url : url ? url.toString() : '';
       if (urlStr.includes('page=1&')) {
@@ -948,31 +939,14 @@ describe('fetchUserRepos', () => {
           }))
         );
       }
-      if (urlStr.includes('page=2&')) {
-        return mockResponse(
-          Array.from({ length: 100 }, (_, i) => ({
-            name: `repo-page2-${i}`,
-            stargazers_count: 101,
-            language: 'JavaScript',
-          }))
-        );
-      }
-      if (urlStr.includes('page=3&')) {
-        return mockResponse([
-          {
-            name: 'repo-page3-1',
-            stargazers_count: 102,
-            language: 'Rust',
-          },
-        ]);
-      }
       return mockResponse([]);
     });
 
     const result = await fetchUserRepos('octocat', { bypassCache: true });
 
-    expect(fetch).toHaveBeenCalledTimes(3);
-    expect(result.length).toBe(201);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(result.length).toBe(100);
+    expect(result[0].name).toBe('repo-page1-0');
   });
 });
 

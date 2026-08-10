@@ -75,6 +75,26 @@ interface AlertConfig {
   email?: string;
 }
 
+/**
+ * Basic outbound-webhook URL validation: HTTPS only, and rejects
+ * obviously-internal hostnames outright. Not a complete SSRF defense
+ * (doesn't resolve DNS to check the resulting IP), but closes the most
+ * direct misconfiguration/misuse cases as a first layer of defense in
+ * depth alongside the existing bearer-token auth gate on this endpoint.
+ */
+export function isValidWebhookUrl(urlString: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(urlString);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== 'https:') return false;
+  const blockedHosts = ['localhost', '127.0.0.1', '0.0.0.0', '169.254.169.254'];
+  if (blockedHosts.includes(url.hostname.toLowerCase())) return false;
+  return true;
+}
+
 const eventCache = new DistributedCache<CIEvent>(1000);
 const alertCache = new DistributedCache<AlertConfig>(100);
 

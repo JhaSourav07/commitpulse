@@ -52,6 +52,8 @@ vi.mock('lucide-react', () => ({
   FileText: () => <div>FileText</div>,
   ShieldCheck: () => null,
   Mail: () => null,
+  LogIn: () => null,
+  UserPlus: () => null,
 }));
 
 vi.mock('react-icons/fa', () => ({

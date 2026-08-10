@@ -1,8 +1,10 @@
 import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
 import path from 'path';
 import os from 'os';
 
 export default defineConfig({
+  plugins: [react()],
   test: {
     // 1. Add aliases for next/server mapping
     alias: {
@@ -48,6 +50,14 @@ export default defineConfig({
         '**/*.d.ts',
         '**/node_modules/**',
         '**/.next/**',
+        '**/*.config.*',
+        '**/next.config.*',
+        '**/tailwind.config.*',
+        '**/postcss.config.*',
+        '**/eslint.config.*',
+        '**/prettier.config.*',
+        '**/vite.config.*',
+        '**/vitest.config.*',
       ],
       thresholds: {
         statements: 50,
