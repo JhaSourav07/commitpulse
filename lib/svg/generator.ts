@@ -117,7 +117,7 @@ export function truncateLabel(label: string): string {
 export function getUsernameFontSize(username: string): number {
   const len = username.length;
   if (len <= 12) return 18;
-  return Math.max(10, 18 - (len - 12) * 0.5);
+  return Math.max(10, Number((18 - (len - 12) * 0.3).toFixed(1)));
 }
 
 /**
