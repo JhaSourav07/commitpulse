@@ -240,5 +240,7 @@ export const config = {
     '/api/webhooks/:path*',
     '/api/languages/:path*',
     '/api/tech-stack/:path*',
+    '/api/cron/:path*',
+    '/api/watchlist/:path*',
   ],
 };
