@@ -1,7 +1,7 @@
 import { fetchGitHubContributions } from '@/lib/github';
 import { generateSVG } from '@/lib/svg/generator';
 import { calculateStreak } from '@/lib/calculate';
-import { getNormalizedThemeKey } from '@/lib/svg/themes';
+import { getNormalizedThemeKey, themes as allThemes } from '@/lib/svg/themes';
 import { DistributedCache } from '@/lib/cache';
 import { profiler } from './profiler';
 import { throttler } from './throttler';
@@ -32,10 +32,16 @@ export class CacheWarmerScheduler {
       for (const themeName of themes) {
         try {
           const themeKey = getNormalizedThemeKey(themeName);
+          const selectedTheme = allThemes[themeKey] || allThemes['dark'] || allThemes['default'];
           const params: BadgeParams = {
             user: cleanUser,
             theme: themeKey,
             view: 'default',
+            bg: selectedTheme.bg,
+            text: selectedTheme.text,
+            accent: selectedTheme.accent,
+            speed: '8s',
+            scale: 'linear',
           };
           const svg = generateSVG(stats, params, contributionData.calendar);
           const cacheKey = `badge:svg:${cleanUser}:${themeKey}`;
