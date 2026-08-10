@@ -10,7 +10,7 @@ import type {
   GraphLink,
 } from '@/types';
 import { calculateStreak, aggregateCalendars, convertLocalToUtc } from '@/lib/calculate';
-import { isBotAuthor } from './bot-filter';
+import { isBotAuthor, getIgnoredAuthors } from './bot-filter';
 import { DistributedCache } from '@/lib/cache';
 import { LANGUAGE_COLORS } from '@/lib/svg/languageColors';
 import { CONTRIBUTION_MILESTONES, STREAK_MILESTONES } from './svg/constants';
@@ -1607,6 +1607,7 @@ export async function getOrgDashboardData(
 
   let members = membersOrError;
   if (options.excludeBots) {
+    const ignoredAuthors = getIgnoredAuthors();
     members = members.filter((member) => !isBotAuthor(member));
   }
 

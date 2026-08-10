@@ -1,7 +1,7 @@
 import 'server-only';
 import { getGitHubTokens } from '@/lib/github';
 import { DistributedCache } from '@/lib/cache';
-import { isBotAuthor } from '@/lib/bot-filter';
+import { isBotAuthor, getIgnoredAuthors } from '@/lib/bot-filter';
 import dbConnect from '@/lib/mongodb';
 import { User } from '@/models/User';
 
@@ -172,8 +172,9 @@ async function analyzeRepositoryUncached(
     throw new Error('No contribution data found for this repository.');
   }
 
+  const ignoredAuthors = excludeBots ? getIgnoredAuthors() : [];
   const filteredRawData = excludeBots
-    ? rawData.filter((c) => c.author && !isBotAuthor(c.author.login))
+    ? rawData.filter((c) => c.author && !isBotAuthor(c.author.login, ignoredAuthors))
     : rawData;
 
   const totalCommits = filteredRawData.reduce((acc, c) => acc + (c.total || 0), 0);

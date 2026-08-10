@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { isBotAuthor, getIgnoredAuthors, _resetBotFilterCache } from '../bot-filter';
 
 const { mockExistsSync, mockReadFileSync } = vi.hoisted(() => ({
   mockExistsSync: vi.fn(),
@@ -14,11 +15,10 @@ vi.mock('node:fs', () => ({
   },
 }));
 
-import { isBotAuthor, getIgnoredAuthors } from '../bot-filter';
-
 describe('Bot Filter Utility', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    _resetBotFilterCache();
   });
 
   it('detects default bot names and suffixes', () => {

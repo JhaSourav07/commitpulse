@@ -1,57 +1,61 @@
-import fs from 'node:fs';
-import path from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+
+const CONFIG_PATH = './commitpulse.config.json';
+
+let cachedIgnoredAuthors: string[] | null = null;
 
 /**
- * Reads and returns the list of ignored authors configured in the .commitpulse.json file.
- * Returns an empty array if the file does not exist or fails to parse.
+ * Resets the cached ignored authors.
+ * Exported for test environments to clear module state between mock setups.
  */
-export function getIgnoredAuthors(): string[] {
-  try {
-    const configPath = path.join(process.cwd(), '.commitpulse.json');
-    if (fs.existsSync(configPath)) {
-      const configContent = fs.readFileSync(configPath, 'utf-8');
-      const config = JSON.parse(configContent);
-      if (config && Array.isArray(config.ignored_authors)) {
-        return config.ignored_authors.map((author: string) => author.toLowerCase());
-      }
-    }
-  } catch {
-    // Ignore error and fallback to empty array
-  }
-  return [];
+export function _resetBotFilterCache(): void {
+  cachedIgnoredAuthors = null;
 }
 
 /**
- * Checks if the given username is an automated bot or dependency system.
- * Matches:
- * 1. Custom authors defined in the ignored_authors list inside .commitpulse.json
- * 2. Default common bot names (dependabot, renovate, semantic-release-bot)
- * 3. Usernames ending with [bot] or -bot
+ * Retrieves the list of ignored authors, reading from config lazily on demand.
  */
-export function isBotAuthor(username: string): boolean {
-  if (!username) return false;
-  const lowerUsername = username.toLowerCase();
+export function getIgnoredAuthors(): string[] {
+  if (cachedIgnoredAuthors === null) {
+    try {
+      if (existsSync(CONFIG_PATH)) {
+        const fileContent = readFileSync(CONFIG_PATH, 'utf-8');
+        const config = JSON.parse(fileContent);
 
-  // 1. Check custom configuration file
+        if (Array.isArray(config.ignored_authors)) {
+          cachedIgnoredAuthors = config.ignored_authors
+            .map((author: string) => (typeof author === 'string' ? author.toLowerCase() : ''))
+            .filter(Boolean);
+        } else {
+          cachedIgnoredAuthors = [];
+        }
+      } else {
+        cachedIgnoredAuthors = [];
+      }
+    } catch {
+      cachedIgnoredAuthors = [];
+    }
+  }
+
+  // Fallback ensures TypeScript receives `string[]` even if null checks are strict
+  return cachedIgnoredAuthors ?? [];
+}
+
+/**
+ * Checks if a given username belongs to a known bot or an ignored author.
+ */
+export function isBotAuthor(author: string | null | undefined): boolean {
+  if (!author) return false;
+
+  const normalized = author.toLowerCase();
+
+  // 1. Default bot patterns
+  const defaultBots = ['dependabot', 'renovate', 'renovate-bot', 'github-actions[bot]'];
+  if (defaultBots.includes(normalized) || normalized.endsWith('[bot]')) {
+    return true;
+  }
+
+  // 2. Custom ignored authors from config
   const ignored = getIgnoredAuthors();
-  if (ignored.includes(lowerUsername)) {
-    return true;
-  }
-
-  // 2. Automatic regex detection for common bot naming conventions
-  // e.g. dependabot[bot], renovate[bot]
-  if (/\[bot\]$/i.test(username)) {
-    return true;
-  }
-
-  // 3. Usernames ending with -bot or explicitly matching default bot names
-  if (
-    lowerUsername.endsWith('-bot') ||
-    lowerUsername === 'dependabot' ||
-    lowerUsername === 'renovate'
-  ) {
-    return true;
-  }
-
-  return false;
+  return ignored.includes(normalized);
 }
