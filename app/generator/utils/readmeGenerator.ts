@@ -204,7 +204,7 @@ function buildSocialsSection(state: GeneratorState): string | null {
 }
 
 function buildCommitPulseSection(state: GeneratorState): string | null {
-  if (!state.showCommitPulse || !state.githubUsername?.trim()) return null;
+  if (!state.showCommitPulse || !state.githubUsername.trim()) return null;
 
   const username = state.githubUsername.trim();
   const badgeUrl = buildBadgeUrl(username, state.commitPulseAccent || '');
@@ -225,8 +225,7 @@ function buildCommitPulseSection(state: GeneratorState): string | null {
 }
 
 function buildSpotlightSection(state: GeneratorState): string | null {
-  if (!state.showRepoSpotlight || !state.githubUsername?.trim() || !state.spotlightRepo)
-    return null;
+  if (!state.showRepoSpotlight || !state.githubUsername.trim() || !state.spotlightRepo) return null;
 
   const username = state.githubUsername.trim();
   const repo = state.spotlightRepo.trim();
