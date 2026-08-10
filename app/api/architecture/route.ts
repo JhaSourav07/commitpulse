@@ -38,18 +38,26 @@ function decrementClones(ip: string): void {
 /**
  * Measures total size of a directory recursively.
  */
-function getDirSize(dirPath: string): number {
+export async function getDirSize(dirPath: string, limit = Infinity): Promise<number> {
   let totalSize = 0;
   try {
-    const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+    const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
     for (const entry of entries) {
+      // Excluded from the analysis anyway (see IGNORED_DIRS below) —
+      // no reason to count full git history against the size limit.
+      if (entry.isDirectory() && entry.name === '.git') continue;
+
       const fullPath = path.join(dirPath, entry.name);
       if (entry.isDirectory()) {
-        totalSize += getDirSize(fullPath);
+        totalSize += await getDirSize(fullPath, limit - totalSize);
       } else if (entry.isFile()) {
-        const stats = fs.statSync(fullPath);
+        const stats = await fs.promises.stat(fullPath);
         totalSize += stats.size;
       }
+      // Early exit: once we're already over the limit, there's no need
+      // to keep walking the rest of the tree — the caller only needs
+      // to know "is this over the limit", not the exact total.
+      if (totalSize > limit) return totalSize;
     }
   } catch {
     // Ignore errors during size calculation
@@ -361,8 +369,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check disk quota - if clone is too large, abort and clean up
-    const dirSize = getDirSize(tempDir);
+    // Check disk quota - if clone is too large, abort and clean up.
+    // getDirSize is async and exits early once over the limit, so this
+    // doesn't block the event loop for the full walk on an oversized repo.
+    const dirSize = await getDirSize(tempDir, MAX_TEMP_DIR_SIZE_BYTES);
     if (dirSize > MAX_TEMP_DIR_SIZE_BYTES) {
       fs.rmSync(tempDir, { recursive: true, force: true });
       return NextResponse.json(
