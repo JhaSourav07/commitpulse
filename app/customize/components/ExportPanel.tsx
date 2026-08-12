@@ -125,7 +125,8 @@ export function ExportPanel({
       setIsDownloading(true);
 
       // 1. Extract the API URL source string from the template snippet container
-      const urlMatch = snippet.match(/\((https?:\/\/[^)]+)\)/) || snippet.match(/src="([^"]+)"/);
+      // UPDATED:Supports Markdown,HTML,and TSX(curly braces/brackticks/quotes)
+      const urlMatch = snippet.match(/(?:src=["'`{]|\]\()(https?:\/\/[^\s"'`)}]+)/);
       let targetUrl = urlMatch ? urlMatch[1] : '';
 
       if (!targetUrl) {
@@ -222,7 +223,7 @@ export function ExportPanel({
         return;
       }
 
-      const urlMatch = snippet.match(/\((https?:\/\/[^)]+)\)/) || snippet.match(/src="([^"]+)"/);
+      const urlMatch = snippet.match(/(?:src=["'`{]|\]\()(https?:\/\/[^\s"'`)}]+)/);
       let targetUrl = urlMatch ? urlMatch[1] : '';
 
       if (!targetUrl) {
@@ -304,7 +305,7 @@ export function ExportPanel({
       let svgMarkup = target?.innerHTML || '';
 
       if (!svgMarkup || !svgMarkup.includes('<svg')) {
-        const urlMatch = snippet.match(/\((https?:\/\/[^)]+)\)/) || snippet.match(/src="([^"]+)"/);
+        const urlMatch = snippet.match(/(?:src=["'`{]|\]\()(https?:\/\/[^\s"'`)}]+)/);
         let targetUrl = urlMatch ? urlMatch[1] : '';
 
         if (targetUrl) {

@@ -1,7 +1,7 @@
 import 'server-only';
 import crypto from 'crypto';
 
-import bcrypt from 'bcryptjs';
+import { hashSync, compareSync } from 'bcryptjs';
 
 const TOKEN_BYTES = 32;
 const TOKEN_PREFIX = 'cpn';
@@ -20,7 +20,7 @@ export function createNotificationManagementToken(): string {
  * Use this to store a hash rather than the plaintext token.
  */
 export function hashNotificationManagementToken(token: string): string {
-  return bcrypt.hashSync(token, BCRYPT_COST);
+  return hashSync(token, BCRYPT_COST);
 }
 
 /**
@@ -61,5 +61,5 @@ export function verifyNotificationManagementToken(
     return false;
   }
 
-  return bcrypt.compareSync(providedToken, storedHash);
+  return compareSync(providedToken, storedHash);
 }

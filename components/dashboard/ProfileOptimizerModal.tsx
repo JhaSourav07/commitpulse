@@ -34,6 +34,15 @@ export default function ProfileOptimizerModal({
   const [isGenerated, setIsGenerated] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  const hasProfileData = Boolean(
+    userData &&
+    (userData.profile?.developerScore !== undefined ||
+      userData.profile?.bio !== undefined ||
+      userData.profile?.stats?.repositories !== undefined ||
+      (userData.languages && userData.languages.length > 0) ||
+      userData.stats?.totalContributions !== undefined)
+  );
+
   const loadingSteps = [
     'Analysing GitHub profile...',
     'Evaluating repository quality...',
@@ -42,29 +51,30 @@ export default function ProfileOptimizerModal({
   ];
 
   useEffect(() => {
-    if (isOpen) {
-      // Safe: synchronous reset to initial state each time the modal opens.
-      // setLoadingState(0) and setIsGenerated(false) always run together and
-      // only in response to the isOpen prop changing — no async race possible.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setLoadingState(0);
+    if (!isOpen) return;
 
-      setIsGenerated(false);
+    // Safe: synchronous reset to initial state each time the modal opens.
+    // setLoadingState(0) and setIsGenerated(false) always run together and
+    // only in response to the isOpen prop changing — no async race possible.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoadingState(0);
+    setIsGenerated(false);
 
-      const interval = setInterval(() => {
-        setLoadingState((prev) => {
-          if (prev >= loadingSteps.length - 1) {
-            clearInterval(interval);
-            setTimeout(() => setIsGenerated(true), 600);
-            return prev;
-          }
-          return prev + 1;
-        });
-      }, 800);
+    if (!hasProfileData) return;
 
-      return () => clearInterval(interval);
-    }
-  }, [isOpen, loadingSteps.length]);
+    const interval = setInterval(() => {
+      setLoadingState((prev) => {
+        if (prev >= loadingSteps.length - 1) {
+          clearInterval(interval);
+          setTimeout(() => setIsGenerated(true), 600);
+          return prev;
+        }
+        return prev + 1;
+      });
+    }, 800);
+
+    return () => clearInterval(interval);
+  }, [isOpen, hasProfileData, loadingSteps.length]);
 
   //prevents background scrolling while the modal is open
   useEffect(() => {
@@ -76,108 +86,6 @@ export default function ProfileOptimizerModal({
     };
   }, [isOpen]);
 
-  const handleCopy = async () => {
-    const text = recommendations
-      .map(
-        (r) =>
-          `[${r.priority}] ${r.category}\nIssue: ${r.issue}\nRecommendation: ${r.recommendation}\nAction: ${r.action}`
-      )
-      .join('\n\n');
-    try {
-      await copyToClipboard(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (e) {
-      console.error('Failed to copy text', e);
-    }
-  };
-
-  const handleDownload = () => {
-    import('jspdf').then((module) => {
-      const jsPDF = module.default;
-      const doc = new jsPDF();
-
-      const margin = 15;
-      const lineHeight = 7;
-      let y = margin;
-      const pageWidth = doc.internal.pageSize.width;
-
-      const addWrappedText = (text: string, x: number, yPosition: number, maxWidth: number) => {
-        const lines = doc.splitTextToSize(text, maxWidth);
-        doc.text(lines, x, yPosition);
-        return lines.length * lineHeight;
-      };
-
-      doc.setFontSize(16);
-      doc.setFont('helvetica', 'bold');
-      doc.text('CommitPulse Profile Optimization Report', margin, y);
-      y += lineHeight * 2;
-
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Overall Score: ${overallScore} (Grade: ${grade})`, margin, y);
-      y += lineHeight * 2;
-
-      doc.setFont('helvetica', 'bold');
-      doc.text('Categories:', margin, y);
-      y += lineHeight;
-
-      doc.setFont('helvetica', 'normal');
-      categories.forEach((c) => {
-        doc.text(`- ${c.name}: ${c.score}/100`, margin + 5, y);
-        y += lineHeight;
-      });
-
-      y += lineHeight;
-
-      // Page break if needed before recommendations
-      if (y > 250) {
-        doc.addPage();
-        y = margin;
-      }
-
-      doc.setFont('helvetica', 'bold');
-      doc.text('Recommendations:', margin, y);
-      y += lineHeight;
-
-      doc.setFont('helvetica', 'normal');
-      recommendations.forEach((r) => {
-        if (y > 270) {
-          doc.addPage();
-          y = margin;
-        }
-
-        doc.setFont('helvetica', 'bold');
-        doc.text(`[${r.priority}] ${r.category}`, margin, y);
-        y += lineHeight;
-
-        doc.setFont('helvetica', 'normal');
-        y += addWrappedText(`Issue: ${r.issue}`, margin + 5, y, pageWidth - margin * 2 - 5);
-
-        if (y > 270) {
-          doc.addPage();
-          y = margin;
-        }
-        y += addWrappedText(
-          `Recommendation: ${r.recommendation}`,
-          margin + 5,
-          y,
-          pageWidth - margin * 2 - 5
-        );
-
-        if (y > 270) {
-          doc.addPage();
-          y = margin;
-        }
-        y += addWrappedText(`Action: ${r.action}`, margin + 5, y, pageWidth - margin * 2 - 5);
-
-        y += lineHeight;
-      });
-
-      doc.save('Profile-Optimization-Report.pdf');
-    });
-  };
-
   if (!isOpen) return null;
 
   //score ring
@@ -185,7 +93,9 @@ export default function ProfileOptimizerModal({
   const circumference = 2 * Math.PI * radius;
 
   // Mocked Dynamic Data derived from userData
-  const overallScore = userData ? Math.min(100, 40 + (userData.profile?.developerScore || 30)) : 72;
+  const overallScore = hasProfileData
+    ? Math.min(100, 40 + (userData?.profile?.developerScore || 30))
+    : 0;
   const grade =
     overallScore >= 90
       ? 'A+'
@@ -364,6 +274,109 @@ export default function ProfileOptimizerModal({
       priorityOrder[b.priority as keyof typeof priorityOrder]
   );
 
+  const handleCopy = async () => {
+    if (!hasProfileData) return;
+    const text = recommendations
+      .map(
+        (r) =>
+          `[${r.priority}] ${r.category}\nIssue: ${r.issue}\nRecommendation: ${r.recommendation}\nAction: ${r.action}`
+      )
+      .join('\n\n');
+    try {
+      await copyToClipboard(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (e) {
+      console.error('Failed to copy text', e);
+    }
+  };
+
+  const handleDownload = () => {
+    if (!hasProfileData) return;
+    import('jspdf').then((module) => {
+      const jsPDF = module.default;
+      const doc = new jsPDF();
+
+      const margin = 15;
+      const lineHeight = 7;
+      let y = margin;
+      const pageWidth = doc.internal.pageSize.width;
+
+      const addWrappedText = (text: string, x: number, yPosition: number, maxWidth: number) => {
+        const lines = doc.splitTextToSize(text, maxWidth);
+        doc.text(lines, x, yPosition);
+        return lines.length * lineHeight;
+      };
+
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text('CommitPulse Profile Optimization Report', margin, y);
+      y += lineHeight * 2;
+
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Overall Score: ${overallScore} (Grade: ${grade})`, margin, y);
+      y += lineHeight * 2;
+
+      doc.setFont('helvetica', 'bold');
+      doc.text('Categories:', margin, y);
+      y += lineHeight;
+
+      doc.setFont('helvetica', 'normal');
+      categories.forEach((c) => {
+        doc.text(`- ${c.name}: ${c.score}/100`, margin + 5, y);
+        y += lineHeight;
+      });
+
+      y += lineHeight;
+
+      if (y > 250) {
+        doc.addPage();
+        y = margin;
+      }
+
+      doc.setFont('helvetica', 'bold');
+      doc.text('Recommendations:', margin, y);
+      y += lineHeight;
+
+      doc.setFont('helvetica', 'normal');
+      recommendations.forEach((r) => {
+        if (y > 270) {
+          doc.addPage();
+          y = margin;
+        }
+
+        doc.setFont('helvetica', 'bold');
+        doc.text(`[${r.priority}] ${r.category}`, margin, y);
+        y += lineHeight;
+
+        doc.setFont('helvetica', 'normal');
+        y += addWrappedText(`Issue: ${r.issue}`, margin + 5, y, pageWidth - margin * 2 - 5);
+
+        if (y > 270) {
+          doc.addPage();
+          y = margin;
+        }
+        y += addWrappedText(
+          `Recommendation: ${r.recommendation}`,
+          margin + 5,
+          y,
+          pageWidth - margin * 2 - 5
+        );
+
+        if (y > 270) {
+          doc.addPage();
+          y = margin;
+        }
+        y += addWrappedText(`Action: ${r.action}`, margin + 5, y, pageWidth - margin * 2 - 5);
+
+        y += lineHeight;
+      });
+
+      doc.save('Profile-Optimization-Report.pdf');
+    });
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
       {/* Backdrop */}
@@ -403,7 +416,20 @@ export default function ProfileOptimizerModal({
 
         {/* Content */}
         <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
-          {!isGenerated ? (
+          {!hasProfileData ? (
+            <div className="flex flex-col items-center justify-center text-center py-12">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10 text-amber-500">
+                <AlertCircle size={24} />
+              </div>
+              <h3 className="mb-2 text-xl font-bold text-gray-900 dark:text-white">
+                Profile Data Unavailable
+              </h3>
+              <p className="max-w-md text-sm text-gray-500 dark:text-[#A1A1AA]">
+                GitHub profile data is not available. Please connect your GitHub account or refresh
+                the dashboard to load profile details before running optimization.
+              </p>
+            </div>
+          ) : !isGenerated ? (
             <div className="flex flex-col items-center justify-center py-16">
               <div className="relative w-16 h-16 mb-6">
                 <svg
@@ -571,7 +597,7 @@ export default function ProfileOptimizerModal({
         {/* Footer */}
         <div className="p-4 border-t border-black/10 dark:border-white/10 flex justify-end gap-3 shrink-0">
           <button
-            disabled={!isGenerated}
+            disabled={!hasProfileData || !isGenerated}
             onClick={handleCopy}
             className="flex items-center gap-2 px-4 py-2 rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-[#111] hover:bg-gray-50 dark:hover:bg-white/5 text-gray-900 dark:text-white text-sm font-semibold transition-all disabled:opacity-50"
           >
@@ -579,7 +605,7 @@ export default function ProfileOptimizerModal({
             {copied ? 'Copied' : 'Copy Text'}
           </button>
           <button
-            disabled={!isGenerated}
+            disabled={!hasProfileData || !isGenerated}
             onClick={handleDownload}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-black dark:bg-white hover:bg-zinc-800 dark:hover:bg-zinc-100 text-white dark:text-black text-sm font-semibold transition-all disabled:opacity-50"
           >

@@ -15,6 +15,8 @@ import {
   HelpCircle,
   Shield,
   FileText,
+  LogIn,
+  UserPlus,
 } from 'lucide-react';
 import { FaGithub, FaDiscord, FaLinkedin } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
@@ -89,6 +91,8 @@ const NAV_ICON_MAP: Record<string, React.ReactNode> = {
   '/contributors': <Users size={15} className="shrink-0" />,
   '/support': <MessageCircle size={15} className="shrink-0" />,
   '/contact': <Mail size={15} className="shrink-0" />,
+  '/login': <LogIn size={15} className="shrink-0" />,
+  '/signup': <UserPlus size={15} className="shrink-0" />,
 };
 
 const RESOURCE_ICON_MAP: Record<string, React.ReactNode> = {
@@ -114,6 +118,16 @@ export function Footer() {
     {
       label: t('footer.contact', { defaultValue: 'Contact' }),
       href: '/contact',
+      isExternal: false,
+    },
+    {
+      label: t('footer.login', { defaultValue: 'Login' }),
+      href: '/login',
+      isExternal: false,
+    },
+    {
+      label: t('footer.signup', { defaultValue: 'Sign Up' }),
+      href: '/signup',
       isExternal: false,
     },
   ];

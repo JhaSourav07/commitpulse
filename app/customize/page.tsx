@@ -281,12 +281,15 @@ function CustomizePageInner(): ReactElement {
 
     setSvgState('loading');
     const controller = new AbortController();
-    const cached = svgCache.get(previewSrc);
 
-    if (cached) {
-      setSvgContent(cached);
-      setSvgState('loaded');
-      return;
+    if (!isRandomTheme) {
+      const cached = svgCache.get(previewSrc);
+
+      if (cached) {
+        setSvgContent(cached);
+        setSvgState('loaded');
+        return;
+      }
     }
 
     fetch(previewSrc, { signal: controller.signal })
@@ -343,7 +346,10 @@ function CustomizePageInner(): ReactElement {
           ],
         });
 
-        svgCache.set(previewSrc, sanitized);
+        if (!isRandomTheme) {
+          svgCache.set(previewSrc, sanitized);
+        }
+
         setSvgContent(sanitized);
         setSvgState('loaded');
         setErrorMessage(null);
@@ -356,7 +362,7 @@ function CustomizePageInner(): ReactElement {
 
     return () => controller.abort();
     // By changing this list, useEffect only runs when previewSrc finishes debouncing
-  }, [previewSrc, hasUsername, trimmedUsername, svgCache]);
+  }, [previewSrc, hasUsername, trimmedUsername, svgCache, isRandomTheme]);
 
   const exportSnippet = getExportSnippet(exportFormat, queryString);
 
