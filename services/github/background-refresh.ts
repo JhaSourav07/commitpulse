@@ -1,6 +1,8 @@
 import 'server-only';
 import { getFullDashboardData } from '../../lib/github';
 import { syncQueue } from '../../lib/syncQueue';
+import { DistributedCache } from '../../lib/cache';
+import { randomUUID } from 'crypto';
 
 // Cache is considered stale and candidate for background refresh after 10 minutes
 const STALE_THRESHOLD_MS = 10 * 60 * 1000;
@@ -8,23 +10,11 @@ const STALE_THRESHOLD_MS = 10 * 60 * 1000;
 // Lock expires automatically after 5 minutes
 const LOCK_TTL_MS = 5 * 60 * 1000;
 
-type GlobalWithLocks = typeof globalThis & {
-  __backgroundRefreshLocks?: Map<
-    string,
-    {
-      expiresAt: number;
-    }
-  >;
-};
-
-const globalLocks =
-  (globalThis as GlobalWithLocks).__backgroundRefreshLocks ??
-  new Map<string, { expiresAt: number }>();
-
-(globalThis as GlobalWithLocks).__backgroundRefreshLocks = globalLocks;
+const refreshLocksCache = new DistributedCache<number>(10000, LOCK_TTL_MS);
 
 export class BackgroundRefresh {
   private static instance: BackgroundRefresh;
+  private activeTokens = new Map<string, string>();
 
   private constructor() {}
 
@@ -57,35 +47,32 @@ export class BackgroundRefresh {
    * Generates normalized lock key.
    */
   private createLockKey(username: string): string {
-    return username.trim().toLowerCase();
+    return `bg_refresh_lock:${username.trim().toLowerCase()}`;
   }
 
   /**
    * Attempts to acquire refresh lock.
    */
-  private acquireLock(username: string): boolean {
+  private async acquireLock(username: string): Promise<boolean> {
     const key = this.createLockKey(username);
-
-    const existing = globalLocks.get(key);
-
-    if (existing && existing.expiresAt > Date.now()) {
-      return false;
+    const token = randomUUID();
+    const acquired = await refreshLocksCache.acquireTokenLock(key, token, LOCK_TTL_MS);
+    if (acquired) {
+      this.activeTokens.set(key, token);
     }
-
-    globalLocks.set(key, {
-      expiresAt: Date.now() + LOCK_TTL_MS,
-    });
-
-    return true;
+    return acquired;
   }
 
   /**
    * Releases refresh lock.
    */
-  private releaseLock(username: string): void {
+  private async releaseLock(username: string): Promise<void> {
     const key = this.createLockKey(username);
-
-    globalLocks.delete(key);
+    const token = this.activeTokens.get(key);
+    if (token) {
+      await refreshLocksCache.releaseTokenLock(key, token);
+      this.activeTokens.delete(key);
+    }
   }
 
   /**
@@ -94,11 +81,10 @@ export class BackgroundRefresh {
   public async triggerRefresh(username: string): Promise<void> {
     const sanitized = username.trim().toLowerCase();
 
-    const acquired = this.acquireLock(sanitized);
+    const acquired = await this.acquireLock(sanitized);
 
     if (!acquired) {
       console.info(`[BackgroundRefresh] Refresh already active for: ${sanitized}`);
-
       return;
     }
 
@@ -107,14 +93,14 @@ export class BackgroundRefresh {
     return new Promise((resolve) => {
       syncQueue.enqueue(async () => {
         try {
-          await getFullDashboardData(username, { forceRefresh: true });
+          await getFullDashboardData(sanitized, { forceRefresh: true });
           console.info(
             `[BackgroundRefresh] Successfully completed background refresh for: ${sanitized}`
           );
         } catch (err) {
           console.error(`[BackgroundRefresh] Background refresh failed for: ${sanitized}`, err);
         } finally {
-          this.releaseLock(sanitized);
+          await this.releaseLock(sanitized);
           resolve();
         }
       });
@@ -124,29 +110,17 @@ export class BackgroundRefresh {
   /**
    * Returns whether a job is active.
    */
-  public isJobActive(username: string): boolean {
+  public async isJobActive(username: string): Promise<boolean> {
     const key = this.createLockKey(username);
-
-    const existing = globalLocks.get(key);
-
-    if (!existing) {
-      return false;
-    }
-
-    if (existing.expiresAt <= Date.now()) {
-      globalLocks.delete(key);
-
-      return false;
-    }
-
-    return true;
+    return await refreshLocksCache.has(key);
   }
 
   /**
    * Clears locks.
    */
   public reset(): void {
-    globalLocks.clear();
+    refreshLocksCache.clear();
+    this.activeTokens.clear();
   }
 }
 
