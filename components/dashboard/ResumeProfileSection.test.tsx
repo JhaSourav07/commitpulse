@@ -115,6 +115,53 @@ describe('ResumeProfileSection', () => {
 
     expect(mockToastError).toHaveBeenCalledWith('Upload failed');
   });
+
+  it('shows a saved profile prompt when userProfile exists in localStorage', () => {
+    const savedProfile = {
+      name: 'Saved Name',
+      email: 'saved@example.com',
+      phone: '1234',
+      skills: ['SavedSkill'],
+      education: [],
+      experience: [],
+    };
+
+    vi.stubGlobal('localStorage', {
+      getItem: vi.fn().mockReturnValue(JSON.stringify(savedProfile)),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+    } as unknown as Storage);
+
+    render(<ResumeProfileSection githubUsername="john" />);
+
+    expect(screen.getByText('Review saved profile')).toBeInTheDocument();
+  });
+
+  it('loads saved profile and opens preview form when the saved profile action is clicked', () => {
+    const savedProfile = {
+      name: 'Saved Name',
+      email: 'saved@example.com',
+      phone: '1234',
+      skills: ['SavedSkill'],
+      education: [],
+      experience: [],
+    };
+
+    vi.stubGlobal('localStorage', {
+      getItem: vi.fn().mockReturnValue(JSON.stringify(savedProfile)),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+    } as unknown as Storage);
+
+    render(<ResumeProfileSection githubUsername="john" />);
+
+    fireEvent.click(screen.getByText('Review saved profile'));
+
+    expect(screen.getByText('Preview Form')).toBeInTheDocument();
+  });
+
   it('renders component', () => {
     expect(true).toBe(true);
   });

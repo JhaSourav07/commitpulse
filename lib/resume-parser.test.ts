@@ -100,6 +100,26 @@ Random text without any section headers.
     expect(result.education).toEqual([]);
     expect(result.experience).toEqual([]);
   });
+
+  it('ignores PDF object metadata when extracting text', async () => {
+    const resume = `
+Parent 7 0 R
+Prev 13 0 R
+endobj
+15 0 obj
+John Doe
+john@example.com
+Skills
+React, TypeScript
+`;
+
+    const result = await parseResume(Buffer.from(resume), 'application/pdf');
+
+    expect(result.name).toBe('John Doe');
+    expect(result.email).toBe('john@example.com');
+    expect(result.skills).toContain('React');
+    expect(result.skills).toContain('TypeScript');
+  });
 });
 
 describe('parser constants', () => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText } from 'lucide-react';
 import { toast } from 'sonner';
@@ -10,6 +10,8 @@ import type { ParsedResume } from '@/types/student';
 
 type Stage = 'idle' | 'uploaded' | 'success';
 
+const LOCAL_STORAGE_KEY = 'userProfile';
+
 interface ResumeProfileSectionProps {
   githubUsername: string;
 }
@@ -18,6 +20,21 @@ export default function ResumeProfileSection({ githubUsername }: ResumeProfileSe
   const [stage, setStage] = useState<Stage>('idle');
   const [parsed, setParsed] = useState<ParsedResume | null>(null);
   const [fileName, setFileName] = useState('');
+  const [savedProfile, setSavedProfile] = useState<ParsedResume | null>(null);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (stored) {
+        const parsedValue = JSON.parse(stored) as ParsedResume;
+        if (parsedValue?.name && parsedValue?.email) {
+          setSavedProfile(parsedValue);
+        }
+      }
+    } catch {
+      // Ignore invalid or inaccessible localStorage data.
+    }
+  }, []);
 
   function handleParsed(data: ParsedResume, name: string) {
     setParsed(data);
@@ -73,6 +90,22 @@ export default function ResumeProfileSection({ githubUsername }: ResumeProfileSe
               Upload your PDF or DOCX resume to auto-fill your profile with skills, education, and
               experience.
             </p>
+            {savedProfile ? (
+              <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-200">
+                <p className="mb-2">Found previously parsed profile data on this device.</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setParsed(savedProfile);
+                    setFileName('Saved profile data');
+                    setStage('uploaded');
+                  }}
+                  className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
+                >
+                  Review saved profile
+                </button>
+              </div>
+            ) : null}
             <ResumeUpload onParsed={handleParsed} onError={handleError} />
           </motion.div>
         )}

@@ -121,6 +121,12 @@ export default function ResumePreviewForm({
         return;
       }
 
+      try {
+        window.localStorage.setItem('userProfile', JSON.stringify(data));
+      } catch {
+        // Ignore localStorage failures in private mode or quota-limited browsers.
+      }
+
       toast.success('Profile saved successfully!');
       onComplete();
     } catch {
