@@ -12,7 +12,11 @@ export function processCommitTimestamps(commitDates: string[] | Date[]): TimeOfD
     if (!dateString) return;
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return;
-    const hour = date.getHours();
+
+    // Use getUTCHours() instead of getHours() to ensure timezone-agnostic
+    // results — getHours() returns local time which causes test failures
+    // in non-UTC timezones like IST (UTC+5:30).
+    const hour = date.getUTCHours();
 
     if (hour >= 6 && hour < 12) {
       metrics.morning++;

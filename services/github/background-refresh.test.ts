@@ -55,11 +55,11 @@ describe('BackgroundRefresh Unit Tests', () => {
 
       await service.triggerRefresh('  TestUser  ');
 
-      expect(getFullDashboardData).toHaveBeenCalledWith('  TestUser  ', {
+      expect(getFullDashboardData).toHaveBeenCalledWith('testuser', {
         forceRefresh: true,
       });
 
-      expect(service.isJobActive('testuser')).toBe(false);
+      expect(await service.isJobActive('testuser')).toBe(false);
     });
 
     it('prevents concurrent duplicate jobs for the same user', async () => {
@@ -77,8 +77,10 @@ describe('BackgroundRefresh Unit Tests', () => {
       const secondCall = service.triggerRefresh('user1');
 
       await Promise.resolve();
+      // Fast-forward to allow async lock acquisition to settle
+      await vi.advanceTimersByTimeAsync(0);
 
-      expect(service.isJobActive('user1')).toBe(true);
+      expect(await service.isJobActive('user1')).toBe(true);
       expect(getFullDashboardData).toHaveBeenCalledTimes(1);
 
       resolvePromise();
@@ -86,21 +88,34 @@ describe('BackgroundRefresh Unit Tests', () => {
       await firstCall;
       await secondCall;
 
-      expect(service.isJobActive('user1')).toBe(false);
+      expect(await service.isJobActive('user1')).toBe(false);
     });
 
     it('removes the user from active jobs on failure', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      vi.mocked(getFullDashboardData).mockRejectedValue(new Error('Network error'));
+      let rejectPromise!: (err: Error) => void;
+      const pendingPromise = new Promise<void>((_, reject) => {
+        rejectPromise = reject;
+      });
 
-      service.triggerRefresh('user-fail');
+      vi.mocked(getFullDashboardData).mockReturnValue(
+        pendingPromise as unknown as ReturnType<typeof getFullDashboardData>
+      );
 
-      expect(service.isJobActive('user-fail')).toBe(true);
+      // Don't await triggerRefresh yet so we can check active status while it's pending
+      const triggerPromise = service.triggerRefresh('user-fail');
 
+      // Fast-forward to allow async lock acquisition
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(await service.isJobActive('user-fail')).toBe(true);
+
+      rejectPromise(new Error('Network error'));
       await vi.runAllTimersAsync();
+      await triggerPromise;
 
-      expect(service.isJobActive('user-fail')).toBe(false);
+      expect(await service.isJobActive('user-fail')).toBe(false);
       expect(consoleErrorSpy).toHaveBeenCalled();
 
       consoleErrorSpy.mockRestore();
@@ -108,54 +123,74 @@ describe('BackgroundRefresh Unit Tests', () => {
 
     it('handles expired tokens or authentication errors gracefully', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      const mockedApi = vi.mocked(getFullDashboardData);
+      let rejectPromise!: (err: Error) => void;
+      const pendingPromise = new Promise<void>((_, reject) => {
+        rejectPromise = reject;
+      });
+
+      vi.mocked(getFullDashboardData).mockReturnValue(
+        pendingPromise as unknown as ReturnType<typeof getFullDashboardData>
+      );
+
+      const triggerPromise = service.triggerRefresh('invalid_token_user');
+
+      await vi.advanceTimersByTimeAsync(0);
+      expect(await service.isJobActive('invalid_token_user')).toBe(true);
 
       const authError = new Error('Bad credentials');
-
       Object.assign(authError, {
         status: 401,
       });
 
-      mockedApi.mockRejectedValueOnce(authError);
-
-      service.triggerRefresh('invalid_token_user');
-
+      rejectPromise(authError);
       await vi.runAllTimersAsync();
+      await triggerPromise;
 
-      expect(service.isJobActive('invalid_token_user')).toBe(false);
+      expect(await service.isJobActive('invalid_token_user')).toBe(false);
 
       consoleErrorSpy.mockRestore();
     });
 
     it('recovers correctly from network dropouts during synchronization', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      const mockedApi = vi.mocked(getFullDashboardData);
+      let rejectPromise!: (err: Error) => void;
+      const pendingPromise = new Promise<void>((_, reject) => {
+        rejectPromise = reject;
+      });
 
-      mockedApi.mockRejectedValueOnce(new Error('Network timeout'));
+      vi.mocked(getFullDashboardData).mockReturnValue(
+        pendingPromise as unknown as ReturnType<typeof getFullDashboardData>
+      );
 
-      service.triggerRefresh('offline_user');
+      const triggerPromise = service.triggerRefresh('offline_user');
 
-      expect(service.isJobActive('offline_user')).toBe(true);
+      // Fast forward to allow async lock
+      await vi.advanceTimersByTimeAsync(0);
+      expect(await service.isJobActive('offline_user')).toBe(true);
 
+      rejectPromise(new Error('Network timeout'));
       await vi.runAllTimersAsync();
+      await triggerPromise;
 
-      expect(service.isJobActive('offline_user')).toBe(false);
+      expect(await service.isJobActive('offline_user')).toBe(false);
 
       consoleErrorSpy.mockRestore();
     });
   });
 
   describe('reset', () => {
-    it('clears all currently active jobs', () => {
+    it('clears all currently active jobs', async () => {
       vi.mocked(getFullDashboardData).mockReturnValue(new Promise(() => {}));
 
       service.triggerRefresh('active-user');
 
-      expect(service.isJobActive('active-user')).toBe(true);
+      await vi.advanceTimersByTimeAsync(0);
+
+      expect(await service.isJobActive('active-user')).toBe(true);
 
       service.reset();
 
-      expect(service.isJobActive('active-user')).toBe(false);
+      expect(await service.isJobActive('active-user')).toBe(false);
     });
   });
 });

@@ -519,6 +519,86 @@ export class DistributedCache<T> {
    * @param ttlMs - Time-to-live in milliseconds. Only applied when the key is first created (count == 1).
    * @returns The incremented counter value.
    */
+
+  /**
+   * Acquires a distributed lock using a unique token (SET NX).
+   *
+   * @param key - The lock key
+   * @param token - A unique identifier for the owner (e.g. UUID)
+   * @param ttlMs - Time to live in milliseconds
+   * @returns true if acquired, false otherwise
+   */
+  async acquireTokenLock(key: string, token: string, ttlMs: number): Promise<boolean> {
+    if (!this.useRedis) {
+      if (this.localCache.has(key)) return false;
+      this.localCache.set(key, token as unknown as T, ttlMs);
+      return true;
+    }
+    try {
+      const res = await fetch(`${this.redisUrl}/`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.redisToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(['SET', key, token, 'NX', 'PX', ttlMs]),
+      });
+      if (!res.ok) throw new Error(`Redis HTTP error: ${res.status}`);
+      const data = await res.json();
+      return data.result === 'OK';
+    } catch (err) {
+      logger.error('Cache acquireTokenLock failed', {
+        component: 'DistributedCache',
+        key,
+        error: err,
+      });
+      return false; // Fail closed to prevent thundering herd
+    }
+  }
+
+  /**
+   * Releases a distributed lock only if the token matches.
+   *
+   * @param key - The lock key
+   * @param token - The unique identifier of the owner
+   * @returns true if released, false if it didn't exist or token didn't match
+   */
+  async releaseTokenLock(key: string, token: string): Promise<boolean> {
+    if (!this.useRedis) {
+      if (this.localCache.get(key) === (token as unknown as T)) {
+        return this.localCache.delete(key);
+      }
+      return false;
+    }
+    try {
+      const luaRelease = `
+        if redis.call("GET", KEYS[1]) == ARGV[1] then
+          return redis.call("DEL", KEYS[1])
+        else
+          return 0
+        end
+      `;
+      const res = await fetch(`${this.redisUrl}/`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.redisToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(['EVAL', luaRelease, '1', key, token]),
+      });
+      if (!res.ok) throw new Error(`Redis HTTP error: ${res.status}`);
+      const data = await res.json();
+      return data.result === 1;
+    } catch (err) {
+      logger.error('Cache releaseTokenLock failed', {
+        component: 'DistributedCache',
+        key,
+        error: err,
+      });
+      return false;
+    }
+  }
+
   async incr(key: string, ttlMs: number): Promise<number> {
     if (!this.useRedis) {
       if (process.env.NODE_ENV === 'production') {

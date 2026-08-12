@@ -458,3 +458,102 @@ Analyze contributions for specific time periods using `from`, `to`, `start_date`
    ```md
    ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&opacity=0.8)
    ```
+
+---
+
+## ❓ Troubleshooting & FAQ
+
+Below are solutions to common issues and questions when embedding CommitPulse SVGs into GitHub Profile READMEs or web pages.
+
+### 🔄 GitHub Camo Proxy & Caching Issues
+
+#### Why are my latest contributions or updated stats not showing on my GitHub Profile README?
+
+GitHub routes all external images in profile READMEs through an anonymizing proxy called **Camo** (`camo.githubusercontent.com`). GitHub Camo aggressively caches image assets to ensure fast page loads and user privacy.
+
+- **Cache TTL**: GitHub's Camo proxy caches images for several hours (typically up to 24 hours).
+- **Bypassing the Proxy Cache**:
+  - **CommitPulse Cache Invalidation**: Add `&refresh=true` to your URL parameter list to bypass CommitPulse's internal cache:
+    ```md
+    ![](https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&refresh=true)
+    ```
+  - **GitHub Camo Invalidation**: If GitHub Camo continues to serve a cached image after using `refresh=true`, append a version or cache-buster query parameter to force Camo to treat it as a new URL:
+    ```md
+    ![](https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&v=2)
+    ```
+- **Daily Invalidation**: CommitPulse automatically invalidates stored data at UTC midnight to align with GitHub's daily contribution cycles.
+
+---
+
+### 📐 Layout, Alignment & Responsiveness
+
+#### How do I center the CommitPulse SVG badge in my profile README?
+
+Standard Markdown image syntax `![]()` does not support alignment attributes. Use HTML alignment elements like `<p align="center">` or `<div align="center">`:
+
+```html
+<p align="center">
+  <img
+    src="https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=neon"
+    alt="CommitPulse Monolith"
+  />
+</p>
+```
+
+#### How can I prevent the SVG badge from overflowing on smaller or mobile screens?
+
+Set explicit percentage widths and CSS responsive styling using an HTML `<img>` tag inside your Markdown:
+
+```html
+<p align="center">
+  <img
+    src="https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=dracula"
+    alt="CommitPulse Stats"
+    width="100%"
+    max-width="600"
+  />
+</p>
+```
+
+#### How do I place CommitPulse side-by-side with other profile stats badges?
+
+Use an HTML `<table>` layout or place image tags within the same paragraph block:
+
+```html
+<p align="center">
+  <img
+    src="https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=dark&size=small"
+    width="48%"
+  />
+  <img
+    src="https://github-readme-stats.vercel.app/api?username=YOUR_USERNAME&theme=dark"
+    width="48%"
+  />
+</p>
+```
+
+---
+
+### 🔍 Parameter Syntax & Troubleshooting Checklist
+
+If your monolith falls back to default dark styling or displays missing parameters, run through this quick verification checklist:
+
+1. **Hex Colors (No `#` Prefix)**:
+   - ❌ `?bg=#0d1117&accent=#58a6ff` (The `#` symbol acts as an anchor fragment in URLs and breaks query parameters)
+   - ✅ `?bg=0d1117&accent=58a6ff`
+
+2. **Mandatory `user` Parameter**:
+   - ❌ `https://commitpulse.vercel.app/api/streak?theme=neon`
+   - ✅ `https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=neon`
+
+3. **Boolean Values**:
+   - Boolean parameters accept `true` / `false` or `1` / `0`.
+   - ✅ `hide_stats=true`, `gradient=1`, `labels=true`, `shading=true`
+
+4. **URL-Encoding Special Characters & Custom Fonts**:
+   - Google Font names with spaces or special characters must be URL-encoded.
+   - ❌ `?font=Press Start 2P&custom_title=My Stats`
+   - ✅ `?font=Press%20Start%202P&custom_subtitle=Dev%20Dashboard`
+
+5. **Parameter Spelling Check**:
+   - Ensure parameter names match exact keys listed in the [Parameter Reference](#-parameter-reference) table (e.g. `dim_weekends`, `hide_background`, `delta_format`).
