@@ -57,7 +57,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    setAlertConfig(body.repository, {
+    // Await async call to prevent unhandled promise rejections and ensure write completes before responding
+    await setAlertConfig(body.repository, {
       enabled: body.enabled ?? true,
       onFailure: body.onFailure ?? true,
       onSuccess: body.onSuccess ?? false,
