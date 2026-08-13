@@ -292,7 +292,7 @@ describe('fetchGitHubContributions', () => {
     expect(result.isOfflineFallback).toBe(true);
   });
 
-  it('throws the first GraphQL error when the API returns an errors array', async () => {
+  it('sanitizes GraphQL error and throws a generic GitHub API error message', async () => {
     vi.mocked(fetch).mockResolvedValue(
       mockResponse({
         data: { user: null },
@@ -300,7 +300,7 @@ describe('fetchGitHubContributions', () => {
       })
     );
 
-    await expect(fetchGitHubContributions('octocat')).rejects.toThrow('Bad credentials');
+    await expect(fetchGitHubContributions('octocat')).rejects.toThrow('GitHub API error');
   });
 
   it('throws a stable fallback when GraphQL returns an empty errors array', async () => {
@@ -310,9 +310,7 @@ describe('fetchGitHubContributions', () => {
       })
     );
 
-    await expect(fetchGitHubContributions('octocat')).rejects.toThrow(
-      'GitHub GraphQL API returned an unknown error'
-    );
+    await expect(fetchGitHubContributions('octocat')).rejects.toThrow('GitHub API error');
   });
 
   it('throws a stable fallback when the first GraphQL error has no message', async () => {
@@ -322,9 +320,7 @@ describe('fetchGitHubContributions', () => {
       })
     );
 
-    await expect(fetchGitHubContributions('octocat')).rejects.toThrow(
-      'GitHub GraphQL API returned an unknown error'
-    );
+    await expect(fetchGitHubContributions('octocat')).rejects.toThrow('GitHub API error');
   });
 
   describe('body-level RATE_LIMITED retry (HTTP 200)', () => {

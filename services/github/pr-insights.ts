@@ -219,7 +219,13 @@ async function fetchPRInsightsUncached(
 
   const repoMap = new Map<
     string,
-    { total: number; merged: number; reviewCount: number; reviewTimeSum: number }
+    {
+      total: number;
+      merged: number;
+      reviewCount: number;
+      reviewTimeSum: number;
+      validReviewTimesCount: number;
+    }
   >();
 
   let mostDiscussed = { title: '', url: '', comments: -1 };
@@ -263,7 +269,13 @@ async function fetchPRInsightsUncached(
     // Repos
     const repoName = pr.repository?.nameWithOwner || 'Unknown';
     if (!repoMap.has(repoName)) {
-      repoMap.set(repoName, { total: 0, merged: 0, reviewCount: 0, reviewTimeSum: 0 });
+      repoMap.set(repoName, {
+        total: 0,
+        merged: 0,
+        reviewCount: 0,
+        reviewTimeSum: 0,
+        validReviewTimesCount: 0,
+      });
     }
     const repoStats = repoMap.get(repoName)!;
     repoStats.total++;
@@ -309,6 +321,7 @@ async function fetchPRInsightsUncached(
       prReviewTimes.push(diffHours);
       reviewTimes.push(diffHours);
       repoStats.reviewTimeSum += diffHours;
+      repoStats.validReviewTimesCount++;
 
       if (diffHours < fastestReview) fastestReview = diffHours;
       if (diffHours > slowestReview) slowestReview = diffHours;
@@ -348,7 +361,8 @@ async function fetchPRInsightsUncached(
       totalPRs: stats.total,
       mergeRate: stats.total > 0 ? (stats.merged / stats.total) * 100 : 0,
       reviewCount: stats.reviewCount,
-      avgReviewTime: stats.reviewCount > 0 ? stats.reviewTimeSum / stats.reviewCount : 0,
+      avgReviewTime:
+        stats.validReviewTimesCount > 0 ? stats.reviewTimeSum / stats.validReviewTimesCount : 0,
     }))
     .sort((a, b) => b.totalPRs - a.totalPRs)
     .slice(0, 10);

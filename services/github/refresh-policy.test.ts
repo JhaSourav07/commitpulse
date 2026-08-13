@@ -59,4 +59,17 @@ describe('RefreshPolicy', () => {
 
     expect(refreshPolicy.isRefreshAllowed('kanishka')).toBe(false);
   });
+
+  it('enforces a default 15-minute (900,000 ms) cooldown per username', () => {
+    vi.useFakeTimers();
+    refreshPolicy.recordRefresh('kanishka');
+
+    expect(refreshPolicy.getRemainingCooldown('kanishka')).toBe(15 * 60 * 1000);
+    expect(refreshPolicy.isRefreshAllowed('kanishka')).toBe(false);
+
+    vi.advanceTimersByTime(15 * 60 * 1000 + 1);
+    expect(refreshPolicy.isRefreshAllowed('kanishka')).toBe(true);
+
+    vi.useRealTimers();
+  });
 });

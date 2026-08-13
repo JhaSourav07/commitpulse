@@ -12,7 +12,7 @@ import { ExportPanel } from './components/ExportPanel';
 import InteractiveViewer from '@/components/InteractiveViewer';
 import { Footer } from '@/app/components/Footer';
 import DOMPurify from 'dompurify';
-import { Check, Link as LinkIcon, Moon, Sun } from 'lucide-react';
+import { Check, Link as LinkIcon, Moon, Sun, Grid } from 'lucide-react';
 import type {
   ExportFormat,
   Font,
@@ -22,6 +22,7 @@ import type {
   DeltaFormat,
   Language,
   Timezone,
+  PreviewBackgroundMode,
 } from './types';
 import { THEME_KEYS } from './types';
 
@@ -92,7 +93,7 @@ function CustomizePageInner(): ReactElement {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   // Preview background context toggle — dark mirrors GitHub dark README, light mirrors GitHub light README.
   // This state is intentionally local and never synced to URL params.
-  const [previewBg, setPreviewBg] = useState<'dark' | 'light'>('dark');
+  const [previewBg, setPreviewBg] = useState<PreviewBackgroundMode>('dark');
   const trimmedUsername = username.trim();
   const hasUsername = trimmedUsername.length > 0;
   const isRandomTheme = theme === 'random';
@@ -562,47 +563,63 @@ function CustomizePageInner(): ReactElement {
           >
             {/* Live Preview */}
             <div className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
-              <div className="flex items-center justify-between mb-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
                 <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400">
                   {t('customize.live_preview')}
                 </p>
 
-                {/* Dark / Light preview background toggle */}
-                <button
-                  type="button"
-                  id="preview-bg-toggle"
-                  aria-label={
-                    previewBg === 'dark'
-                      ? t('customize.preview_toggle_to_light', {
-                          defaultValue: 'Switch to light background preview',
-                        })
-                      : t('customize.preview_toggle_to_dark', {
-                          defaultValue: 'Switch to dark background preview',
-                        })
-                  }
-                  title={
-                    previewBg === 'dark'
-                      ? t('customize.preview_toggle_to_light', {
-                          defaultValue: 'Switch to light background preview',
-                        })
-                      : t('customize.preview_toggle_to_dark', {
-                          defaultValue: 'Switch to dark background preview',
-                        })
-                  }
-                  onClick={() => setPreviewBg((prev) => (prev === 'dark' ? 'light' : 'dark'))}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-xs font-medium text-gray-600 dark:text-white/60 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 select-none"
+                {/* GitHub Background Simulator Toggle */}
+                <div
+                  role="group"
+                  className="flex items-center gap-1 bg-gray-100 dark:bg-white/5 border border-black/5 dark:border-white/10 p-1 rounded-xl"
+                  aria-label="GitHub Background Simulator"
                 >
-                  {previewBg === 'dark' ? (
-                    <Sun size={13} aria-hidden />
-                  ) : (
-                    <Moon size={13} aria-hidden />
-                  )}
-                  <span>
-                    {previewBg === 'dark'
-                      ? t('customize.preview_toggle_light_label', { defaultValue: 'Light' })
-                      : t('customize.preview_toggle_dark_label', { defaultValue: 'Dark' })}
+                  <span className="text-[10px] font-bold uppercase text-gray-400 dark:text-white/40 px-1 hidden sm:inline select-none">
+                    BG Simulator
                   </span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewBg('dark')}
+                    aria-pressed={previewBg === 'dark'}
+                    title="GitHub Dark (#0D1117)"
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                      previewBg === 'dark'
+                        ? 'bg-zinc-800 text-white shadow-sm'
+                        : 'text-gray-500 dark:text-white/40 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <Moon size={12} />
+                    <span>Dark</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewBg('light')}
+                    aria-pressed={previewBg === 'light'}
+                    title="GitHub Light (#FFFFFF)"
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                      previewBg === 'light'
+                        ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
+                        : 'text-gray-500 dark:text-white/40 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <Sun size={12} />
+                    <span>Light</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewBg('checkerboard')}
+                    aria-pressed={previewBg === 'checkerboard'}
+                    title="Checkerboard Grid"
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                      previewBg === 'checkerboard'
+                        ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 shadow-sm border border-emerald-500/30'
+                        : 'text-gray-500 dark:text-white/40 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <Grid size={12} />
+                    <span>Grid</span>
+                  </button>
+                </div>
               </div>
 
               {/* ─── MOVING THE INTERACTION LISTENER DIRECTLY TO THE OUTER WRAPPER CONTAINER ROW ─── */}
@@ -612,10 +629,12 @@ function CustomizePageInner(): ReactElement {
 
                 <InteractiveViewer
                   data-preview-bg={previewBg}
-                  className={`relative backdrop-blur-md border rounded-[1.25rem] flex items-center justify-center p-6 min-h-[280px] transition-colors duration-300 ${
-                    previewBg === 'dark'
-                      ? 'bg-[#0d1117] border-white/10'
-                      : 'bg-white border-black/10'
+                  className={`relative backdrop-blur-md rounded-[1.25rem] flex items-center justify-center p-6 min-h-[280px] transition-all duration-300 ${
+                    previewBg === 'light'
+                      ? 'bg-white border border-gray-200 text-gray-900 shadow-sm'
+                      : previewBg === 'checkerboard'
+                        ? 'bg-[#161b22] bg-[linear-gradient(45deg,#21262d_25%,transparent_25%),linear-gradient(-45deg,#21262d_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#21262d_75%),linear-gradient(-45deg,transparent_75%,#21262d_75%)] bg-[size:20px_20px] bg-[position:0_0,0_10px,10px_-10px,-10px_0px] border border-zinc-800 text-white'
+                        : 'bg-[#0d1117] border border-zinc-800 text-white'
                   }`}
                 >
                   {/* Scanning line effect behind image */}
@@ -758,6 +777,8 @@ function CustomizePageInner(): ReactElement {
               username={trimmedUsername}
               onFormatChange={setExportFormat}
               onCopy={copyExportSnippet}
+              previewBg={previewBg}
+              onPreviewBgChange={setPreviewBg}
               onExportConfig={() => {
                 exportConfig({
                   username,

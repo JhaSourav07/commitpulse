@@ -1,24 +1,40 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+// Cached at module scope so the config file is read and parsed at most
+// once per process, instead of once per isBotAuthor() call.
+let cachedIgnoredAuthors: string[] | null = null;
+
 /**
  * Reads and returns the list of ignored authors configured in the .commitpulse.json file.
  * Returns an empty array if the file does not exist or fails to parse.
  */
 export function getIgnoredAuthors(): string[] {
+  // If we already have a cached version, return it immediately
+  if (cachedIgnoredAuthors !== null) {
+    return cachedIgnoredAuthors;
+  }
+
+  // Use a local strictly typed variable to avoid TypeScript union errors
+  let authors: string[] = [];
+
   try {
     const configPath = path.join(process.cwd(), '.commitpulse.json');
     if (fs.existsSync(configPath)) {
       const configContent = fs.readFileSync(configPath, 'utf-8');
       const config = JSON.parse(configContent);
+
       if (config && Array.isArray(config.ignored_authors)) {
-        return config.ignored_authors.map((author: string) => author.toLowerCase());
+        authors = config.ignored_authors.map((author: string) => author.toLowerCase());
       }
     }
   } catch {
-    // Ignore error and fallback to empty array
+    // Ignore error and fallback to the empty array
   }
-  return [];
+
+  // Update the module-level cache and return the strictly typed local variable
+  cachedIgnoredAuthors = authors;
+  return authors;
 }
 
 /**
@@ -54,4 +70,12 @@ export function isBotAuthor(username: string): boolean {
   }
 
   return false;
+}
+
+/**
+ * Test-only helper to reset the module-level cache between test cases
+ * that mock different .commitpulse.json contents.
+ */
+export function __resetIgnoredAuthorsCacheForTests(): void {
+  cachedIgnoredAuthors = null;
 }
