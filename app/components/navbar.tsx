@@ -59,6 +59,18 @@ const NAV_LINKS: NavLink[] = [
     isPrimary: false,
   },
   {
+    label: 'Login',
+    href: '/login',
+    isExternal: false,
+    isPrimary: false,
+  },
+  {
+    label: 'Sign Up',
+    href: '/signup',
+    isExternal: false,
+    isPrimary: false,
+  },
+  {
     label: 'GitHub Repo',
     href: 'https://github.com/JhaSourav07/commitpulse',
     isExternal: true,

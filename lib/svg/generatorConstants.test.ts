@@ -96,9 +96,8 @@ describe('FONT_MAP — SVG output regression: no duplicate @import for bundled f
 
     // Count how many times Syncopate appears in @import statements
     const importMatches = [...svg.matchAll(/@import url\([^)]*Syncopate[^)]*\)/gi)];
-    // Must appear exactly once (the unconditional bundled import)
-    // Before the fix it appeared twice — this is the regression guard
-    expect(importMatches.length).toBe(1);
+    // Must appear 0 times (bundled font is inlined base64, eliminating external @import)
+    expect(importMatches.length).toBe(0);
   });
 
   it('font=spacegrotesk does not generate a dynamic Google Fonts @import', () => {
@@ -121,8 +120,8 @@ describe('FONT_MAP — SVG output regression: no duplicate @import for bundled f
     );
 
     const importMatches = [...svg.matchAll(/@import url\([^)]*Space\+Grotesk[^)]*\)/gi)];
-    // Must appear exactly once — not twice
-    expect(importMatches.length).toBe(1);
+    // Must appear 0 times
+    expect(importMatches.length).toBe(0);
   });
 
   it('font=Inter still generates a dynamic @import (non-bundled font — correct behavior)', () => {

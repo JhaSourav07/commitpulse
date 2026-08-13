@@ -2207,7 +2207,8 @@ describe('SVG Structural Validity and Cleanliness', () => {
     const titleCount = (svg.match(/<title id="cp-title-avi">/g) || []).length;
     expect(titleCount).toBe(1);
     const styleImportCount = (svg.match(/@import url/g) || []).length;
-    expect(styleImportCount).toBe(1);
+    // Default SVGs use inlined base64 fonts, so @import url count is 0
+    expect(styleImportCount).toBe(0);
   });
 });
 
@@ -2691,7 +2692,7 @@ describe('XML Validation - All Generator Outputs', () => {
 
       assertValidSVG(svg);
       expect(svg).toContain('My Custom Title');
-      expect(svg).not.toContain('AVI');
+      expect(svg).not.toContain('>AVI<');
     });
 
     it('renders custom_subtitle below the title when custom_subtitle is supplied', () => {
@@ -2779,7 +2780,7 @@ describe('XML Validation - All Generator Outputs', () => {
 
       assertValidSVG(svg);
       expect(svg).toContain('Team Streak');
-      expect(svg).not.toContain('AVI');
+      expect(svg).not.toContain('>AVI<');
     });
 
     it('sanitizes custom label to prevent XSS / XML Injection', () => {

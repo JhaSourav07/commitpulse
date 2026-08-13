@@ -32,11 +32,12 @@ describe('QuotaMonitor', () => {
   });
 
   it('flags quota as low when remaining credits are below 10%', () => {
-    monitor.setQuota(5000, 499, Date.now());
+    const futureResetTime = Date.now() + 60_000;
+    monitor.setQuota(5000, 499, futureResetTime);
 
     expect(monitor.isQuotaLow()).toBe(true);
 
-    monitor.setQuota(5000, 500, Date.now());
+    monitor.setQuota(5000, 500, futureResetTime);
 
     expect(monitor.isQuotaLow()).toBe(false);
   });
@@ -56,6 +57,7 @@ describe('QuotaMonitor', () => {
 
     expect(monitor.getQuota().resetTime).toBe(1710000000 * 1000);
   });
+
   it('tracks quota per-token instead of conflating multiple tokens into one global state', () => {
     monitor.updateQuotaFromHeaders(
       { 'x-ratelimit-limit': '5000', 'x-ratelimit-remaining': '50' },
@@ -85,5 +87,35 @@ describe('QuotaMonitor', () => {
     );
 
     expect(monitor.isQuotaLow()).toBe(false);
+  });
+});
+
+describe('[Bug fix] QuotaMonitor.isQuotaLow() — resetTime awareness', () => {
+  let monitor: QuotaMonitor;
+
+  beforeEach(() => {
+    monitor = QuotaMonitor.getInstance();
+    monitor.reset();
+  });
+
+  it('does NOT report quota low for a token whose resetTime has already passed', () => {
+    monitor.setQuota(5000, 100, Date.now() - 60_000, 'token-A'); // reset 1 minute ago
+    expect(monitor.isQuotaLow()).toBe(false);
+  });
+
+  it('DOES report quota low for a token that is genuinely exhausted and not yet reset', () => {
+    monitor.setQuota(5000, 100, Date.now() + 60_000, 'token-A'); // resets 1 minute from now
+    expect(monitor.isQuotaLow()).toBe(true);
+  });
+
+  it('still reports quota low if a DIFFERENT token in the pool is genuinely exhausted', () => {
+    monitor.setQuota(5000, 100, Date.now() - 60_000, 'token-A'); // stale, already reset
+    monitor.setQuota(5000, 200, Date.now() + 60_000, 'token-B'); // genuinely low, not yet reset
+    expect(monitor.isQuotaLow()).toBe(true);
+  });
+
+  it('treats a token with resetTime=0 (never updated from real headers) normally', () => {
+    monitor.setQuota(5000, 100, 0, 'token-A');
+    expect(monitor.isQuotaLow()).toBe(true); // 100 < 500, and resetTime=0 shouldn't be skipped
   });
 });
