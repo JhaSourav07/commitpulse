@@ -591,17 +591,28 @@ interface GitHubContributedReposResponse {
 }
 
 function getGraphQLErrorMessage(errors: unknown): string {
-  if (!Array.isArray(errors)) return 'GitHub GraphQL API returned an unknown error';
+  if (!Array.isArray(errors) || errors.length === 0) {
+    return 'GitHub API error';
+  }
   const firstError = errors[0];
+  logger.error('GitHub GraphQL API raw error details', { firstError });
+
   if (
     firstError !== null &&
     typeof firstError === 'object' &&
     'message' in firstError &&
     typeof firstError.message === 'string'
   ) {
-    return firstError.message;
+    const msg = firstError.message.toLowerCase();
+    const type = 'type' in firstError ? String(firstError.type).toUpperCase() : '';
+    if (msg.includes('rate limit') || type === 'RATE_LIMITED') {
+      return 'API Rate Limit Exceeded';
+    }
+    if (msg.includes('could not resolve') || msg.includes('not found')) {
+      return 'GitHub user not found';
+    }
   }
-  return 'GitHub GraphQL API returned an unknown error';
+  return 'GitHub API error';
 }
 
 type FetchOptions = {

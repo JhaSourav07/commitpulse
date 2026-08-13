@@ -2,11 +2,10 @@ import { copyToClipboard } from '@/utils/clipboard';
 import { useState, useRef } from 'react';
 import { toast } from 'sonner';
 import type { ReactElement } from 'react';
-import type { ExportFormat } from '../types';
-import type { CustomizeOptions } from '../types';
+import type { ExportFormat, CustomizeOptions, PreviewBackgroundMode } from '../types';
 import { getPlaceholderSnippet, importConfig } from '../utils';
 import { useTranslation } from '@/context/TranslationContext';
-import { Copy, Check } from 'lucide-react';
+import { Copy, Check, Moon, Sun, Grid } from 'lucide-react';
 
 const EXPORT_FORMATS: { value: ExportFormat; labelKey: string }[] = [
   { value: 'markdown', labelKey: 'markdown' },
@@ -41,6 +40,8 @@ export function ExportPanel({
   onCopy,
   onExportConfig = () => {},
   onImportConfig = () => {},
+  previewBg = 'dark',
+  onPreviewBgChange,
 }: {
   format: ExportFormat;
   snippet: string;
@@ -52,6 +53,8 @@ export function ExportPanel({
   onCopy: () => void | Promise<void>;
   onExportConfig?: () => void;
   onImportConfig?: (options: CustomizeOptions) => void;
+  previewBg?: PreviewBackgroundMode;
+  onPreviewBgChange?: (bgMode: PreviewBackgroundMode) => void;
 }): ReactElement {
   const { t } = useTranslation();
   const activeSnippet = hasUsername ? snippet : getPlaceholderSnippet(format);
@@ -371,6 +374,58 @@ export function ExportPanel({
               </button>
             ))}
           </div>
+
+          {/* GitHub Background Simulator Toggle */}
+          {onPreviewBgChange && (
+            <div
+              role="group"
+              className="flex items-center gap-1 rounded-xl border border-black/10 bg-white/60 backdrop-blur-md dark:border-white/10 dark:bg-white/[0.03] p-1"
+              aria-label="Background Simulator"
+            >
+              <button
+                type="button"
+                onClick={() => onPreviewBgChange('dark')}
+                aria-pressed={previewBg === 'dark'}
+                title="GitHub Dark (#0D1117)"
+                className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all ${
+                  previewBg === 'dark'
+                    ? 'bg-zinc-800 text-white shadow-sm'
+                    : 'text-zinc-400 dark:text-white/40 hover:text-zinc-700 dark:hover:text-white/70'
+                }`}
+              >
+                <Moon size={12} />
+                <span>Dark</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onPreviewBgChange('light')}
+                aria-pressed={previewBg === 'light'}
+                title="GitHub Light (#FFFFFF)"
+                className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all ${
+                  previewBg === 'light'
+                    ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
+                    : 'text-zinc-400 dark:text-white/40 hover:text-zinc-700 dark:hover:text-white/70'
+                }`}
+              >
+                <Sun size={12} />
+                <span>Light</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onPreviewBgChange('checkerboard')}
+                aria-pressed={previewBg === 'checkerboard'}
+                title="Checkerboard Grid"
+                className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all ${
+                  previewBg === 'checkerboard'
+                    ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 shadow-sm border border-emerald-500/30'
+                    : 'text-zinc-400 dark:text-white/40 hover:text-zinc-700 dark:hover:text-white/70'
+                }`}
+              >
+                <Grid size={12} />
+                <span>Grid</span>
+              </button>
+            </div>
+          )}
 
           {/* Centered High-Definition Vector Download Button */}
           <button

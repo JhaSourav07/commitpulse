@@ -832,8 +832,20 @@ export default function LandingPageClient() {
                           className="w-6 h-6 rounded-full border border-emerald-500/20 object-cover"
                           onError={(e) => {
                             const img = e.currentTarget as HTMLImageElement;
-                            img.onerror = null;
-                            img.src = `https://github.com/${userDetails.login}.png`;
+                            if (img.dataset.fallbackAttempted === 'true') {
+                              img.style.display = 'none';
+                              return;
+                            }
+                            img.dataset.fallbackAttempted = 'true';
+                            const fallbackUrl = `https://github.com/${userDetails.login}.png`;
+                            if (
+                              img.src !== fallbackUrl &&
+                              !img.src.endsWith(`/${userDetails.login}.png`)
+                            ) {
+                              img.src = fallbackUrl;
+                            } else {
+                              img.style.display = 'none';
+                            }
                           }}
                         />
                         <div className="flex flex-col">
