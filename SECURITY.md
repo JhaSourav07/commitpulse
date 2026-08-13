@@ -36,6 +36,8 @@ To keep your usage secure:
 - Avoid running the tool on untrusted repositories
 - Keep your dependencies updated
 - Do not expose sensitive tokens or credentials
+- **GitHub Token Scope**: CommitPulse requires `read:user` scope ONLY for reading user profile and contribution activity. No write permissions or repository access are required.
+- **Fine-Grained PAT Recommendation for Self-Hosters**: Self-hosters are strongly advised to use a GitHub fine-grained Personal Access Token (PAT) restricted strictly to read-only public profile access, rather than a classic PAT with broad scopes.
 
 ---
 

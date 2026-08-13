@@ -1753,12 +1753,13 @@ describe('[Docs] customization.md documents every real `view` enum value', () =>
     'skyline',
     'languages',
     'constellation',
+    'weekday',
+    'punchcard',
     'radar',
     'doughnut',
     'pie',
     'activity_graph',
     'commit_clock',
-    'weekday',
   ];
 
   it('mentions every real view value at least once', () => {

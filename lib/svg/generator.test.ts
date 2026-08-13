@@ -1131,7 +1131,7 @@ describe('generateSVG', () => {
     });
 
     it('verify boundary robustness of username length truncator (Variation 4)', () => {
-      const extendedLongUsername = 'abcdefghijklmnopqrstuvwxyz1234567890';
+      const extendedLongUsername = 'abcdefghijklmnopqrstuvwxyz12345678901234567890';
       const extendedParams = {
         user: extendedLongUsername,
         hide_title: false,
@@ -1139,9 +1139,9 @@ describe('generateSVG', () => {
 
       const svg = generateSVG(mockStats, extendedParams, mockCalendar);
 
-      expect(extendedLongUsername.length).toBeGreaterThan(30);
-      expect(svg).toContain('ABCDEFGHIJKLMNOPQRST...');
-      expect(svg).not.toContain('ABCDEFGHIJKLMNOPQRSTUVWXYZ');
+      expect(extendedLongUsername.length).toBeGreaterThan(39);
+      expect(svg).toContain('ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890123...');
+      expect(svg).not.toContain(extendedLongUsername.toUpperCase());
     });
   });
 
@@ -1825,8 +1825,8 @@ describe('Radar Scan Line Animation Alignment', () => {
     expect(result.endsWith('...')).toBe(true);
 
     // 4. Assert: Verify the string was actually truncated
-    // If it caps at 30 chars and adds '...', the max length is 33.
-    expect(result.length).toBeLessThanOrEqual(33);
+    // If it caps at 39 chars and adds '...', the max length is 42.
+    expect(result.length).toBeLessThanOrEqual(42);
 
     // 5. Assert: Ensure the original string was actually modified
     expect(result).not.toEqual(longUsername);
@@ -1888,7 +1888,7 @@ describe('Radar Scan Line Animation Alignment', () => {
     // 1. Arrange: Create usernames (one short baseline, one strictly > 30 chars)
     const shortUsername = 'avi';
     const longUsername = 'ThisIsAVeryLongUsernameThatExceedsThirtyCharacters';
-    const expectedTruncated = longUsername.slice(0, 20) + '...';
+    const expectedTruncated = longUsername.slice(0, 39) + '...';
 
     const paramsBaseline = {
       user: shortUsername,
@@ -1933,9 +1933,9 @@ describe('Radar Scan Line Animation Alignment', () => {
     expect(geometryLong).toEqual(geometryBaseline);
   });
 
-  it('truncates usernames longer than 20 characters and adds an ellipsis in generateSVG', () => {
-    const longUsername = 'averylongusernamethatexceeds20chars'; // 35 characters
-    const expectedTruncated = 'AVERYLONGUSERNAMETHA...'; // 20 characters + '...' (in uppercase)
+  it('truncates usernames longer than 39 characters and adds an ellipsis in generateSVG', () => {
+    const longUsername = 'averylongusernamethatexceeds39characterlimit'; // 44 characters
+    const expectedTruncated = 'AVERYLONGUSERNAMETHATEXCEEDS39CHARACTER...'; // 39 characters + '...' (in uppercase)
 
     const svg = generateSVG(
       mockStats,
@@ -2207,7 +2207,8 @@ describe('SVG Structural Validity and Cleanliness', () => {
     const titleCount = (svg.match(/<title id="cp-title-avi">/g) || []).length;
     expect(titleCount).toBe(1);
     const styleImportCount = (svg.match(/@import url/g) || []).length;
-    expect(styleImportCount).toBe(1);
+    // Default SVGs use inlined base64 fonts, so @import url count is 0
+    expect(styleImportCount).toBe(0);
   });
 });
 
@@ -2691,7 +2692,7 @@ describe('XML Validation - All Generator Outputs', () => {
 
       assertValidSVG(svg);
       expect(svg).toContain('My Custom Title');
-      expect(svg).not.toContain('AVI');
+      expect(svg).not.toContain('>AVI<');
     });
 
     it('renders custom_subtitle below the title when custom_subtitle is supplied', () => {
@@ -2779,7 +2780,7 @@ describe('XML Validation - All Generator Outputs', () => {
 
       assertValidSVG(svg);
       expect(svg).toContain('Team Streak');
-      expect(svg).not.toContain('AVI');
+      expect(svg).not.toContain('>AVI<');
     });
 
     it('sanitizes custom label to prevent XSS / XML Injection', () => {

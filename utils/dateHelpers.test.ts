@@ -26,9 +26,7 @@ describe('dateHelpers', () => {
     });
 
     it('validates ISO 8601 date format before substring extraction', () => {
-      // Valid ISO format extracts hour from substring
       expect(getAuthorLocalHour('2024-03-10T15:30:00Z')).toBe(15);
-      // Non-ISO format strings fall back to Date parsing
       const hour = getAuthorLocalHour('March 10, 2024 15:30');
       expect(hour).toBeGreaterThanOrEqual(0);
       expect(hour).toBeLessThanOrEqual(23);
@@ -68,9 +66,12 @@ describe('dateHelpers', () => {
     });
 
     it('returns zero metrics for an array containing only Invalid Date strings', () => {
-      const result = processCommitTimestamps(['2024-13-99T25:99:00Z', 'hello world']);
+      const result = processCommitTimestamps(['2024-13-99T25:99:00', 'hello world']);
       expect(result).toEqual({ morning: 0, afternoon: 0, evening: 0, night: 0 });
     });
+
+    // NOTE: Added 'Z' to timestamp strings below to explicitly parse them as UTC,
+    // which aligns with processCommitTimestamps using getUTCHours() internally.
 
     it('counts valid morning commits correctly', () => {
       const result = processCommitTimestamps(['2024-03-10T09:00:00Z', '2024-03-10T11:30:00Z']);
@@ -106,6 +107,22 @@ describe('dateHelpers', () => {
       expect(result.afternoon).toBe(1);
       expect(result.night).toBe(0);
       expect(result.evening).toBe(0);
+    });
+
+    // Regression test: verifies timezone-agnostic behavior.
+    // This test would fail with getHours() in IST but passes with getUTCHours().
+    it('produces consistent results regardless of system timezone', () => {
+      const timestamps = [
+        '2024-03-10T09:00:00Z', // 09:00 UTC = morning
+        '2024-03-10T14:00:00Z', // 14:00 UTC = afternoon
+        '2024-03-10T20:00:00Z', // 20:00 UTC = evening
+        '2024-03-10T03:00:00Z', // 03:00 UTC = night
+      ];
+      const result = processCommitTimestamps(timestamps);
+      expect(result.morning).toBe(1);
+      expect(result.afternoon).toBe(1);
+      expect(result.evening).toBe(1);
+      expect(result.night).toBe(1);
     });
   });
 });
