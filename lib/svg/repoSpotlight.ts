@@ -58,7 +58,8 @@ export function generateRepoSpotlightSVG(repo: GitHubRepo, params: BadgeParams):
 
   // Parse dates if available
   const dateStr = repo.pushed_at
-    ? new Date(repo.pushed_at).toLocaleDateString(undefined, {
+    ? // Explicit 'en-US' locale — see lib/rss.ts for the same fix and rationale.
+      new Date(repo.pushed_at).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',
         day: 'numeric',

@@ -40,8 +40,12 @@ export async function fetchLatestArticles(
     const articles = feed.items.slice(0, 3).map((item) => ({
       title: item.title || 'Untitled',
       link: item.link || '',
+      // Explicit 'en-US' locale, matching the pattern already used in
+      // lib/github.ts's joinedDate formatting — this string is baked
+      // server-side into the generated SVG, so it must be deterministic
+      // regardless of the server's ambient runtime locale/ICU build.
       pubDate: item.pubDate
-        ? new Date(item.pubDate).toLocaleDateString(undefined, {
+        ? new Date(item.pubDate).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
