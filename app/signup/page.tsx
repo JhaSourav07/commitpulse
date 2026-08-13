@@ -80,6 +80,8 @@ export default function SignUpPage() {
 
     if (!fields.fullName.trim()) {
       newErrors.fullName = 'Full Name is required';
+    } else if (!/^[A-Za-z]+(?:[ '-][A-Za-z]+)*$/.test(fields.fullName.trim())) {
+      newErrors.fullName = 'Please enter a valid name';
     }
 
     if (!fields.email.trim()) {
