@@ -17,6 +17,14 @@ export function useLocalStorage<T>(key: string, initialValue: T): readonly [T, (
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setStoredValue(readFromStorage(key, initialValue));
+
+    const handleStorageChange = (event: StorageEvent): void => {
+      if (event.key !== key) return;
+      setStoredValue(readFromStorage(key, initialValue));
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
