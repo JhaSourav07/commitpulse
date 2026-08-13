@@ -47,4 +47,26 @@ describe('verifyReviewAdmin', () => {
     const res = verifyReviewAdmin(req);
     expect(res).toBeNull();
   });
+
+  describe('[Bug fix] timing-safe comparison', () => {
+    it('rejects an incorrect bearer token of the same length', () => {
+      // 'test-secret' vs 'best-secret'
+      const req = new Request('http://localhost/api', {
+        headers: { authorization: 'Bearer best-secret' },
+      });
+      const res = verifyReviewAdmin(req);
+      expect(res).not.toBeNull();
+      expect(res!.status).toBe(401);
+    });
+
+    it('rejects a token of a different length without throwing', () => {
+      const req = new Request('http://localhost/api', {
+        headers: { authorization: 'Bearer short' },
+      });
+      expect(() => verifyReviewAdmin(req)).not.toThrow();
+      const res = verifyReviewAdmin(req);
+      expect(res).not.toBeNull();
+      expect(res!.status).toBe(401);
+    });
+  });
 });

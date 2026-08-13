@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { timingSafeEqual } from 'crypto';
 
 /**
  * Verifies the request carries a valid admin bearer token.
@@ -15,8 +16,15 @@ export function verifyReviewAdmin(req: Request): NextResponse | null {
     );
   }
 
-  const authHeader = req.headers.get('authorization')?.toLowerCase();
-  if (!authHeader || authHeader !== `bearer ${secret}`.toLowerCase()) {
+  const authHeader = req.headers.get('authorization')?.toLowerCase() || '';
+
+  // Constant-time comparison to prevent timing side-channel attacks
+  const expected = Buffer.from(`bearer ${secret}`.toLowerCase());
+  const provided = Buffer.from(authHeader);
+
+  const isValid = expected.length === provided.length && timingSafeEqual(expected, provided);
+
+  if (!isValid) {
     return NextResponse.json(
       { success: false, message: 'Unauthorized: invalid or missing admin token.' },
       { status: 401 }
