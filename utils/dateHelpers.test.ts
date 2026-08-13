@@ -26,9 +26,7 @@ describe('dateHelpers', () => {
     });
 
     it('validates ISO 8601 date format before substring extraction', () => {
-      // Valid ISO format extracts hour from substring
       expect(getAuthorLocalHour('2024-03-10T15:30:00Z')).toBe(15);
-      // Non-ISO format strings fall back to Date parsing
       const hour = getAuthorLocalHour('March 10, 2024 15:30');
       expect(hour).toBeGreaterThanOrEqual(0);
       expect(hour).toBeLessThanOrEqual(23);
@@ -68,13 +66,14 @@ describe('dateHelpers', () => {
     });
 
     it('returns zero metrics for an array containing only Invalid Date strings', () => {
-      // Removed Z here
       const result = processCommitTimestamps(['2024-13-99T25:99:00', 'hello world']);
       expect(result).toEqual({ morning: 0, afternoon: 0, evening: 0, night: 0 });
     });
 
+    // NOTE: Removed 'Z' from timestamp strings below to parse as local time
+    // and prevent timezone shifting during test execution.
+
     it('counts valid morning commits correctly', () => {
-      // Removed Z from both strings
       const result = processCommitTimestamps(['2024-03-10T09:00:00', '2024-03-10T11:30:00']);
       expect(result.morning).toBe(2);
       expect(result.afternoon).toBe(0);
@@ -83,20 +82,17 @@ describe('dateHelpers', () => {
     });
 
     it('counts valid afternoon commits correctly', () => {
-      // Removed Z from both strings
       const result = processCommitTimestamps(['2024-03-10T12:00:00', '2024-03-10T17:59:00']);
       expect(result.morning).toBe(0);
       expect(result.afternoon).toBe(2);
     });
 
     it('counts valid evening commits correctly', () => {
-      // Removed Z from both strings
       const result = processCommitTimestamps(['2024-03-10T18:00:00', '2024-03-10T23:59:00']);
       expect(result.evening).toBe(2);
     });
 
     it('counts valid night commits correctly', () => {
-      // Removed Z from both strings
       const result = processCommitTimestamps(['2024-03-10T00:00:00', '2024-03-10T05:59:00']);
       expect(result.night).toBe(2);
     });
