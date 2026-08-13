@@ -4,7 +4,7 @@ import { getFullDashboardData } from '@/lib/github';
 import { getUserGitHubToken } from '@/lib/githubtoken';
 import { RateLimiter } from '@/lib/rate-limit';
 import { fetchPRInsights } from '@/services/github/pr-insights';
-import { computeAchievementState } from './route';
+import { computeAchievementState } from '@/lib/achievements';
 import type { AchievementDef } from '@/types/achievements';
 
 vi.mock('@/lib/github', () => ({

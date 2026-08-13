@@ -12,6 +12,7 @@ import type {
 import { getUserGitHubToken } from '@/lib/githubtoken';
 import { getClientIp } from '@/utils/getClientIp';
 import { RateLimiter } from '@/lib/rate-limit';
+import { computeAchievementState } from '@/lib/achievements';
 
 const achievementsLimiter = new RateLimiter(10, 60_000, 1);
 
@@ -473,62 +474,6 @@ const AI_KEYWORDS = [
   'rag',
   'agent',
 ];
-
-export function computeAchievementState(
-  currentValue: number,
-  def: AchievementDef
-): AchievementState {
-  const sortedLevels = [...def.levels].sort((a, b) => b.threshold - a.threshold);
-
-  for (let i = 0; i < sortedLevels.length; i++) {
-    const level = sortedLevels[i];
-    if (currentValue >= level.threshold) {
-      const currentTierIndex = def.levels.indexOf(level);
-      const nextTier =
-        currentTierIndex < def.levels.length - 1 ? def.levels[currentTierIndex + 1] : null;
-
-      return {
-        currentValue,
-        targetValue: nextTier?.threshold ?? level.threshold,
-        // Progress toward the NEXT tier is measured from the CURRENTLY
-        // achieved tier's own threshold, not the achievement's first
-        // tier — previously this always used def.levels[0].threshold as
-        // the baseline, which meant progress never reset to 0% when
-        // crossing into a new tier and overstated progress for every
-        // tier past the first.
-        progress: nextTier
-          ? Math.min(
-              100,
-              Math.round(
-                ((currentValue - level.threshold) / (nextTier.threshold - level.threshold)) * 100
-              )
-            )
-          : 100,
-        unlocked: true,
-        currentTier: level.tier,
-        currentTierIndex,
-        nextTier,
-        xpEarned: sortedLevels
-          .filter((l) => currentValue >= l.threshold)
-          .reduce((sum, l) => sum + l.xp, 0),
-        unlockedAt: null,
-      };
-    }
-  }
-
-  const nextTier = def.levels[0];
-  return {
-    currentValue,
-    targetValue: nextTier.threshold,
-    progress: Math.min(100, Math.round((currentValue / nextTier.threshold) * 100)),
-    unlocked: false,
-    currentTier: null,
-    currentTierIndex: -1,
-    nextTier,
-    xpEarned: 0,
-    unlockedAt: null,
-  };
-}
 
 function computeDeveloperLevel(totalXp: number): {
   level: number;
