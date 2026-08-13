@@ -189,6 +189,29 @@ export class TTLCache<T> {
   }
 
   /**
+   * Returns the expiration timestamp (epoch milliseconds) for a cached key,
+   * or null if the key does not exist or has expired.
+   *
+   * @param key - Cache key.
+   * @returns Expiration timestamp in epoch milliseconds or null.
+   */
+  getExpiresAt(key: string): number | null {
+    if (typeof key !== 'string' || key.trim().length === 0) {
+      return null;
+    }
+
+    const hit = this.store.get(key);
+    if (!hit) return null;
+
+    if (Date.now() > hit.expiresAt) {
+      this.store.delete(key);
+      return null;
+    }
+
+    return hit.expiresAt;
+  }
+
+  /**
    * Removes a single entry from the cache.
    *
    * Does nothing if the key does not exist.
@@ -466,6 +489,17 @@ export class DistributedCache<T> {
     }
   }
 
+  /**
+   * Returns the expiration timestamp (epoch milliseconds) for a cached key from local cache,
+   * or null if the key does not exist or has expired.
+   *
+   * @param key - Cache key.
+   * @returns Expiration timestamp in epoch milliseconds or null.
+   */
+  getExpiresAt(key: string): number | null {
+    return this.localCache.getExpiresAt(key);
+  }
+
   async update(key: string, value: T): Promise<boolean> {
     if (!this.useRedis) {
       return this.localCache.update(key, value);
@@ -562,7 +596,11 @@ return c`;
       const data = await res.json();
       const count = Number(data.result);
 
-      this.localCache.set(key, count as unknown as T, ttlMs);
+      if (this.localCache.has(key)) {
+        this.localCache.update(key, count as unknown as T);
+      } else {
+        this.localCache.set(key, count as unknown as T, ttlMs);
+      }
       return count;
     } catch (err) {
       logger.error(

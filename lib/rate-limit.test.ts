@@ -197,6 +197,22 @@ describe('rateLimit', () => {
       expect(result.success).toBe(false);
       expect(result.remaining).toBe(0);
     });
+    it('returns consistent fixed reset timestamp across multiple requests in the same window in memory mode', async () => {
+      vi.setSystemTime(1000);
+      const ip = 'consistent-reset-ip';
+      const windowMs = 60000;
+
+      const res1 = await rateLimit(ip, 5, windowMs);
+      expect(res1.reset).toBe(61000);
+
+      vi.advanceTimersByTime(20000); // t = 21000ms
+      const res2 = await rateLimit(ip, 5, windowMs);
+      expect(res2.reset).toBe(61000);
+
+      vi.advanceTimersByTime(20000); // t = 41000ms
+      const res3 = await rateLimit(ip, 5, windowMs);
+      expect(res3.reset).toBe(61000);
+    });
   });
 
   it('uses atomic incr to avoid TOCTOU race condition', async () => {
@@ -335,6 +351,24 @@ describe('RateLimiter', () => {
 
     // Window should have expired — count resets, request is allowed
     expect(await limiter.check(ip)).toBe(true);
+  });
+
+  it('RateLimiter.checkWithResult returns consistent reset timestamp across requests in the window', async () => {
+    vi.setSystemTime(1000);
+    const windowMs = 60000;
+    const limiter = new RateLimiter(5, windowMs);
+    const ip = 'limiter-reset-test';
+
+    const r1 = await limiter.checkWithResult(ip);
+    expect(r1.reset).toBe(61000);
+
+    vi.advanceTimersByTime(20000);
+    const r2 = await limiter.checkWithResult(ip);
+    expect(r2.reset).toBe(61000);
+
+    vi.advanceTimersByTime(20000);
+    const r3 = await limiter.checkWithResult(ip);
+    expect(r3.reset).toBe(61000);
   });
 
   it('uses atomic incr to avoid TOCTOU race condition', async () => {

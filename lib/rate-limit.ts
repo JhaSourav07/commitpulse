@@ -280,8 +280,9 @@ export class RateLimiter {
       };
     }
 
-    const count = await this.cache.incr(`ratelimit:${ip}`, this.windowMs);
-    const resetAt = now + this.windowMs;
+    const cacheKey = `ratelimit:${ip}`;
+    const count = await this.cache.incr(cacheKey, this.windowMs);
+    const resetAt = this.cache.getExpiresAt(cacheKey) ?? now + this.windowMs;
 
     if (count > this.limit) {
       return {
@@ -496,7 +497,7 @@ export async function rateLimit(
   }
 
   const count = await trackers.incr(cacheKey, windowMs);
-  const resetAt = now + windowMs;
+  const resetAt = trackers.getExpiresAt(cacheKey) ?? now + windowMs;
 
   return {
     success: count <= limit,
