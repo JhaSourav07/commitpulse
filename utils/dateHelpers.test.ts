@@ -70,11 +70,11 @@ describe('dateHelpers', () => {
       expect(result).toEqual({ morning: 0, afternoon: 0, evening: 0, night: 0 });
     });
 
-    // NOTE: Removed 'Z' from timestamp strings below to parse as local time
-    // and prevent timezone shifting during test execution.
+    // NOTE: Added 'Z' to timestamp strings below to explicitly parse them as UTC,
+    // which aligns with processCommitTimestamps using getUTCHours() internally.
 
     it('counts valid morning commits correctly', () => {
-      const result = processCommitTimestamps(['2024-03-10T09:00:00', '2024-03-10T11:30:00']);
+      const result = processCommitTimestamps(['2024-03-10T09:00:00Z', '2024-03-10T11:30:00Z']);
       expect(result.morning).toBe(2);
       expect(result.afternoon).toBe(0);
       expect(result.evening).toBe(0);
@@ -82,27 +82,26 @@ describe('dateHelpers', () => {
     });
 
     it('counts valid afternoon commits correctly', () => {
-      const result = processCommitTimestamps(['2024-03-10T12:00:00', '2024-03-10T17:59:00']);
+      const result = processCommitTimestamps(['2024-03-10T12:00:00Z', '2024-03-10T17:59:00Z']);
       expect(result.morning).toBe(0);
       expect(result.afternoon).toBe(2);
     });
 
     it('counts valid evening commits correctly', () => {
-      const result = processCommitTimestamps(['2024-03-10T18:00:00', '2024-03-10T23:59:00']);
+      const result = processCommitTimestamps(['2024-03-10T18:00:00Z', '2024-03-10T23:59:00Z']);
       expect(result.evening).toBe(2);
     });
 
     it('counts valid night commits correctly', () => {
-      const result = processCommitTimestamps(['2024-03-10T00:00:00', '2024-03-10T05:59:00']);
+      const result = processCommitTimestamps(['2024-03-10T00:00:00Z', '2024-03-10T05:59:00Z']);
       expect(result.night).toBe(2);
     });
 
     it('ignores invalid dates while counting valid ones', () => {
-      // Removed Z from strings
       const result = processCommitTimestamps([
-        '2024-03-10T09:00:00',
+        '2024-03-10T09:00:00Z',
         'invalid-date',
-        '2024-03-10T14:00:00',
+        '2024-03-10T14:00:00Z',
       ]);
       expect(result.morning).toBe(1);
       expect(result.afternoon).toBe(1);
