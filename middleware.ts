@@ -238,6 +238,7 @@ export const config = {
     '/api/user-repos/:path*',
     '/api/webhook/:path*',
     '/api/webhooks/:path*',
+    '/api/cron/:path*',
     '/api/languages/:path*',
   ],
 };
