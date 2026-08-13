@@ -219,7 +219,7 @@ export const config = {
     '/api/languages/:path*',
     '/api/org/:path*',
     '/api/spotify/:path*',
-    '/api/Auth/:path*',
+    '/api/auth/:path*',
     '/api/achievements/:path*',
     '/api/ci-analytics/:path*',
     '/api/cicd/:path*',
