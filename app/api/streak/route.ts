@@ -61,6 +61,7 @@ import { logger, setRequestId, clearRequestId } from '@/lib/logger';
 import { normalizeCacheKey, cachedValidation } from './validation-cache';
 import dbConnect from '@/lib/mongodb';
 import { User } from '@/models/User';
+import { profiler } from '@/lib/cacheWarmer/profiler';
 
 const SVG_CSP_HEADER =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
@@ -845,6 +846,11 @@ export async function GET(request: Request) {
         });
       }
     }
+
+    const requestLatency = Date.now() - start;
+    profiler
+      .recordRequest(user, requestLatency, !shouldBypassCache && !servedFromStaleCache)
+      .catch(() => {});
 
     if (format === 'png') {
       const { Resvg } = await import('@resvg/resvg-js');
