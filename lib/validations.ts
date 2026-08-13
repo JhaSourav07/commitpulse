@@ -213,6 +213,35 @@ function isValidTimeZone(tz?: string): boolean {
   }
 }
 
+export function isSafeWebhookUrl(urlString: string): boolean {
+  try {
+    const parsedUrl = new URL(urlString);
+
+    // Strictly enforce https
+    if (parsedUrl.protocol !== 'https:') {
+      return false;
+    }
+
+    const hostname = parsedUrl.hostname.toLowerCase();
+
+    // Block localhost and named local domains
+    if (hostname === 'localhost' || hostname.endsWith('.local') || hostname.endsWith('.internal')) {
+      return false;
+    }
+
+    // Block loopback, private IP ranges (RFC 1918), and link-local metadata (169.254.0.0/16)
+    const privateIpRegex =
+      /^(?:127\.|10\.|172\.(?:1[6-9]|2[0-9]|3[01])\.|192\.168\.|169\.254\.|0\.)/;
+    if (privateIpRegex.test(hostname)) {
+      return false;
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const timeZoneParam = z
   .string()
   .optional()
@@ -1234,6 +1263,23 @@ export const animatedStreakParamsSchema = baseStreakParamsSchema
     path: ['to'],
   });
 
+export const cicdAlertSchema = z.object({
+  repository: z.string().min(1, 'Repository is required'),
+  webhookUrl: z
+    .string()
+    .url('Must be a valid URL')
+    .optional()
+    .refine((url) => !url || isSafeWebhookUrl(url), {
+      message:
+        'Invalid webhookUrl: Must be a public HTTPS endpoint and cannot target local or private network addresses.',
+    }),
+  enabled: z.boolean().optional().default(true),
+  onFailure: z.boolean().optional().default(true),
+  onSuccess: z.boolean().optional().default(false),
+  email: z.string().email('Invalid email address').optional(),
+});
+
+export type CicdAlertInput = z.infer<typeof cicdAlertSchema>;
 export type StreakParams = z.infer<typeof streakParamsSchema>;
 export type AnimatedStreakParams = z.infer<typeof animatedStreakParamsSchema>;
 export type GithubParams = z.infer<typeof githubParamsSchema>;
