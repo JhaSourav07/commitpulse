@@ -954,13 +954,12 @@ function buildErrorResponse(
     if (isRateLimit) {
       jsonErrorHeaders['Retry-After'] = '60';
     }
-    return NextResponse.json(
-      { error: message },
-      {
-        status,
-        headers: jsonErrorHeaders,
-      }
-    );
+    const errorBody =
+      status === 500 ? { error: 'upstream_failure', code: 'GITHUB_API_ERROR' } : { error: message };
+    return NextResponse.json(errorBody, {
+      status,
+      headers: jsonErrorHeaders,
+    });
   }
 
   const isNotFound =
