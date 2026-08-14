@@ -145,7 +145,7 @@ async function DashboardContent({
   } catch {
     return notFound();
   }
-  
+
   if (fallbackProfile.type === 'Organization') {
     redirect(`/dashboard/org/${username}`);
   }

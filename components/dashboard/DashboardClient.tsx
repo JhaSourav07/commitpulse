@@ -344,10 +344,10 @@ export default function DashboardClient({
     () => false,
     () => (process.env.NODE_ENV === 'test' ? false : true)
   );
-  
+
   // Use React.use() if a promise is provided, otherwise use the direct object (for tests)
   const initialData = initialDataProp || use(initialDataPromise!);
-  
+
   const [secondUserData, setSecondUserData] = useState<DashboardData | null>(compareData);
   const [activeTab, setActiveTab] = useState<'overview' | 'pr-insights' | 'ci-analytics'>(
     'overview'
