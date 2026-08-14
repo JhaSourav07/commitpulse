@@ -63,7 +63,7 @@ export function getAuthorLocalHour(isoDate: string): number {
  * This converts the timestamp to the browser's local timezone.
  */
 export function getViewerLocalHour(isoDate: string): number {
-  if (!isoDate) return 0;
+  if (!isoDate || typeof isoDate !== 'string') return 0;
   const parsed = new Date(isoDate);
   return isNaN(parsed.getTime()) ? 0 : parsed.getHours();
 }

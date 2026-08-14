@@ -34,15 +34,57 @@ describe('dateHelpers', () => {
   });
 
   describe('getViewerLocalHour', () => {
-    it('returns a valid hour (0-23) for a valid ISO string', () => {
-      const hour = getViewerLocalHour('2024-03-10T15:30:00+02:00');
-      expect(hour).toBeGreaterThanOrEqual(0);
-      expect(hour).toBeLessThanOrEqual(23);
+    it('returns a valid hour (0-23) for valid ISO strings with timezone offsets', () => {
+      const hourPositive = getViewerLocalHour('2024-03-10T15:30:00+02:00');
+      expect(hourPositive).toBeGreaterThanOrEqual(0);
+      expect(hourPositive).toBeLessThanOrEqual(23);
+
+      const hourNegative = getViewerLocalHour('2024-03-10T08:15:00-05:00');
+      expect(hourNegative).toBeGreaterThanOrEqual(0);
+      expect(hourNegative).toBeLessThanOrEqual(23);
+
+      const hourUtc = getViewerLocalHour('2024-03-10T00:45:00Z');
+      expect(hourUtc).toBeGreaterThanOrEqual(0);
+      expect(hourUtc).toBeLessThanOrEqual(23);
     });
 
-    it('returns 0 for invalid strings', () => {
-      expect(getViewerLocalHour('invalid-date')).toBe(0);
+    it('returns a valid hour (0-23) for partial ISO date strings', () => {
+      const hourDateOnly = getViewerLocalHour('2024-03-10');
+      expect(hourDateOnly).toBeGreaterThanOrEqual(0);
+      expect(hourDateOnly).toBeLessThanOrEqual(23);
+
+      const hourYearMonth = getViewerLocalHour('2024-03');
+      expect(hourYearMonth).toBeGreaterThanOrEqual(0);
+      expect(hourYearMonth).toBeLessThanOrEqual(23);
+    });
+
+    it('returns 0 for empty string', () => {
       expect(getViewerLocalHour('')).toBe(0);
+    });
+
+    it('returns 0 for date strings with invalid characters', () => {
+      expect(getViewerLocalHour('invalid-date')).toBe(0);
+      expect(getViewerLocalHour('2024-03-XX')).toBe(0);
+      expect(getViewerLocalHour('hello world')).toBe(0);
+      expect(getViewerLocalHour('2024-03-10T15:30:00XYZ')).toBe(0);
+    });
+
+    it('returns 0 for incomplete or out-of-range ISO strings', () => {
+      expect(getViewerLocalHour('2024-03-10T')).toBe(0);
+      expect(getViewerLocalHour('2024-13-99T25:99:00')).toBe(0);
+    });
+
+    it('returns 0 for invalid very old dates before year 0', () => {
+      expect(getViewerLocalHour('-9999999-01-01')).toBe(0);
+    });
+
+    it('returns 0 for future dates far beyond reasonable ranges', () => {
+      expect(getViewerLocalHour('999999999-01-01')).toBe(0);
+    });
+
+    it('returns 0 for non-string, null, or undefined inputs', () => {
+      expect(getViewerLocalHour(null as unknown as string)).toBe(0);
+      expect(getViewerLocalHour(undefined as unknown as string)).toBe(0);
     });
   });
 
