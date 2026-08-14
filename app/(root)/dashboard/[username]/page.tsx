@@ -136,35 +136,28 @@ async function DashboardContent({
   const session = await auth();
   const sessionUsername = (session?.user as { username?: string })?.username ?? null;
 
-  let data;
-
+  let fallbackProfile;
   try {
-    data = await getFullDashboardData(username, {
+    fallbackProfile = await fetchUserProfile(username, {
       bypassCache,
-      from: period.from,
-      to: period.to,
-      rangeLabel: period.label,
       token: userToken,
-      excludeBots,
     });
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('not found')) {
-      let fallbackProfile;
-      try {
-        fallbackProfile = await fetchUserProfile(username, {
-          bypassCache,
-          token: userToken,
-        });
-      } catch {
-        return notFound();
-      }
-      if (fallbackProfile.type === 'Organization') {
-        redirect(`/dashboard/org/${username}`);
-      }
-      return notFound();
-    }
-    throw error;
+  } catch {
+    return notFound();
   }
+  
+  if (fallbackProfile.type === 'Organization') {
+    redirect(`/dashboard/org/${username}`);
+  }
+
+  let data = getFullDashboardData(username, {
+    bypassCache,
+    from: period.from,
+    to: period.to,
+    rangeLabel: period.label,
+    token: userToken,
+    excludeBots,
+  });
 
   let allRepos: RepoActivityInfo[] = [];
   try {
@@ -196,7 +189,7 @@ async function DashboardContent({
     <DashboardPageWrapper>
       <EducationalCurveTracker username={username} />
       <DashboardClient
-        initialData={data}
+        initialDataPromise={data}
         allRepoActivity={allRepos}
         username={username}
         compareData={compareData}

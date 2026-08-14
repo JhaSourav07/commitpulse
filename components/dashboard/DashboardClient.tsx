@@ -1,7 +1,7 @@
 'use client';
 
 import { copyToClipboard } from '@/utils/clipboard';
-import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
+import { useState, useRef, useEffect, useCallback, useSyncExternalStore, use } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import DashboardSkeleton from './DashboardSkeleton';
@@ -107,8 +107,9 @@ export interface DashboardData {
 }
 
 interface DashboardClientProps {
-  initialData: DashboardData;
-  allRepoActivity?: RepoActivityInfo[];
+  initialDataPromise?: Promise<DashboardData>;
+  initialData?: DashboardData;
+  allRepoActivity: RepoActivityInfo[];
   username: string;
   compareData?: DashboardData | null;
   period: DashboardPeriod;
@@ -330,7 +331,8 @@ function getPersonalityTags(
 }
 
 export default function DashboardClient({
-  initialData,
+  initialDataPromise,
+  initialData: initialDataProp,
   allRepoActivity = [],
   username,
   compareData = null,
@@ -342,6 +344,10 @@ export default function DashboardClient({
     () => false,
     () => (process.env.NODE_ENV === 'test' ? false : true)
   );
+  
+  // Use React.use() if a promise is provided, otherwise use the direct object (for tests)
+  const initialData = initialDataProp || use(initialDataPromise!);
+  
   const [secondUserData, setSecondUserData] = useState<DashboardData | null>(compareData);
   const [activeTab, setActiveTab] = useState<'overview' | 'pr-insights' | 'ci-analytics'>(
     'overview'
