@@ -1,6 +1,5 @@
 import { DistributedCache } from '@/lib/cache';
 import { redactSecrets } from '@/lib/secretScanner';
-import type { Repository } from '@/types/ci-analytics';
 
 interface WebhookPayload {
   action?: string;
