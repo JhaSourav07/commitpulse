@@ -5,14 +5,14 @@ import { isBotAuthor } from '@/lib/bot-filter';
 import dbConnect from '@/lib/mongodb';
 import { User } from '@/models/User';
 
-interface ContributorWeekData {
+export interface ContributorWeekData {
   w: number; // week timestamp (Unix)
   a: number; // additions
   d: number; // deletions
   c: number; // commits
 }
 
-interface ContributorStats {
+export interface ContributorStats {
   author: { login: string; avatar_url: string };
   weeks: ContributorWeekData[];
   total: number;
@@ -222,12 +222,9 @@ async function analyzeRepositoryUncached(
 
     // Get the last 12 weeks of contributions, filtering out vacation weeks
     const allRecentWeeks = c.weeks.slice(-12);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const recentWeeks = allRecentWeeks.filter((w: any) => !isWeekVacation(w.w, userVacationDates));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const recentTrend = recentWeeks.map((w: any) => w.c || 0);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const recentAdditionsTrend = recentWeeks.map((w: any) => w.a || 0);
+    const recentWeeks = allRecentWeeks.filter((w) => !isWeekVacation(w.w, userVacationDates));
+    const recentTrend = recentWeeks.map((w) => w.c || 0);
+    const recentAdditionsTrend = recentWeeks.map((w) => w.a || 0);
 
     // Calculate metrics over last 12 weeks
     let activeWeeks = 0;
@@ -236,8 +233,7 @@ async function analyzeRepositoryUncached(
     let maxConsecutiveHigh = 0;
     let restWeeks = 0;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    recentWeeks.forEach((w: any) => {
+    recentWeeks.forEach((w) => {
       const commits = w.c || 0;
       const additions = w.a || 0;
 
