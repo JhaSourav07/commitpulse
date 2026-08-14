@@ -177,12 +177,6 @@ describe('ContactPage', () => {
     });
   });
 
-  it('renders the "Back to Home" link pointing to "/"', () => {
-    render(<ContactPage />);
-    const backLink = screen.getByRole('link', { name: /back to home/i });
-    expect(backLink).toHaveAttribute('href', '/');
-  });
-
   it('renders all four social media links', () => {
     render(<ContactPage />);
     // The page renders social platform links (button row + info card),

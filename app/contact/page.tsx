@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { FaGithub, FaDiscord, FaLinkedin } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
+import { Footer } from '../components/Footer';
 
 // SEO: page-level metadata is declared in the root layout.tsx since this is
 // a 'use client' component. Add a /contact entry to layout metadata if needed.
@@ -141,7 +142,7 @@ function Field({ id, label, error, required, children }: FieldProps) {
       <label htmlFor={id} className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
         {label}
         {required && (
-          <span className="ml-1 text-teal-500" aria-hidden="true">
+          <span className="ml-1 text-emerald-600 dark:text-emerald-400" aria-hidden="true">
             *
           </span>
         )}
@@ -252,22 +253,17 @@ export default function ContactPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-white dark:from-zinc-950 dark:to-zinc-900 py-12 overflow-hidden">
-      <div className="mx-auto max-w-7xl px-6">
-        {/* Back link */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-        >
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors mb-10"
-          >
-            <ArrowLeft size={16} aria-hidden="true" />
-            Back to Home
-          </Link>
-        </motion.div>
+    <div className="min-h-screen bg-white dark:bg-[#0a0a0a] overflow-hidden">
+      <div className="mx-auto max-w-7xl pt-8 pb-20 px-6">
+        <div className="text-center">
+          <div className="inline-flex items-center text-center gap-2 px-4 py-1.5 bg-emerald-500/10 border border-emerald-500/25 font-medium rounded-full text-sm mb-6">
+            <MessageCircle
+              className="w-5 h-5 text-emerald-600 dark:text-emerald-400"
+              aria-hidden="true"
+            />
+            <span className="text-emerald-600 dark:text-emerald-400 uppercase">Contact Us</span>
+          </div>
+        </div>
 
         <div className="grid lg:grid-cols-2 gap-16 items-start">
           {/* ═══ LEFT COLUMN — Hero + Info ══════════════════════════════════ */}
@@ -275,29 +271,19 @@ export default function ContactPage() {
             initial={{ opacity: 0, x: -40 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.7 }}
-            className="lg:sticky lg:top-24 lg:self-start space-y-10"
+            className="lg:sticky lg:self-start space-y-10 text-center lg:text-left"
           >
             {/* Hero text */}
             <div>
-              <div className="inline-flex items-center gap-3 px-4 py-2 bg-teal-100 dark:bg-teal-950 rounded-full mb-6">
-                <MessageCircle
-                  className="w-5 h-5 text-teal-600 dark:text-teal-400"
-                  aria-hidden="true"
-                />
-                <span className="text-sm font-medium text-teal-700 dark:text-teal-300">
-                  Contact Us
-                </span>
-              </div>
-
               <h1 className="text-5xl md:text-6xl font-bold text-black dark:text-white leading-tight">
                 Let&apos;s start a
                 <br />
-                <span className="bg-gradient-to-r from-teal-500 to-violet-500 bg-clip-text text-transparent">
+                <span className="bg-linear-to-r from-teal-500 to-violet-500 bg-clip-text text-transparent">
                   conversation.
                 </span>
               </h1>
 
-              <p className="mt-6 text-xl text-zinc-600 dark:text-zinc-400 max-w-md">
+              <p className="mt-6 mx-auto lg:mx-0 text-xl text-zinc-600 dark:text-zinc-400 max-w-md">
                 Have a question, feature idea, or found a bug? Reach out — we respond to every
                 message.
               </p>
@@ -306,8 +292,12 @@ export default function ContactPage() {
             {/* Contact info card */}
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8 space-y-6 shadow-sm">
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-10 h-10 rounded-2xl bg-teal-500/10 flex items-center justify-center">
-                  <Mail className="text-teal-500 dark:text-teal-400" size={20} aria-hidden="true" />
+                <div className="shrink-0 w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+                  <Mail
+                    className="text-emerald-600 dark:text-emerald-400"
+                    size={20}
+                    aria-hidden="true"
+                  />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Email</p>
@@ -321,7 +311,7 @@ export default function ContactPage() {
               </div>
 
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-10 h-10 rounded-2xl bg-violet-500/10 flex items-center justify-center">
+                <div className="shrink-0 w-10 h-10 rounded-2xl bg-violet-500/10 flex items-center justify-center">
                   <FaDiscord
                     className="text-violet-500 dark:text-violet-400"
                     size={20}
@@ -344,7 +334,7 @@ export default function ContactPage() {
               </div>
 
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0 w-10 h-10 rounded-2xl bg-zinc-500/10 flex items-center justify-center">
+                <div className="shrink-0 w-10 h-10 rounded-2xl bg-zinc-500/10 flex items-center justify-center">
                   <FaGithub
                     className="text-zinc-500 dark:text-zinc-400"
                     size={20}
@@ -369,7 +359,7 @@ export default function ContactPage() {
 
             {/* Social links */}
             <div>
-              <p className="text-xs uppercase tracking-widest text-zinc-500 dark:text-zinc-500 mb-4">
+              <p className="text-xs uppercase tracking-widest text-zinc-500 dark:text-zinc-500 mb-4 text-left">
                 Find us online
               </p>
               <div className="flex flex-wrap gap-3">
@@ -408,9 +398,9 @@ export default function ContactPage() {
                     transition={{ duration: 0.4 }}
                     className="flex flex-col items-center text-center py-12 gap-6"
                   >
-                    <div className="w-20 h-20 rounded-full bg-teal-500/10 flex items-center justify-center">
+                    <div className="w-20 h-20 rounded-full bg-emerald-500/10 flex items-center justify-center">
                       <CheckCircle2
-                        className="text-teal-500 dark:text-teal-400"
+                        className="text-emerald-600 dark:text-emerald-400"
                         size={40}
                         aria-hidden="true"
                       />
@@ -449,7 +439,9 @@ export default function ContactPage() {
                         Send us a message
                       </h2>
                       <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                        Fields marked with <span className="text-teal-500">*</span> are required.
+                        Fields marked with{' '}
+                        <span className="text-emerald-600 dark:text-emerald-400">*</span> are
+                        required.
                       </p>
                     </div>
 
@@ -590,6 +582,10 @@ export default function ContactPage() {
             </div>
           </motion.div>
         </div>
+      </div>
+
+      <div className="mx-auto max-w-7xl px-6 pb-8">
+        <Footer />
       </div>
     </div>
   );
