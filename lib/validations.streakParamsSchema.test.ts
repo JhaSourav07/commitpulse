@@ -65,15 +65,24 @@ describe('streakParamsSchema', () => {
     expect(result.success).toBe(true);
   });
 
+  it('accepts input with org but missing user', () => {
+    const result = streakParamsSchema.safeParse({ org: 'github' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.org).toBe('github');
+      expect(result.data.user).toBe(''); // default empty string
+    }
+  });
+
   // ── Invalid / negative cases ──────────────────────────────────────────────
 
-  it('fails when user is missing', () => {
+  it('fails when both user and org are missing', () => {
     const result = streakParamsSchema.safeParse({});
     expect(result.success).toBe(false);
   });
 
-  it('fails when user is an empty string', () => {
-    const result = streakParamsSchema.safeParse({ user: '' });
+  it('fails when user and org are empty strings', () => {
+    const result = streakParamsSchema.safeParse({ user: '', org: '' });
     expect(result.success).toBe(false);
   });
 

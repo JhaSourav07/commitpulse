@@ -197,6 +197,24 @@ describe('GET /api/streak', () => {
       expect(response.headers.get('Content-Type')).toContain('image/svg+xml');
     });
 
+    it('returns JSON 400 when the user parameter is missing and format=json', async () => {
+      const response = await GET(makeRequest({ format: 'json' }));
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body).toHaveProperty('error');
+      expect(body.error).toContain('Missing user parameter');
+      expect(response.headers.get('Content-Type')).toContain('application/json');
+    });
+
+    it('returns 404 JSON for a nonexistent user when format=json', async () => {
+      vi.mocked(fetchGitHubContributions).mockRejectedValue(new Error('Could not resolve to a User with the login of \'nonexistentuser\''));
+      const response = await GET(makeRequest({ user: 'nonexistentuser', format: 'json' }));
+      expect(response.status).toBe(404);
+      const body = await response.json();
+      expect(body).toHaveProperty('error');
+      expect(response.headers.get('Content-Type')).toContain('application/json');
+    });
+
     it('returns 400 when org parameter contains spaces and invalid characters', async () => {
       const response = await GET(
         makeRequest({ user: 'octocat', org: 'invalid_org_name_with_spaces' })

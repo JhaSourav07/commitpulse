@@ -231,8 +231,9 @@ const baseStreakParamsSchema = z.object({
   // Required — missing user surfaces as "Missing" to match existing tests
   user: z
     .string({ error: 'Missing user parameter' })
-    .min(1, { message: 'Missing user parameter' })
+    .default('')
     .superRefine((val, ctx) => {
+      if (val === '') return;
       const users = val.split(',').map((u) => u.trim());
       if (users.length === 0) {
         ctx.addIssue({
@@ -656,6 +657,10 @@ const baseStreakParamsSchema = z.object({
 const TWO_YEARS_MS = 2 * 365.25 * 24 * 60 * 60 * 1000;
 
 export const streakParamsSchema = baseStreakParamsSchema
+  .refine(
+    (data) => (data.user && data.user.trim().length > 0) || (data.org && data.org.trim().length > 0),
+    { message: 'Missing user parameter', path: ['user'] }
+  )
   .refine((data) => !data.from || !data.to || Date.parse(data.from) <= Date.parse(data.to), {
     message: '"to" date must be after or equal to "from" date',
     path: ['to'],
@@ -1203,6 +1208,10 @@ export const animatedStreakParamsSchema = baseStreakParamsSchema
       .optional()
       .transform((val) => val || 'rise'),
   })
+  .refine(
+    (data) => (data.user && data.user.trim().length > 0) || (data.org && data.org.trim().length > 0),
+    { message: 'Missing user parameter', path: ['user'] }
+  )
   .refine((data) => !data.from || !data.to || Date.parse(data.from) <= Date.parse(data.to), {
     message: '"to" date must be after or equal to "from" date',
     path: ['to'],

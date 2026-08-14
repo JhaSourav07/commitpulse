@@ -99,6 +99,21 @@ export async function GET(request: Request) {
         Object.values(fieldErrors.fieldErrors).flat()[0] ??
         fieldErrors.formErrors[0] ??
         'Invalid parameters';
+
+      if (searchParams.get('format') === 'json') {
+        return NextResponse.json(
+          { error: firstError },
+          {
+            status: 400,
+            headers: {
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-store',
+              'X-Request-ID': requestId,
+            },
+          }
+        );
+      }
+
       const errTheme = resolveErrorTheme(searchParams);
       const errorSvg = buildInlineErrorSVG(firstError, {
         bg: errTheme.bg,
@@ -975,7 +990,7 @@ function buildErrorResponse(
   }
 
   if (isNotFound) {
-    const match = message.match(/"([^"]+)"|login of '([^']+)'/);
+    const match = rawMessage.match(/"([^"]+)"|login of '([^']+)'/);
     const fallbackTarget = parseResult.success
       ? parseResult.data.org || parseResult.data.user
       : 'unknown';
