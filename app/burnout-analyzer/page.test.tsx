@@ -23,8 +23,8 @@ vi.mock('next/navigation', () => ({
 vi.mock('framer-motion', async () => {
   const actual = await vi.importActual('framer-motion');
   return {
-    ...(actual as any),
-    AnimatePresence: ({ children }: any) => <>{children}</>,
+    ...(actual as object),
+    AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   };
 });
 
@@ -125,7 +125,7 @@ describe('BurnoutAnalyzerPage repository input handling', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
     vi.spyOn(window.history, 'length', 'get').mockReturnValue(2);
-    vi.spyOn(window.history, 'back').mockImplementation(mockHistoryBack as any);
+    vi.spyOn(window.history, 'back').mockImplementation(mockHistoryBack);
     vi.spyOn(window.history, 'pushState').mockImplementation(vi.fn());
     vi.spyOn(document, 'referrer', 'get').mockReturnValue('http://localhost/burnout-analyzer');
 
@@ -160,7 +160,7 @@ describe('BurnoutAnalyzerPage repository input handling', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
     vi.spyOn(window.history, 'length', 'get').mockReturnValue(1);
-    vi.spyOn(window.history, 'back').mockImplementation(mockHistoryBack as any);
+    vi.spyOn(window.history, 'back').mockImplementation(mockHistoryBack);
     vi.spyOn(window.history, 'pushState').mockImplementation(vi.fn());
     vi.spyOn(document, 'referrer', 'get').mockReturnValue('http://localhost/another-page');
 

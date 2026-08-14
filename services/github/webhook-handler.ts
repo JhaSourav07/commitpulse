@@ -1,6 +1,6 @@
 import { DistributedCache } from '@/lib/cache';
 import { redactSecrets } from '@/lib/secretScanner';
-import type { CIWorkflowRun, CIInsights } from '@/types/ci-analytics';
+import type { Repository } from '@/types/ci-analytics';
 
 interface WebhookPayload {
   action?: string;
@@ -226,7 +226,7 @@ ${Object.entries(event.details)
   .join('\n')}
     `;
 
-    console.log(`Email alert would be sent to ${email}:`, { subject, body });
+    console.info(`Email alert would be sent to ${email}:`, { subject, body });
   } catch (error) {
     console.error('Failed to send email alert:', error);
   }

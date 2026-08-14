@@ -4,7 +4,6 @@
 // Ensures that timezone-sensitive tests produce consistent results
 // regardless of the system timezone (e.g., UTC on CI vs local dev timezone).
 
-import { vi } from 'vitest';
 
 /**
  * A map of IANA timezone identifiers to their UTC offsets in minutes.
