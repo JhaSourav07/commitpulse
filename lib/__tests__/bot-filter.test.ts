@@ -14,10 +14,12 @@ vi.mock('node:fs', () => ({
   },
 }));
 
-import { isBotAuthor, getIgnoredAuthors } from '../bot-filter';
+import { isBotAuthor, getIgnoredAuthors, __resetIgnoredAuthorsCacheForTests } from '../bot-filter';
 
 describe('Bot Filter Utility', () => {
   beforeEach(() => {
+    // Reset cache before every test so mocked FS changes apply
+    __resetIgnoredAuthorsCacheForTests();
     vi.clearAllMocks();
   });
 
@@ -65,5 +67,30 @@ describe('Bot Filter Utility', () => {
 
     expect(getIgnoredAuthors()).toEqual([]);
     expect(isBotAuthor('some-random-user')).toBe(false);
+  });
+
+  describe('[Bug fix] getIgnoredAuthors caching', () => {
+    it('only reads the config file from disk once across multiple calls', () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue(JSON.stringify({ ignored_authors: ['some-bot'] }));
+
+      getIgnoredAuthors();
+      getIgnoredAuthors();
+      getIgnoredAuthors();
+
+      // Verifies the file system is only hit once
+      expect(mockReadFileSync).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns the same cached result on subsequent calls', () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReadFileSync.mockReturnValue(JSON.stringify({ ignored_authors: ['bot-one'] }));
+
+      const first = getIgnoredAuthors();
+      const second = getIgnoredAuthors();
+
+      expect(first).toEqual(['bot-one']);
+      expect(second).toBe(first); // same array reference, confirming cache reuse
+    });
   });
 });

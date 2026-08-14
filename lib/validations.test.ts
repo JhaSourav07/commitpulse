@@ -11,6 +11,7 @@ import {
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { wakatimeParamsSchema } from './validations';
 
 function parse(params: Record<string, string>) {
   return streakParamsSchema.parse({ user: 'octocat', ...params });
@@ -1679,6 +1680,32 @@ describe('githubUsernameSchema regression tests', () => {
   });
 });
 
+// lib/validations.test.ts
+
+describe('[Bug fix] wakatimeParamsSchema height minimum', () => {
+  it('rejects a height below 150 to avoid clipping the language legend', () => {
+    const result = wakatimeParamsSchema.safeParse({ height: '80' });
+
+    // Zod should reject the value because it is below the 150 minimum
+    expect(result.success).toBe(false);
+
+    if (!result.success) {
+      // Optional: Verify it failed specifically because of the height constraint
+      const heightError = result.error.issues.find((issue) => issue.path.includes('height'));
+      expect(heightError).toBeDefined();
+    }
+  });
+
+  it('accepts height=150 unchanged (the known-good minimum)', () => {
+    const result = wakatimeParamsSchema.safeParse({ height: '150' });
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.height).toBe(150);
+    }
+  });
+});
+
 describe('streakParamsSchema — days parameter validation', () => {
   it('accepts days=365 (normal year)', () => {
     const result = streakParamsSchema.safeParse({ user: 'octocat', days: '365' });
@@ -1726,12 +1753,13 @@ describe('[Docs] customization.md documents every real `view` enum value', () =>
     'skyline',
     'languages',
     'constellation',
+    'weekday',
+    'punchcard',
     'radar',
     'doughnut',
     'pie',
     'activity_graph',
     'commit_clock',
-    'weekday',
   ];
 
   it('mentions every real view value at least once', () => {

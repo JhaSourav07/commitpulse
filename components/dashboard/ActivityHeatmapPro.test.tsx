@@ -3,6 +3,26 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import ActivityHeatmapPro from './ActivityHeatmapPro';
 
+const mockExportImage = vi.fn();
+vi.mock('@/hooks/useExportImage', () => ({
+  useExportImage: () => ({
+    exportImage: mockExportImage,
+    isExporting: false,
+    error: null,
+  }),
+}));
+
+vi.mock('@/utils/clipboard', () => ({
+  copyToClipboard: vi.fn().mockResolvedValue(true),
+}));
+
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
 vi.mock('framer-motion', () => ({
   motion: {
     div: ({ children, ...props }: any) => <div {...filterProps(props)}>{children}</div>,
@@ -164,5 +184,38 @@ describe('ActivityHeatmapPro Component', () => {
     // ArrowLeft moves 7 days left (index 7 -> index 0)
     fireEvent.keyDown(cell7, { key: 'ArrowLeft' });
     expect(document.activeElement).toBe(cell0);
+  });
+
+  it('renders export button and triggers image export actions', async () => {
+    render(<ActivityHeatmapPro {...baseProps} username="testuser" />);
+
+    const exportBtn = screen.getByRole('button', { name: /export activity heatmap/i });
+    expect(exportBtn).toBeDefined();
+
+    fireEvent.click(exportBtn);
+
+    const pngOption = screen.getByRole('menuitem', { name: /download png/i });
+    const pdfOption = screen.getByRole('menuitem', { name: /download pdf/i });
+    const svgOption = screen.getByRole('menuitem', { name: /download svg/i });
+
+    expect(pngOption).toBeDefined();
+    expect(pdfOption).toBeDefined();
+    expect(svgOption).toBeDefined();
+
+    fireEvent.click(pngOption);
+    expect(mockExportImage).toHaveBeenCalledWith('png');
+  });
+
+  it('copies share snapshot when share snapshot option is clicked', async () => {
+    const { copyToClipboard } = await import('@/utils/clipboard');
+    render(<ActivityHeatmapPro {...baseProps} username="testuser" />);
+
+    const exportBtn = screen.getByRole('button', { name: /export activity heatmap/i });
+    fireEvent.click(exportBtn);
+
+    const shareOption = screen.getByRole('menuitem', { name: /share snapshot/i });
+    fireEvent.click(shareOption);
+
+    expect(copyToClipboard).toHaveBeenCalled();
   });
 });

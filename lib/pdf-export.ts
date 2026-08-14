@@ -218,15 +218,21 @@ export async function exportSvgToPdf(
   const image = new Image();
 
   await new Promise<void>((resolve, reject) => {
-    image.onload = () => resolve();
-    image.onerror = (e) => reject(new Error(`Failed to load SVG image for PDF export: ${e}`));
-    image.src = dataUrl;
-
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       if (!image.complete) {
         reject(new Error('SVG image load timeout for PDF export'));
       }
     }, 5000);
+
+    image.onload = () => {
+      clearTimeout(timeoutId);
+      resolve();
+    };
+    image.onerror = (e) => {
+      clearTimeout(timeoutId);
+      reject(new Error(`Failed to load SVG image for PDF export: ${e}`));
+    };
+    image.src = dataUrl;
   });
 
   // Use 2x pixel density for a sharper PDF

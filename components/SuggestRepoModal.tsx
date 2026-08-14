@@ -15,6 +15,7 @@ export default function SuggestRepoModal({ isOpen, onClose, onSubmit }: SuggestR
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const modalRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   const handleClose = useCallback(() => {
     setRepoUrl('');
@@ -27,8 +28,37 @@ export default function SuggestRepoModal({ isOpen, onClose, onSubmit }: SuggestR
   useEffect(() => {
     if (!isOpen) return;
 
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      previousFocusRef.current = document.activeElement;
+    }
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') handleClose();
+      if (e.key === 'Escape') {
+        handleClose();
+        return;
+      }
+
+      if (e.key === 'Tab' && modalRef.current) {
+        const focusables = modalRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusables.length === 0) return;
+
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === first || document.activeElement === modalRef.current) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -38,9 +68,20 @@ export default function SuggestRepoModal({ isOpen, onClose, onSubmit }: SuggestR
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
-      modalRef.current?.focus();
+      setTimeout(() => {
+        if (modalRef.current) {
+          const firstInput = modalRef.current.querySelector<HTMLElement>('input');
+          if (firstInput) {
+            firstInput.focus();
+          } else {
+            modalRef.current.focus();
+          }
+        }
+      }, 30);
     } else {
-      document.body.style.overflow = '';
+      if (previousFocusRef.current) {
+        previousFocusRef.current.focus();
+      }
     }
     return () => {
       document.body.style.overflow = '';
@@ -198,6 +239,7 @@ export default function SuggestRepoModal({ isOpen, onClose, onSubmit }: SuggestR
             >
               Cancel
             </button>
+
             <button
               type="submit"
               disabled={!isFormValid || isSubmitting}

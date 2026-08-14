@@ -337,9 +337,6 @@ function isBoolean(v: unknown): v is boolean {
 function isFiniteNumber(v: unknown): v is number {
   return typeof v === 'number' && Number.isFinite(v);
 }
-function isNumericOrEmpty(v: unknown): v is number | '' {
-  return v === '' || (isFiniteNumber(v) && Number.isInteger(v));
-}
 
 /**
  * Default values used as fallbacks when an imported field is missing or invalid.
@@ -474,8 +471,20 @@ export function importConfig(
       ? (c.deltaFormat as DeltaFormat)
       : CONFIG_DEFAULTS.deltaFormat;
 
-  const badgeWidth = isNumericOrEmpty(c.badgeWidth) ? c.badgeWidth : CONFIG_DEFAULTS.badgeWidth;
-  const badgeHeight = isNumericOrEmpty(c.badgeHeight) ? c.badgeHeight : CONFIG_DEFAULTS.badgeHeight;
+  const badgeWidth =
+    c.badgeWidth === ''
+      ? ''
+      : isFiniteNumber(c.badgeWidth) && c.badgeWidth >= 100 && c.badgeWidth <= 1200
+        ? c.badgeWidth
+        : CONFIG_DEFAULTS.badgeWidth;
+
+  const badgeHeight =
+    c.badgeHeight === ''
+      ? ''
+      : isFiniteNumber(c.badgeHeight) && c.badgeHeight >= 80 && c.badgeHeight <= 800
+        ? c.badgeHeight
+        : CONFIG_DEFAULTS.badgeHeight;
+
   const grace =
     isFiniteNumber(c.grace) && c.grace >= 0 && c.grace <= 7 ? c.grace : CONFIG_DEFAULTS.grace;
 

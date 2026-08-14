@@ -38,7 +38,9 @@ export function coerceQueryParams(
 }
 
 export function toBooleanFlag(val?: string): boolean {
-  return val === 'true' || val === '1';
+  if (!val) return false;
+  const lower = val.toLowerCase();
+  return lower === 'true' || lower === '1' || lower === 'yes' || lower === 'on';
 }
 
 export function toGlowFlag(val?: string): boolean {
@@ -421,6 +423,30 @@ const baseStreakParamsSchema = z.object({
         return;
       }
     }),
+  compare_years: z
+    .string()
+    .optional()
+    .superRefine((val, ctx) => {
+      if (!val) return;
+      const years = val.split(',').map((y) => y.trim());
+      if (years.length !== 2) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            'compare_years must contain exactly two years separated by a comma (e.g., 2023,2024).',
+        });
+        return;
+      }
+      for (const y of years) {
+        if (!/^\\d{4}$/.test(y)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Invalid year parameter: ${y}. Must be a 4-digit year.`,
+          });
+          return;
+        }
+      }
+    }),
   from: z
     .string()
     .optional()
@@ -503,6 +529,7 @@ const baseStreakParamsSchema = z.object({
       'commit_clock',
       'weekday',
       'punchcard',
+      'techstack',
     ])
     .catch('default')
     .default('default'),
@@ -994,7 +1021,7 @@ export const wakatimeParamsSchema = z.object({
     })
     .transform((val) => (val ? sanitizeHexColor(val, '00ffaa') : undefined)),
   width: dimensionParam('width', 100, 1200).default(400),
-  height: dimensionParam('height', 80, 800).default(150),
+  height: dimensionParam('height', 150, 800).default(150),
   radius: z
     .string()
     .transform((val) => sanitizeRadius(val, 8))

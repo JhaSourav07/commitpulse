@@ -1,7 +1,7 @@
 import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { timingSafeEqual } from 'crypto';
-import { setAlertConfig } from '@/services/github/webhook-handler';
+import { setAlertConfig, isValidWebhookUrl } from '@/services/github/webhook-handler';
 
 export const runtime = 'nodejs';
 
@@ -50,7 +50,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Repository is required' }, { status: 400 });
     }
 
-    setAlertConfig(body.repository, {
+    if (body.webhookUrl && !isValidWebhookUrl(body.webhookUrl)) {
+      return NextResponse.json(
+        { error: 'Invalid webhookUrl: must be an https:// URL and not point to an internal host' },
+        { status: 400 }
+      );
+    }
+
+    // Await async call to prevent unhandled promise rejections and ensure write completes before responding
+    await setAlertConfig(body.repository, {
       enabled: body.enabled ?? true,
       onFailure: body.onFailure ?? true,
       onSuccess: body.onSuccess ?? false,

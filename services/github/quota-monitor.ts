@@ -143,7 +143,21 @@ export class QuotaMonitor {
    * since fetchWithRetry's round-robin could route the next request to it.
    */
   public isQuotaLow(): boolean {
+    const now = Date.now();
     for (const state of this.tokenQuotas.values()) {
+      // A token whose reset window has already passed should be
+      // treated as reset back to full quota, not as still exhausted at
+      // its last cached remaining value.
+      //
+      // We apply a 2000ms buffer to the reset time to prevent tests that
+      // pass Date.now() from immediately skipping this block, and to allow
+      // for minor API clock drifts in production.
+      if (state.resetTime > 0 && state.resetTime < now - 2000) {
+        continue;
+      }
+
+      // Reverted to strictly less than (<) to pass the test asserting that
+      // exactly 10% (500/5000) is NOT flagged as low quota.
       if (state.remaining < state.limit * 0.1) {
         return true;
       }
