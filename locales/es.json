@@ -35,7 +35,9 @@
     "faq": "Preguntas Frecuentes",
     "support": "Soporte",
     "privacy": "Política de Privacidad",
-    "terms": "Términos de Uso"
+    "terms": "Términos de Uso",
+    "login": "Iniciar sesión",
+    "signup": "Registrarse"
   },
   "faq": {
     "q1": "What is CommitPulse?",

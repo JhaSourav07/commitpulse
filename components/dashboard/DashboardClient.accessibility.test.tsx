@@ -167,7 +167,7 @@ describe('DashboardClient - Accessibility & Aria compliance (Variation 4)', () =
     expect(dialog).toHaveAttribute('aria-modal', 'true');
     expect(dialog).toHaveAttribute('aria-labelledby', 'compare-modal-title');
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByPlaceholderText('Enter GitHub Username');
     expect(input).toHaveAttribute('placeholder', 'Enter GitHub Username');
 
     const submitBtn = screen.getByRole('button', { name: /compare$/i });

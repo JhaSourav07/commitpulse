@@ -33,6 +33,12 @@ export function validateCriticalEnv(env: NodeJS.ProcessEnv = process.env): EnvVa
         'Generate one with: openssl rand -base64 32 ' +
         'and add it to your .env.local and deployment environment.'
     );
+  } else if (
+    authSecret === 'fallback-secret' ||
+    authSecret.toLowerCase().includes('fallback-secret') ||
+    ['secret', 'changeme', 'change-me', 'default-secret'].includes(authSecret.toLowerCase())
+  ) {
+    errors.push('AUTH_SECRET environment variable must be set to a secure value');
   } else if (authSecret.length < 32) {
     errors.push(
       `AUTH_SECRET is too short (${authSecret.length} chars). ` +
@@ -50,6 +56,12 @@ export function validateCriticalEnv(env: NodeJS.ProcessEnv = process.env): EnvVa
         'Generate one with: openssl rand -hex 32 ' +
         'and add it to your .env.local and deployment environment.'
     );
+  } else if (
+    encryptionKey === 'fallback-secret' ||
+    encryptionKey.toLowerCase().includes('fallback-secret') ||
+    ['secret', 'changeme', 'change-me', 'default-secret'].includes(encryptionKey.toLowerCase())
+  ) {
+    errors.push('ENCRYPTION_KEY environment variable must be set to a secure value');
   } else if (encryptionKey.length < 32) {
     errors.push(
       `ENCRYPTION_KEY is too short (${encryptionKey.length} chars). ` +

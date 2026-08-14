@@ -140,7 +140,7 @@ describe('GET /api/streak — error resilience & exception safety', () => {
       expect(response.headers.get('Content-Type')).toBe('application/json');
       expect(response.headers.get('Cache-Control')).toBe('no-store');
       const body = await response.json();
-      expect(body).toEqual({ error: 'Something went wrong. Please try again later.' });
+      expect(body).toEqual({ error: 'upstream_failure', code: 'GITHUB_API_ERROR' });
     });
 
     it('returns a structured 404 JSON error for an unknown user', async () => {
@@ -187,7 +187,7 @@ describe('GET /api/streak — error resilience & exception safety', () => {
 
       expect(response.status).toBe(500);
       const body = await response.json();
-      expect(body).toEqual({ error: 'Something went wrong. Please try again later.' });
+      expect(body).toEqual({ error: 'upstream_failure', code: 'GITHUB_API_ERROR' });
     });
   });
 

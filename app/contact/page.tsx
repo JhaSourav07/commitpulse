@@ -33,6 +33,7 @@ interface FormFields {
 interface FormErrors {
   fullName?: string;
   email?: string;
+  phone?: string;
   subject?: string;
   message?: string;
 }
@@ -97,12 +98,18 @@ function validate(fields: FormFields): FormErrors {
     errors.fullName = 'Full name is required.';
   } else if (fields.fullName.trim().length < 2) {
     errors.fullName = 'Name must be at least 2 characters.';
+  } else if (!/^[A-Za-z]+(?:[ '-][A-Za-z]+)*$/.test(fields.fullName.trim())) {
+    errors.fullName = 'Please enter a valid name.';
   }
 
   if (!fields.email.trim()) {
     errors.email = 'Email address is required.';
   } else if (!EMAIL_RE.test(fields.email.trim())) {
     errors.email = 'Please enter a valid email address.';
+  }
+
+  if (fields.phone.trim() && !/^\+?[0-9\s()-]{7,15}$/.test(fields.phone.trim())) {
+    errors.phone = 'Please enter a valid phone number.';
   }
 
   if (!fields.subject.trim()) {
@@ -497,7 +504,7 @@ export default function ContactPage() {
                     </Field>
 
                     {/* Phone — optional */}
-                    <Field id="contact-phone" label="Phone Number">
+                    <Field id="contact-phone" label="Phone Number" error={errors.phone}>
                       <div className="relative">
                         <Phone
                           size={16}

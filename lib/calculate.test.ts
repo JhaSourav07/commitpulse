@@ -1273,6 +1273,38 @@ describe('calculateStreak', () => {
     expect(resultMonday.currentStreak).toBe(2);
     expect(resultMonday.longestStreak).toBe(2);
   });
+
+  it('should reset currentStreak to 0 when gap exceeds grace period (Issue #8671)', () => {
+    // Build a calendar where the last contribution is several days in the past
+    const calendar = buildCalendar([
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0, // Week 1
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // Week 2 — long gap with zero contributions
+    ]);
+
+    // Evaluate with a grace period of 0, on a date that creates a large gap
+    const result = calculateStreak(
+      calendar,
+      'UTC',
+      new Date('2024-01-14T12:00:00Z') // 7-day gap from the last active day
+    );
+
+    // Because the gap exceeds Math.max(1, grace), todayIndex should resolve to -1
+    // and currentStreak must be correctly reported as 0 instead of falling back to lastIndex.
+    expect(result.currentStreak).toBe(0);
+    expect(result.longestStreak).toBe(5);
+  });
 });
 it('calculates streaks identically when weeks start on Sunday vs Monday formats', () => {
   const datePattern = [

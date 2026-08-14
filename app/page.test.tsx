@@ -217,4 +217,68 @@ describe('LandingPage', () => {
       expect(global.fetch).toHaveBeenCalled();
     });
   });
+
+  it('re-triggers badge generation and resolves loading state on subsequent clicks', async () => {
+    vi.spyOn(global, 'fetch').mockImplementation((url) => {
+      if (typeof url === 'string' && url.includes('/api/user-details')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              exists: true,
+              login: 'octocat',
+              name: 'The Octocat',
+              avatar_url: 'https://github.com/octocat.png',
+              public_repos: 10,
+              stats: { currentStreak: 5, longestStreak: 12, totalContributions: 150 },
+            }),
+        } as Response);
+      }
+      return Promise.resolve({ ok: true, text: () => Promise.resolve('<svg></svg>') } as Response);
+    });
+
+    render(<LandingPage />);
+
+    const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
+
+    fireEvent.change(input, {
+      target: { value: 'octocat' },
+    });
+
+    const generateButton = screen.getByRole('button', {
+      name: /Generate Badge/i,
+    });
+
+    // 1st click
+    await act(async () => {
+      fireEvent.click(generateButton);
+    });
+
+    let badgeImg = screen.getByTestId('badge-img') as HTMLImageElement;
+    expect(badgeImg).toBeInTheDocument();
+    const initialSrc = badgeImg.src;
+    expect(initialSrc).toContain('/api/streak?user=octocat');
+
+    // Simulate initial onLoad
+    await act(async () => {
+      fireEvent.load(badgeImg);
+    });
+
+    // 2nd click with same username to re-trigger generation
+    await act(async () => {
+      fireEvent.click(generateButton);
+    });
+
+    badgeImg = screen.getByTestId('badge-img') as HTMLImageElement;
+    const retriggeredSrc = badgeImg.src;
+    expect(retriggeredSrc).toContain('/api/streak?user=octocat&t=');
+
+    // Simulate second onLoad
+    await act(async () => {
+      fireEvent.load(badgeImg);
+    });
+
+    // Verify SVG export buttons appear after loaded
+    expect(screen.getByRole('button', { name: /Download SVG/i })).toBeInTheDocument();
+  });
 });

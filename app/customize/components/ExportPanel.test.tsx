@@ -1,8 +1,16 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent, act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ExportPanel } from './ExportPanel';
 
 describe('ExportPanel', () => {
+  beforeEach(() => {
+    // Mock URL methods for JSDOM download triggers
+    if (typeof window.URL.createObjectURL === 'undefined') {
+      window.URL.createObjectURL = vi.fn(() => 'blob:mock');
+      window.URL.revokeObjectURL = vi.fn();
+    }
+  });
+
   const renderPanel = (overrides?: Partial<Parameters<typeof ExportPanel>[0]>) => {
     const onFormatChange = vi.fn();
     const onCopy = vi.fn();
@@ -146,5 +154,63 @@ describe('ExportPanel', () => {
     expect(pngBtn.disabled).toBe(true);
     expect(webpBtn.disabled).toBe(true);
     expect(pdfBtn.disabled).toBe(true);
+  });
+
+  it('extracts URL correctly and triggers download for TSX format', async () => {
+    const fetchSpy = vi
+      .spyOn(global, 'fetch')
+      .mockResolvedValue(new Response('<svg></svg>', { status: 200 }));
+
+    const { container } = render(
+      <ExportPanel
+        format="tsx"
+        snippet='<img src="https://example.com/badge.svg" alt="Badge" />'
+        copied={false}
+        copyStatusMessage="TSX snippet copied to clipboard."
+        hasUsername={true}
+        username="octocat"
+        onFormatChange={vi.fn()}
+        onCopy={vi.fn()}
+      />
+    );
+
+    const svgBtn = container.querySelector('#download-svg-btn') as HTMLButtonElement;
+
+    await act(async () => {
+      fireEvent.click(svgBtn);
+    });
+
+    expect(fetchSpy).toHaveBeenCalledWith(expect.stringContaining('https://example.com/badge.svg'));
+
+    fetchSpy.mockRestore();
+  });
+
+  it('extracts URL correctly for HTML format', async () => {
+    const fetchSpy = vi
+      .spyOn(global, 'fetch')
+      .mockResolvedValue(new Response('<svg></svg>', { status: 200 }));
+
+    const { container } = render(
+      <ExportPanel
+        format="html"
+        snippet='<img src="https://example.com/badge.svg" alt="Badge" />'
+        copied={false}
+        copyStatusMessage="HTML snippet copied to clipboard."
+        hasUsername={true}
+        username="octocat"
+        onFormatChange={vi.fn()}
+        onCopy={vi.fn()}
+      />
+    );
+
+    const svgBtn = container.querySelector('#download-svg-btn') as HTMLButtonElement;
+
+    await act(async () => {
+      fireEvent.click(svgBtn);
+    });
+
+    expect(fetchSpy).toHaveBeenCalledWith(expect.stringContaining('https://example.com/badge.svg'));
+
+    fetchSpy.mockRestore();
   });
 });

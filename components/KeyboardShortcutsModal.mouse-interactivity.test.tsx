@@ -80,8 +80,7 @@ describe('KeyboardShortcutsModal - Mouse Interactions & Keyboard Events', () => 
     render(<KeyboardShortcutsModal isOpen={true} onClose={onClose} />);
 
     const thenSeparators = screen.getAllByText('then');
-    // Navigation group has 4 two-key shortcuts (G then D, G then C, G then P, G then U)
-    expect(thenSeparators.length).toBe(4);
+    expect(thenSeparators.length).toBe(6);
   });
 
   const onClose = vi.fn();

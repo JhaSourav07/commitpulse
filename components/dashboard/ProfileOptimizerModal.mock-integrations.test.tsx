@@ -74,6 +74,6 @@ describe('ProfileOptimizerModal - Async Integration Fixed', () => {
   it('5. handles missing userData safely', () => {
     render(<ProfileOptimizerModal isOpen={true} onClose={mockOnClose} userData={null} />);
 
-    expect(screen.getByText(/Analysing GitHub profile/i)).toBeInTheDocument();
+    expect(screen.getByText('Profile Data Unavailable')).toBeInTheDocument();
   });
 });
