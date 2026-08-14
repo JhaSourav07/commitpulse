@@ -45,15 +45,16 @@ describe('fonts.isPredefinedFontKey', () => {
   });
 });
 
-describe('DEFAULT_FONTS_BASE64 — structural sanity (bypasses the NODE_ENV=test branch)', () => {
+describe('DEFAULT_FONTS_BASE64 — structural sanity', () => {
   it('is a non-empty string of substantial length', () => {
     expect(typeof DEFAULT_FONTS_BASE64).toBe('string');
     expect(DEFAULT_FONTS_BASE64.length).toBeGreaterThan(1000);
   });
 
-  it('contains valid @font-face declarations for the app fonts', () => {
+  it('contains valid @font-face declarations for the app fonts (Syncopate + Space Grotesk)', () => {
     expect(DEFAULT_FONTS_BASE64).toContain('@font-face');
     expect(DEFAULT_FONTS_BASE64).toContain("font-family: 'Space Grotesk'");
+    expect(DEFAULT_FONTS_BASE64).toContain("font-family: 'Syncopate'");
   });
 
   it('contains base64-encoded woff2 font data', () => {
@@ -68,39 +69,31 @@ describe('DEFAULT_FONTS_BASE64 — structural sanity (bypasses the NODE_ENV=test
   });
 });
 
-describe('[Bug fix] real font-embedding path is actually exercised outside NODE_ENV=test', () => {
-  it('generateSVG embeds real @font-face CSS (not the test-only Google Fonts URL) when NODE_ENV is not "test"', () => {
-    const originalEnv = process.env.NODE_ENV;
+describe('Zero external font request invariant for default SVGs', () => {
+  it('generateSVG embeds real @font-face CSS and zero Google Fonts @import for default fonts', () => {
+    const mockStats: StreakStats = {
+      currentStreak: 5,
+      longestStreak: 10,
+      totalContributions: 100,
+      todayDate: '2024-06-12',
+    };
+    const mockCalendar: ContributionCalendar = {
+      totalContributions: 10,
+      weeks: [{ contributionDays: [{ contributionCount: 5, date: '2024-06-12' }] }],
+    };
 
-    // @ts-expect-error -- intentionally overriding for this single test
-    process.env.NODE_ENV = 'production';
+    const mockParams = {
+      user: 'testuser',
+      speed: '8s',
+      scale: 'linear',
+    } as unknown as BadgeParams;
 
-    try {
-      const mockStats: StreakStats = {
-        currentStreak: 5,
-        longestStreak: 10,
-        totalContributions: 100,
-        todayDate: '2024-06-12',
-      };
-      const mockCalendar: ContributionCalendar = {
-        totalContributions: 10,
-        weeks: [{ contributionDays: [{ contributionCount: 5, date: '2024-06-12' }] }],
-      };
+    const svg = generateSVG(mockStats, mockParams, mockCalendar);
 
-      // FIX: Force the type cast to bypass missing properties entirely
-      const mockParams = {
-        user: 'testuser',
-        speed: '8s',
-        scale: 'linear',
-      } as unknown as BadgeParams;
-
-      const svg = generateSVG(mockStats, mockParams, mockCalendar);
-
-      expect(svg).toContain('@font-face');
-      expect(svg).not.toContain('fonts.googleapis.com/css2?family=Syncopate');
-    } finally {
-      // @ts-expect-error -- restoring original value
-      process.env.NODE_ENV = originalEnv;
-    }
+    expect(svg).toContain('@font-face');
+    expect(svg).toContain("font-family: 'Syncopate'");
+    expect(svg).toContain("font-family: 'Space Grotesk'");
+    expect(svg).not.toContain('@import url');
+    expect(svg).not.toContain('fonts.googleapis.com');
   });
 });

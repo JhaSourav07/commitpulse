@@ -310,6 +310,7 @@ export default function LandingPageClient() {
 
   const [username, setUsername] = useState('');
   const [instantUsername, setInstantUsername] = useState('');
+  const [generationKey, setGenerationKey] = useState<number>(0);
   const [copied, setCopied] = useState(false);
 
   const [badgeResult, setBadgeResult] = useState<{
@@ -373,7 +374,9 @@ export default function LandingPageClient() {
     latestPreviewUsernameRef.current = previewUsername;
   }, [previewUsername]);
 
-  const badgeUrl = `/api/streak?user=${encodeURIComponent(previewUsername)}`;
+  const badgeUrl = `/api/streak?user=${encodeURIComponent(previewUsername)}${
+    generationKey ? `&t=${generationKey}` : ''
+  }`;
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://commitpulse.vercel.app').replace(
     /\/$/,
     ''
@@ -581,13 +584,15 @@ export default function LandingPageClient() {
     setUsername(name);
     setInstantUsername(name);
     setBadgeResult(null);
+    setGenerationKey((prev) => prev + 1);
   };
 
   const handleGenerate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (trimmedUsername.length > 0 && trimmedUsername !== previewUsername) {
+    if (trimmedUsername.length > 0) {
       setInstantUsername(trimmedUsername);
       setBadgeResult(null);
+      setGenerationKey((prev) => prev + 1);
       trackUser(trimmedUsername);
       addSearch(trimmedUsername);
     }
@@ -827,8 +832,20 @@ export default function LandingPageClient() {
                           className="w-6 h-6 rounded-full border border-emerald-500/20 object-cover"
                           onError={(e) => {
                             const img = e.currentTarget as HTMLImageElement;
-                            img.onerror = null;
-                            img.src = `https://github.com/${userDetails.login}.png`;
+                            if (img.dataset.fallbackAttempted === 'true') {
+                              img.style.display = 'none';
+                              return;
+                            }
+                            img.dataset.fallbackAttempted = 'true';
+                            const fallbackUrl = `https://github.com/${userDetails.login}.png`;
+                            if (
+                              img.src !== fallbackUrl &&
+                              !img.src.endsWith(`/${userDetails.login}.png`)
+                            ) {
+                              img.src = fallbackUrl;
+                            } else {
+                              img.style.display = 'none';
+                            }
                           }}
                         />
                         <div className="flex flex-col">

@@ -239,6 +239,56 @@ npm run dev
 
 Then visit: `http://localhost:3000/api/streak?user=YOUR_USERNAME`
 
+## 🐳 Docker
+
+CommitPulse includes Docker support for consistent local development and production deployments.
+
+### Prerequisites
+
+- Docker
+- Docker Compose
+
+### Local Development
+
+1. Copy the example environment file:
+
+```bash
+cp .env.local.example .env.local
+```
+
+2. Update the required environment variables in `.env.local` (such as `GITHUB_TOKEN`, `AUTH_SECRET`, and any optional integrations you plan to use).
+
+3. Start the application and MongoDB:
+
+```bash
+docker compose up --build
+```
+
+The application will be available at:
+
+```text
+http://localhost:3000
+```
+
+MongoDB is automatically provisioned through Docker Compose. The `MONGODB_URI` is overridden to use the local MongoDB container, so no additional database configuration is required.
+
+### Production
+
+Build the production image:
+
+```bash
+docker build -t commitpulse .
+```
+
+Run the container:
+
+```bash
+docker run \
+  --env-file .env.local \
+  -p 3000:3000 \
+  commitpulse
+```
+
 ### 🌐 Deploy to Vercel
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/JhaSourav07/commitpulse&env=GITHUB_PAT&envDescription=GitHub%20Personal%20Access%20Token%20with%20read%3Auser%20scope)

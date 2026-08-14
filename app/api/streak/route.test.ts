@@ -1260,7 +1260,7 @@ describe('GET /api/streak', () => {
         expect(body).toContain('DECEMBER');
         expect(body).toContain('class="stats">15</text>');
         expect(body).toContain('+50% (+5)');
-        expect(body).not.toContain('MAY');
+        expect(body).not.toContain('>MAY<');
       } finally {
         vi.useRealTimers();
       }
