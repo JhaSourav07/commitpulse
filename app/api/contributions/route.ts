@@ -94,7 +94,15 @@ export async function GET(request: Request) {
   if (!callerToken) {
     const rateLimitKey =
       ip && ip !== 'unknown' ? ip : `unknown:${request.headers.get('user-agent') ?? 'no-agent'}`;
-    const limitResult = await contributionsLimiter.checkWithResult(rateLimitKey);
+    const limitResult =
+      typeof contributionsLimiter.checkWithResult === 'function'
+        ? await contributionsLimiter.checkWithResult(rateLimitKey)
+        : {
+            success: await contributionsLimiter.check(rateLimitKey),
+            limit: 10,
+            remaining: 0,
+            reset: Date.now() + 60000,
+          };
     if (!limitResult.success) {
       return NextResponse.json(
         { error: 'Too many requests. Please try again later.' },

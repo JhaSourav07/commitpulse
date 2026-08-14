@@ -69,7 +69,16 @@ export async function GET(request: Request) {
   const rateLimitKey =
     ip && ip !== 'unknown' ? ip : `unknown:${request.headers.get('user-agent') ?? 'no-agent'}`;
 
-  const limitResult = await dashboardLimiter.checkWithResult(rateLimitKey);
+  const limitResult =
+    typeof dashboardLimiter.checkWithResult === 'function'
+      ? await dashboardLimiter.checkWithResult(rateLimitKey)
+      : {
+          success: await dashboardLimiter.check(rateLimitKey),
+          limit: 10,
+          remaining: 0,
+          reset: Date.now() + 60000,
+        };
+
   if (!limitResult.success) {
     return NextResponse.json(
       { error: 'Too many requests. Please try again later.' },
