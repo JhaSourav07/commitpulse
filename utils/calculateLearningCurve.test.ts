@@ -37,4 +37,11 @@ describe('calculateLearningCurve Utility', () => {
     expect(result.totalStudyDays).toBe(0);
     expect(result.timeline).toHaveLength(0);
   });
+  it('sums the real commit count per entry instead of counting entries', () => {
+    const result = calculateLearningCurve([
+      { date: '2026-04-10', language: 'Python', linesAdded: 0, linesDeleted: 0, commits: 12 },
+    ]);
+    expect(result.timeline[0].totalDailyCommits).toBe(12);
+    expect(result.timeline[0].domains['Applied AI & Data Mining']?.commitCount).toBe(12);
+  });
 });

@@ -1,10 +1,10 @@
 /**
- * Tests for the dark/light preview background toggle on the customize page.
+ * Tests for the GitHub Background Simulator toggle on the customize page.
  *
- * The toggle is a purely local visual feature (#2425). It lets users switch the
- * preview container background between GitHub-dark (#0d1117) and GitHub-light
- * (#ffffff) so they can see how their isometric SVG embed will look in both
- * README contexts - without changing any URL parameters.
+ * The toggle is a purely local visual feature (#8287). It lets users switch the
+ * preview container background between GitHub-dark (#0d1117), GitHub-light
+ * (#ffffff), and a Checkerboard Grid so they can see how their isometric SVG
+ * embed will look in all common README contexts — without changing any URL parameters.
  */
 
 import { act, fireEvent, render, screen } from '@testing-library/react';
@@ -110,7 +110,7 @@ vi.mock('./components/ExportPanel', () => ({
   ),
 }));
 
-describe('Preview background toggle (#2425)', () => {
+describe('Preview background simulator (#8287)', () => {
   beforeEach(() => {
     mockSearchParams.values.clear();
     global.fetch = vi.fn().mockResolvedValue({
@@ -123,10 +123,15 @@ describe('Preview background toggle (#2425)', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders the preview-bg toggle button on page load', () => {
+  it('renders the Dark, Light, and Grid simulator buttons on page load', () => {
     render(<CustomizePage />);
-    const toggle = screen.getByRole('button', { name: /switch to light background preview/i });
-    expect(toggle).toBeInTheDocument();
+    // The simulator renders buttons inside a group labelled "GitHub Background Simulator"
+    const group = screen.getByRole('group', { name: /github background simulator/i });
+    expect(group).toBeInTheDocument();
+
+    expect(screen.getByRole('button', { name: /^dark$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^light$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^grid$/i })).toBeInTheDocument();
   });
 
   it('initialises the preview container with dark background (data-preview-bg="dark")', () => {
@@ -136,52 +141,64 @@ describe('Preview background toggle (#2425)', () => {
     expect(previewContainer?.getAttribute('data-preview-bg')).toBe('dark');
   });
 
-  it('switches preview container to light background on first click', async () => {
+  it('Dark button is pressed by default', () => {
+    render(<CustomizePage />);
+    const darkBtn = screen.getByRole('button', { name: /^dark$/i });
+    expect(darkBtn.getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: /^light$/i }).getAttribute('aria-pressed')).toBe(
+      'false'
+    );
+    expect(screen.getByRole('button', { name: /^grid$/i }).getAttribute('aria-pressed')).toBe(
+      'false'
+    );
+  });
+
+  it('switches preview container to light background when Light button is clicked', async () => {
     render(<CustomizePage />);
 
-    const toggle = screen.getByRole('button', { name: /switch to light background preview/i });
+    const lightBtn = screen.getByRole('button', { name: /^light$/i });
 
     await act(async () => {
-      fireEvent.click(toggle);
+      fireEvent.click(lightBtn);
     });
 
     const previewContainer = document.querySelector('[data-preview-bg]');
     expect(previewContainer?.getAttribute('data-preview-bg')).toBe('light');
   });
 
-  it('shows "Dark" label after switching to light background', async () => {
+  it('switches preview container to checkerboard when Grid button is clicked', async () => {
     render(<CustomizePage />);
 
-    const toggle = screen.getByRole('button', { name: /switch to light background preview/i });
+    const gridBtn = screen.getByRole('button', { name: /^grid$/i });
 
     await act(async () => {
-      fireEvent.click(toggle);
-    });
-
-    const darkToggle = screen.getByRole('button', { name: /switch to dark background preview/i });
-    expect(darkToggle).toBeInTheDocument();
-    expect(darkToggle).toHaveTextContent('Dark');
-  });
-
-  it('toggles back to dark background on second click', async () => {
-    render(<CustomizePage />);
-
-    const firstToggle = screen.getByRole('button', { name: /switch to light background preview/i });
-
-    await act(async () => {
-      fireEvent.click(firstToggle);
-    });
-
-    const secondToggle = screen.getByRole('button', {
-      name: /switch to dark background preview/i,
-    });
-
-    await act(async () => {
-      fireEvent.click(secondToggle);
+      fireEvent.click(gridBtn);
     });
 
     const previewContainer = document.querySelector('[data-preview-bg]');
-    expect(previewContainer?.getAttribute('data-preview-bg')).toBe('dark');
+    expect(previewContainer?.getAttribute('data-preview-bg')).toBe('checkerboard');
+  });
+
+  it('toggles back to dark background when Dark button is clicked again', async () => {
+    render(<CustomizePage />);
+
+    // Go to light first
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^light$/i }));
+    });
+
+    expect(document.querySelector('[data-preview-bg]')?.getAttribute('data-preview-bg')).toBe(
+      'light'
+    );
+
+    // Then back to dark
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /^dark$/i }));
+    });
+
+    expect(document.querySelector('[data-preview-bg]')?.getAttribute('data-preview-bg')).toBe(
+      'dark'
+    );
   });
 
   it('does NOT include preview background state in the export snippet URL', async () => {
@@ -193,9 +210,9 @@ describe('Preview background toggle (#2425)', () => {
       });
     });
 
-    const toggle = screen.getByRole('button', { name: /switch to light background preview/i });
+    const lightBtn = screen.getByRole('button', { name: /^light$/i });
     await act(async () => {
-      fireEvent.click(toggle);
+      fireEvent.click(lightBtn);
     });
 
     const snippet = screen.getByLabelText('Mock export snippet').textContent ?? '';
@@ -212,9 +229,9 @@ describe('Preview background toggle (#2425)', () => {
 
     const callsBefore = replaceStateSpy.mock.calls.length;
 
-    const toggle = screen.getByRole('button', { name: /switch to light background preview/i });
+    const lightBtn = screen.getByRole('button', { name: /^light$/i });
     await act(async () => {
-      fireEvent.click(toggle);
+      fireEvent.click(lightBtn);
     });
 
     expect(replaceStateSpy.mock.calls.length).toBe(callsBefore);
