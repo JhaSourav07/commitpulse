@@ -106,10 +106,10 @@ export interface DashboardData {
   rawCommits?: string[];
 }
 
-interface DashboardClientProps {
+export interface DashboardClientProps {
   initialDataPromise?: Promise<DashboardData>;
   initialData?: DashboardData;
-  allRepoActivity: RepoActivityInfo[];
+  allRepoActivity?: RepoActivityInfo[];
   username: string;
   compareData?: DashboardData | null;
   period: DashboardPeriod;

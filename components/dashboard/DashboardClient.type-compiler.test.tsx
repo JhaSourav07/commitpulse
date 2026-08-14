@@ -1,6 +1,6 @@
 import { describe, it, expectTypeOf } from 'vitest';
 import React, { ComponentProps } from 'react';
-import DashboardClient, { ProfileMetrics, CoderProfile } from './DashboardClient';
+import DashboardClient, { ProfileMetrics, CoderProfile, DashboardClientProps } from './DashboardClient';
 import type { DashboardPeriod } from '@/utils/dashboardPeriod';
 
 describe('DashboardClient - TypeScript Compiler Validation & Schema Constraints Stability (Variation 10)', () => {
@@ -16,29 +16,29 @@ describe('DashboardClient - TypeScript Compiler Validation & Schema Constraints 
   });
 
   it('Use type-testing assertions (expectTypeOf) to enforce field property configurations: Infer unexported props', () => {
-    // Extracting the props from the component
-    type Props = ComponentProps<typeof DashboardClient>;
+    type Props = DashboardClientProps;
 
     // Assert the required fields
     expectTypeOf<Props>().toHaveProperty('username').toBeString();
     expectTypeOf<Props>().toHaveProperty('period').toEqualTypeOf<DashboardPeriod>();
 
     // Test the internal initialData structure
-    expectTypeOf<Props['initialData']>().toHaveProperty('profile').toBeObject();
-    expectTypeOf<Props['initialData']['profile']>().toHaveProperty('username').toBeString();
+    expectTypeOf<NonNullable<Props['initialData']>>().toHaveProperty('profile').toBeObject();
+    expectTypeOf<NonNullable<Props['initialData']>['profile']>().toHaveProperty('username').toBeString();
   });
 
   it('Assert that invalid prop parameters are blocked during static type checking: Rejects missing props', () => {
-    type Props = ComponentProps<typeof DashboardClient>;
+    type Props = DashboardClientProps;
 
     // Missing 'username', 'initialData', 'period'
     expectTypeOf<Record<string, never>>().not.toMatchTypeOf<Props>();
 
-    // 'username' must be a string, not a number
+    // 'initialData' must not be missing critical nested keys
     expectTypeOf<{
-      username: number;
-      initialData: Props['initialData'];
+      username: string;
+      initialData: Omit<NonNullable<Props['initialData']>, 'profile'>;
       period: DashboardPeriod;
+      allRepoActivity: Props['allRepoActivity'];
     }>().not.toMatchTypeOf<Props>();
   });
 
@@ -58,6 +58,11 @@ describe('DashboardClient - TypeScript Compiler Validation & Schema Constraints 
       />
     );
     void validComponent;
+
+    // Testing the extraction logic in edge cases
+    expectTypeOf<NonNullable<Props['initialData']>['activity']>().toMatchTypeOf<
+      Array<{ date: string; count: number; intensity: 0 | 1 | 2 | 3 | 4 }>
+    >();
   });
 
   it('Verify schema validation constraints return strict validation reports: CoderProfile strict unions', () => {
@@ -66,9 +71,8 @@ describe('DashboardClient - TypeScript Compiler Validation & Schema Constraints 
       'Early Builder ☀' | 'Weekend Warrior 🚀' | 'Consistent Runner 🏃‍♂️'
     >();
 
-    // intensity in activity array has strict union 0 | 1 | 2 | 3 | 4
-    type Props = ComponentProps<typeof DashboardClient>;
-    type ActivityIntensity = Props['initialData']['activity'][0]['intensity'];
+    type Props = DashboardClientProps;
+    type ActivityIntensity = NonNullable<Props['initialData']>['activity'][0]['intensity'];
     expectTypeOf<ActivityIntensity>().toEqualTypeOf<0 | 1 | 2 | 3 | 4>();
   });
 });
