@@ -39,6 +39,32 @@ describe('TopRivalriesTicker', () => {
     expect(reactLabelElements.length).toBeGreaterThanOrEqual(2);
   });
 
+  it('labels the default list as example comparisons', () => {
+    render(<TopRivalriesTicker />);
+
+    expect(screen.getByRole('region', { name: 'Example comparisons' })).toBeInTheDocument();
+    expect(screen.getByText('Example comparisons')).toBeInTheDocument();
+  });
+
+  it('does not show example label when custom rivalries are provided', () => {
+    render(
+      <TopRivalriesTicker
+        rivalries={[
+          {
+            u1: 'alice',
+            u2: 'bob',
+            label: 'Live rivalry',
+            icon: () => null,
+            color: 'text-orange-500',
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByRole('region', { name: 'Top rivalries' })).toBeInTheDocument();
+    expect(screen.queryByText('Example comparisons')).not.toBeInTheDocument();
+  });
+
   it('navigates to the correct URL on click', () => {
     render(<TopRivalriesTicker />);
 

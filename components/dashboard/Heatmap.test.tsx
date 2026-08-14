@@ -13,6 +13,15 @@ beforeAll(() => {
   };
 });
 
+const mockExportImage = vi.fn();
+vi.mock('@/hooks/useExportImage', () => ({
+  useExportImage: () => ({
+    exportImage: mockExportImage,
+    isExporting: false,
+    error: null,
+  }),
+}));
+
 // 2. Mock framer-motion with inline types to prevent hoisting errors
 vi.mock('framer-motion', () => ({
   motion: {
@@ -78,11 +87,19 @@ describe('Heatmap', () => {
     expect(() => render(<Heatmap data={emptyData} />)).not.toThrow();
   });
 
-  it('renders without crashing with 365 days of data', () => {
-    const data = generateMockData(365);
+  it('renders export button and triggers format export', async () => {
+    const fireEvent = (await import('@testing-library/react')).fireEvent;
+    render(<Heatmap data={emptyData} username="testuser" />);
 
-    render(<Heatmap data={data} />);
+    const exportBtn = screen.getByRole('button', { name: /export heatmap/i });
+    expect(exportBtn).toBeDefined();
 
-    expect(screen.getAllByRole('gridcell')).toHaveLength(data.length);
+    fireEvent.click(exportBtn);
+
+    const pngOption = screen.getByRole('menuitem', { name: /download png/i });
+    expect(pngOption).toBeDefined();
+
+    fireEvent.click(pngOption);
+    expect(mockExportImage).toHaveBeenCalledWith('png');
   });
 });

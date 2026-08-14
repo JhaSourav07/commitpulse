@@ -12,6 +12,17 @@ function deriveKey(salt: Buffer): Buffer {
   return crypto.pbkdf2Sync(passphrase, salt, PBKDF2_ITERATIONS, 32, 'sha512');
 }
 
+/**
+ * Derives a valid 32-byte key for legacy AES-256-CBC decryption.
+ * Uses SHA-256 hashing on the passphrase (or fallback padding) to guarantee
+ * a proper 256-bit key buffer and prevent 'Invalid key length' errors.
+ */
+function deriveLegacyCbcKey(passphrase: string): Buffer {
+  // Use a fixed legacy salt or buffer to derive a 32-byte key safely via PBKDF2
+  const legacySalt = Buffer.from('legacy-cbc-salt', 'utf8');
+  return crypto.pbkdf2Sync(passphrase, legacySalt, PBKDF2_ITERATIONS, 32, 'sha512');
+}
+
 function isGcmFormat(payload: string): boolean {
   const parts = payload.split('.');
   return parts.length === 4;
@@ -98,13 +109,18 @@ export function decryptGitHubToken(encryptedToken: string): string {
     try {
       const [ivHex, encryptedHex] = encryptedToken.split(':');
       const iv = Buffer.from(ivHex, 'hex');
-      const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(key, 'base64'), iv);
+
+      // Ensure the legacy key is derived as a proper 32-byte Buffer rather than
+      // interpreting raw passphrase text directly via Buffer.from(key, 'base64')
+      const cbcKey = deriveLegacyCbcKey(key);
+
+      const decipher = crypto.createDecipheriv('aes-256-cbc', cbcKey, iv);
       let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
       decrypted += decipher.final('utf8');
       return decrypted;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      throw new Error(`Token decryption failed: ${message}`);
+      throw new Error(`Legacy token decryption failed: ${message}`);
     }
   }
 

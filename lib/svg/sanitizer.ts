@@ -74,8 +74,8 @@ export function sanitizeSpeed(speed: string | undefined | null, fallback = '8s')
  */
 export function sanitizeRadius(radius: string | number | undefined | null, fallback = 8): number {
   const parsed = typeof radius === 'number' ? radius : parseInt(String(radius), 10);
-  if (isNaN(parsed)) return fallback;
-  return Math.max(0, Math.min(parsed, 50));
+  if (isNaN(parsed) || !Number.isFinite(parsed)) return fallback;
+  return Math.max(0, Math.min(Math.round(parsed), 50));
 }
 
 /**

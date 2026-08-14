@@ -10,7 +10,6 @@ import ContactPage from './page';
 vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: { children: ReactNode }) => <>{children}</>,
   motion: {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     div: ({
       children,
       initial,
@@ -24,7 +23,7 @@ vi.mock('framer-motion', () => ({
     }: React.HTMLAttributes<HTMLDivElement> & Record<string, unknown>) => (
       <div {...props}>{children}</div>
     ),
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     form: ({
       children,
       onSubmit,
@@ -38,7 +37,7 @@ vi.mock('framer-motion', () => ({
         {children}
       </form>
     ),
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     p: ({
       children,
       initial,
@@ -49,7 +48,7 @@ vi.mock('framer-motion', () => ({
     }: React.HTMLAttributes<HTMLParagraphElement> & Record<string, unknown>) => (
       <p {...props}>{children}</p>
     ),
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
     button: ({
       children,
       whileTap,
