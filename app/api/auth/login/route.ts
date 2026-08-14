@@ -4,10 +4,13 @@ import { NextResponse } from 'next/server';
  * Handles credentials authentication requests for frontend login.
  * Integrates with NextAuth sessions and production backend user models.
  */
-export async function POST(request: Request) {
+export async function POST(request: Request): Promise<Response> {
   try {
     const body = await request.json();
-    const { identifier, password } = body;
+    const { identifier, password } = body as {
+      identifier?: string;
+      password?: string;
+    };
 
     if (!identifier || !password) {
       return NextResponse.json(
@@ -16,7 +19,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Frontend-ready credentials handler
     return NextResponse.json(
       {
         success: true,

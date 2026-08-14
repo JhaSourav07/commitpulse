@@ -2,11 +2,13 @@ import 'server-only';
 import { quotaMonitor } from './quota-monitor';
 import { TTLCache } from '../../lib/cache';
 
+const DEFAULT_COOLDOWN_MS = Number(process.env.REFRESH_COOLDOWN_MS ?? String(15 * 60 * 1000));
+
 export class RefreshPolicy {
   private static instance: RefreshPolicy;
 
-  // Cooldown in milliseconds (default 30 seconds)
-  private cooldownMs = 30 * 1000;
+  // Cooldown in milliseconds (default 15 minutes per issue #7279)
+  private cooldownMs = DEFAULT_COOLDOWN_MS;
 
   // Cache of username -> last successful refresh timestamp (15,000 capacity)
   private refreshTimes = new TTLCache<number>(15000, 60 * 60 * 1000);
@@ -125,7 +127,7 @@ export class RefreshPolicy {
    */
   public reset(): void {
     this.refreshTimes.clear();
-    this.cooldownMs = 30 * 1000;
+    this.cooldownMs = DEFAULT_COOLDOWN_MS;
   }
 }
 
