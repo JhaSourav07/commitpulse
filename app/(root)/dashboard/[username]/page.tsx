@@ -150,7 +150,7 @@ async function DashboardContent({
     redirect(`/dashboard/org/${username}`);
   }
 
-  let data = getFullDashboardData(username, {
+  const data = getFullDashboardData(username, {
     bypassCache,
     from: period.from,
     to: period.to,
