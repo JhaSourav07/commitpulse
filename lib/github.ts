@@ -591,17 +591,28 @@ interface GitHubContributedReposResponse {
 }
 
 function getGraphQLErrorMessage(errors: unknown): string {
-  if (!Array.isArray(errors)) return 'GitHub GraphQL API returned an unknown error';
+  if (!Array.isArray(errors) || errors.length === 0) {
+    return 'GitHub API error';
+  }
   const firstError = errors[0];
+  logger.error('GitHub GraphQL API raw error details', { firstError });
+
   if (
     firstError !== null &&
     typeof firstError === 'object' &&
     'message' in firstError &&
     typeof firstError.message === 'string'
   ) {
-    return firstError.message;
+    const msg = firstError.message.toLowerCase();
+    const type = 'type' in firstError ? String(firstError.type).toUpperCase() : '';
+    if (msg.includes('rate limit') || type === 'RATE_LIMITED') {
+      return 'API Rate Limit Exceeded';
+    }
+    if (msg.includes('could not resolve') || msg.includes('not found')) {
+      return 'GitHub user not found';
+    }
   }
-  return 'GitHub GraphQL API returned an unknown error';
+  return 'GitHub API error';
 }
 
 type FetchOptions = {
@@ -1558,46 +1569,10 @@ async function fetchReposUncached(
     throw new Error(`GitHub REST API error: ${firstPageRes.status}`);
   }
 
-  const firstPageRepos = (await firstPageRes.json()) as GitHubRepo[];
-  const allRepos: GitHubRepo[] = firstPageRepos.map(sanitizeRepo);
-
-  const MAX_PAGES = Number(process.env.GITHUB_MAX_PAGES ?? '3');
-
-  if (firstPageRepos.length === 100) {
-    const remainingPages = Array.from({ length: MAX_PAGES - 1 }, (_, i) => i + 2);
-
-    const responses = await Promise.all(
-      remainingPages.map((page) =>
-        fetchWithRetry(
-          `${GITHUB_REST_URL}/users/${encodedUsername}/repos?per_page=100&page=${page}&sort=pushed`,
-          {
-            headers: getHeaders(options.token),
-            cache: 'no-store',
-            signal: options.signal,
-          },
-          0,
-          undefined,
-          options.token
-        )
-      )
-    );
-
-    const pagesRepos = await Promise.all(
-      responses.map(async (response) => {
-        if (!response.ok) {
-          throwIfRateLimited(response);
-          throw new Error(`GitHub REST API error: ${response.status}`);
-        }
-
-        const repos = (await response.json()) as GitHubRepo[];
-        return repos.map(sanitizeRepo);
-      })
-    );
-
-    for (const repos of pagesRepos) {
-      allRepos.push(...repos);
-    }
-  }
+  // The dashboard only needs the most recently pushed repositories for its
+  // score, language, and deployment signals. Keeping this to one page makes
+  // the request cost predictable even for accounts with thousands of repos.
+  const allRepos = ((await firstPageRes.json()) as GitHubRepo[]).map(sanitizeRepo);
 
   if (!options.bypassCache) await reposCache.set(key, allRepos, GITHUB_CACHE_TTL_MS);
   return allRepos;

@@ -189,6 +189,29 @@ export class TTLCache<T> {
   }
 
   /**
+   * Returns the expiration timestamp (epoch milliseconds) for a cached key,
+   * or null if the key does not exist or has expired.
+   *
+   * @param key - Cache key.
+   * @returns Expiration timestamp in epoch milliseconds or null.
+   */
+  getExpiresAt(key: string): number | null {
+    if (typeof key !== 'string' || key.trim().length === 0) {
+      return null;
+    }
+
+    const hit = this.store.get(key);
+    if (!hit) return null;
+
+    if (Date.now() > hit.expiresAt) {
+      this.store.delete(key);
+      return null;
+    }
+
+    return hit.expiresAt;
+  }
+
+  /**
    * Removes a single entry from the cache.
    *
    * Does nothing if the key does not exist.
@@ -466,6 +489,17 @@ export class DistributedCache<T> {
     }
   }
 
+  /**
+   * Returns the expiration timestamp (epoch milliseconds) for a cached key from local cache,
+   * or null if the key does not exist or has expired.
+   *
+   * @param key - Cache key.
+   * @returns Expiration timestamp in epoch milliseconds or null.
+   */
+  getExpiresAt(key: string): number | null {
+    return this.localCache.getExpiresAt(key);
+  }
+
   async update(key: string, value: T): Promise<boolean> {
     if (!this.useRedis) {
       return this.localCache.update(key, value);
@@ -519,6 +553,86 @@ export class DistributedCache<T> {
    * @param ttlMs - Time-to-live in milliseconds. Only applied when the key is first created (count == 1).
    * @returns The incremented counter value.
    */
+
+  /**
+   * Acquires a distributed lock using a unique token (SET NX).
+   *
+   * @param key - The lock key
+   * @param token - A unique identifier for the owner (e.g. UUID)
+   * @param ttlMs - Time to live in milliseconds
+   * @returns true if acquired, false otherwise
+   */
+  async acquireTokenLock(key: string, token: string, ttlMs: number): Promise<boolean> {
+    if (!this.useRedis) {
+      if (this.localCache.has(key)) return false;
+      this.localCache.set(key, token as unknown as T, ttlMs);
+      return true;
+    }
+    try {
+      const res = await fetch(`${this.redisUrl}/`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.redisToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(['SET', key, token, 'NX', 'PX', ttlMs]),
+      });
+      if (!res.ok) throw new Error(`Redis HTTP error: ${res.status}`);
+      const data = await res.json();
+      return data.result === 'OK';
+    } catch (err) {
+      logger.error('Cache acquireTokenLock failed', {
+        component: 'DistributedCache',
+        key,
+        error: err,
+      });
+      return false; // Fail closed to prevent thundering herd
+    }
+  }
+
+  /**
+   * Releases a distributed lock only if the token matches.
+   *
+   * @param key - The lock key
+   * @param token - The unique identifier of the owner
+   * @returns true if released, false if it didn't exist or token didn't match
+   */
+  async releaseTokenLock(key: string, token: string): Promise<boolean> {
+    if (!this.useRedis) {
+      if (this.localCache.get(key) === (token as unknown as T)) {
+        return this.localCache.delete(key);
+      }
+      return false;
+    }
+    try {
+      const luaRelease = `
+        if redis.call("GET", KEYS[1]) == ARGV[1] then
+          return redis.call("DEL", KEYS[1])
+        else
+          return 0
+        end
+      `;
+      const res = await fetch(`${this.redisUrl}/`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.redisToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(['EVAL', luaRelease, '1', key, token]),
+      });
+      if (!res.ok) throw new Error(`Redis HTTP error: ${res.status}`);
+      const data = await res.json();
+      return data.result === 1;
+    } catch (err) {
+      logger.error('Cache releaseTokenLock failed', {
+        component: 'DistributedCache',
+        key,
+        error: err,
+      });
+      return false;
+    }
+  }
+
   async incr(key: string, ttlMs: number): Promise<number> {
     if (!this.useRedis) {
       if (process.env.NODE_ENV === 'production') {
@@ -562,7 +676,11 @@ return c`;
       const data = await res.json();
       const count = Number(data.result);
 
-      this.localCache.set(key, count as unknown as T, ttlMs);
+      if (this.localCache.has(key)) {
+        this.localCache.update(key, count as unknown as T);
+      } else {
+        this.localCache.set(key, count as unknown as T, ttlMs);
+      }
       return count;
     } catch (err) {
       logger.error(

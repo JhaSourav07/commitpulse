@@ -83,4 +83,44 @@ describe('useLocalStorage', () => {
       expect(result.current[0]).toEqual(user);
     });
   });
+  it('syncs state when a storage event fires for the same key', async () => {
+    const { result } = renderHook(() => useLocalStorage('username', ''));
+
+    await waitFor(() => {
+      expect(result.current[0]).toBe('');
+    });
+
+    act(() => {
+      localStorage.setItem('username', JSON.stringify('newuser'));
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: 'username',
+          newValue: JSON.stringify('newuser'),
+        })
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current[0]).toBe('newuser');
+    });
+  });
+
+  it('ignores storage events for a different key', async () => {
+    const { result } = renderHook(() => useLocalStorage('username', 'initial'));
+
+    await waitFor(() => {
+      expect(result.current[0]).toBe('initial');
+    });
+
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: 'someOtherKey',
+          newValue: JSON.stringify('ignored'),
+        })
+      );
+    });
+
+    expect(result.current[0]).toBe('initial');
+  });
 });

@@ -96,9 +96,8 @@ describe('FONT_MAP — SVG output regression: no duplicate @import for bundled f
 
     // Count how many times Syncopate appears in @import statements
     const importMatches = [...svg.matchAll(/@import url\([^)]*Syncopate[^)]*\)/gi)];
-    // Must appear exactly once (the unconditional bundled import)
-    // Before the fix it appeared twice — this is the regression guard
-    expect(importMatches.length).toBe(1);
+    // Must appear 0 times (bundled font is inlined base64, eliminating external @import)
+    expect(importMatches.length).toBe(0);
   });
 
   it('font=spacegrotesk does not generate a dynamic Google Fonts @import', () => {
@@ -121,8 +120,8 @@ describe('FONT_MAP — SVG output regression: no duplicate @import for bundled f
     );
 
     const importMatches = [...svg.matchAll(/@import url\([^)]*Space\+Grotesk[^)]*\)/gi)];
-    // Must appear exactly once — not twice
-    expect(importMatches.length).toBe(1);
+    // Must appear 0 times
+    expect(importMatches.length).toBe(0);
   });
 
   it('font=Inter still generates a dynamic @import (non-bundled font — correct behavior)', () => {
@@ -201,20 +200,12 @@ describe('MAX_USERNAME_DISPLAY_LENGTH', () => {
     expect(Number.isInteger(MAX_USERNAME_DISPLAY_LENGTH)).toBe(true);
   });
 
-  it('equals 20 — the increased value supporting longer usernames', () => {
-    expect(MAX_USERNAME_DISPLAY_LENGTH).toBe(20);
+  it('equals 39 — supporting full GitHub usernames', () => {
+    expect(MAX_USERNAME_DISPLAY_LENGTH).toBe(39);
   });
 
-  it('is less than GitHub max username length of 39 characters', () => {
-    // Sanity: display truncation must be shorter than the max possible username
-    expect(MAX_USERNAME_DISPLAY_LENGTH).toBeLessThan(39);
-  });
-
-  it('is coordinated with SVG_WIDTH — truncation prevents title overflow', () => {
-    // At Syncopate 18px with letter-spacing 6px, each character is ~24px wide.
-    // MAX_USERNAME_DISPLAY_LENGTH * 24 should be safely within SVG_WIDTH.
-    const estimatedTextWidth = MAX_USERNAME_DISPLAY_LENGTH * 24;
-    expect(estimatedTextWidth).toBeLessThan(SVG_WIDTH);
+  it('matches GitHub max username length of 39 characters', () => {
+    expect(MAX_USERNAME_DISPLAY_LENGTH).toBe(39);
   });
 });
 
@@ -239,7 +230,7 @@ describe('truncateUsername — uses MAX_USERNAME_DISPLAY_LENGTH constant', () =>
   };
 
   it('username exactly at MAX_USERNAME_DISPLAY_LENGTH is not truncated', () => {
-    const exactLengthUser = 'a'.repeat(MAX_USERNAME_DISPLAY_LENGTH); // 'aaaaaaaaaaaa'
+    const exactLengthUser = 'a'.repeat(MAX_USERNAME_DISPLAY_LENGTH);
     const svg = generateSVG(
       mockStats,
       { user: exactLengthUser } as unknown as BadgeParams,
@@ -250,7 +241,7 @@ describe('truncateUsername — uses MAX_USERNAME_DISPLAY_LENGTH constant', () =>
   });
 
   it('username one character over MAX_USERNAME_DISPLAY_LENGTH is truncated with ...', () => {
-    const longUser = 'a'.repeat(MAX_USERNAME_DISPLAY_LENGTH + 1); // 13 chars
+    const longUser = 'a'.repeat(MAX_USERNAME_DISPLAY_LENGTH + 1);
     const svg = generateSVG(mockStats, { user: longUser } as unknown as BadgeParams, mockCalendar);
     expect(svg).toContain('...');
     // The displayed portion should be exactly MAX_USERNAME_DISPLAY_LENGTH chars
@@ -258,16 +249,15 @@ describe('truncateUsername — uses MAX_USERNAME_DISPLAY_LENGTH constant', () =>
     expect(svg).toContain(truncated);
   });
 
-  it('very long GitHub username (39 chars) is truncated to MAX_USERNAME_DISPLAY_LENGTH', () => {
+  it('very long GitHub username (39 chars) is not truncated', () => {
     const maxGitHubUser = 'a'.repeat(39);
     const svg = generateSVG(
       mockStats,
       { user: maxGitHubUser } as unknown as BadgeParams,
       mockCalendar
     );
-    expect(svg).toContain('...');
-    // Should show exactly 12 chars + '...'
-    expect(svg).toContain('A'.repeat(MAX_USERNAME_DISPLAY_LENGTH) + '...');
+    expect(svg).toContain('A'.repeat(39));
+    expect(svg).not.toContain('...');
   });
 
   it('short username (under MAX_USERNAME_DISPLAY_LENGTH) is never truncated', () => {

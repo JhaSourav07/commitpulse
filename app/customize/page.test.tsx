@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { AnchorHTMLAttributes, HTMLAttributes, ReactNode } from 'react';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import CustomizePage from './page';
@@ -165,5 +165,32 @@ describe('CustomizePage timezone query params', () => {
     expect(snippet).not.toContain('width=NaN');
     expect(snippet).not.toContain('height=NaN');
     expect(snippet).not.toContain('grace=NaN');
+  });
+
+  it('bypasses svgCache when theme is set to random', async () => {
+    mockSearchParams.values.set('user', 'octocat');
+    mockSearchParams.values.set('theme', 'random');
+
+    render(<CustomizePage />);
+
+    // 1. Wait for the initial debounced fetch to occur naturally
+    await waitFor(() => {
+      expect((global.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(0);
+    });
+
+    const initialFetchCount = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.length;
+
+    // 2. Trigger a value update while theme='random'
+    const usernameInput = screen.getByLabelText('Mock username');
+
+    // fireEvent is automatically wrapped in act() by React Testing Library
+    fireEvent.change(usernameInput, { target: { value: 'octocat-updated' } });
+
+    // 3. Wait for the second fetch to bypass cache and fire after the 400ms debounce
+    await waitFor(() => {
+      expect((global.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(
+        initialFetchCount
+      );
+    });
   });
 });

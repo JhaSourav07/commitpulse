@@ -14,40 +14,52 @@ export class SyncQueue {
   /**
    * Enqueues a new sync task.
    * @param task An async function representing the sync job.
+   * @returns A promise that resolves when the queued task settles.
    */
-  public enqueue(task: () => Promise<void>): void {
+  public enqueue(task: () => Promise<void>): Promise<void> {
     if (process.env.NODE_ENV === 'test') {
-      void task().catch((error) => {
+      return task().catch((error) => {
         console.error('[SyncQueue] Task failed during test:', error);
       });
-
-      return;
     }
 
-    this.queue.push(task);
-    this.processNext();
+    return new Promise<void>((resolve) => {
+      const wrappedTask = async () => {
+        try {
+          await task();
+        } catch (error) {
+          console.error('[SyncQueue] Task failed:', error);
+        } finally {
+          resolve();
+        }
+      };
+
+      this.queue.push(wrappedTask);
+      void this.processQueue();
+    });
   }
 
-  private async processNext(): Promise<void> {
-    if (this.isProcessing || this.queue.length === 0) {
+  private async processQueue(): Promise<void> {
+    if (this.isProcessing) {
       return;
     }
+
     this.isProcessing = true;
 
-    const task = this.queue.shift();
-    if (task) {
-      try {
-        await task();
-      } catch (error) {
-        console.error('[SyncQueue] Task failed:', error);
+    try {
+      while (this.queue.length > 0) {
+        const task = this.queue.shift();
+        if (task) {
+          await task();
+        }
+
+        if (this.queue.length > 0) {
+          await new Promise((resolve) => setTimeout(resolve, this.STAGGER_DELAY_MS));
+        }
       }
+    } finally {
+      this.isProcessing = false;
     }
-
-    // Stagger the next task to distribute API load evenly
-    await new Promise((resolve) => setTimeout(resolve, this.STAGGER_DELAY_MS));
-
-    this.isProcessing = false;
-    this.processNext();
   }
 
   public get pendingTasks(): number {

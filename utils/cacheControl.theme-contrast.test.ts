@@ -23,11 +23,11 @@ describe('cacheControl - Dark and Light Prefers-Color-Scheme Visual Cohesion', (
 
   it('includes secondsToMidnight in the s-maxage when provided without bypass or historical', () => {
     const header = buildCacheControlHeader({ secondsToMidnight: 7200 });
-    expect(header).toBe('public, s-maxage=1, stale-while-revalidate=59');
+    expect(header).toBe('public, s-maxage=7200, stale-while-revalidate=59');
   });
 
   it('handles secondsToMidnight of zero correctly, producing s-maxage=0', () => {
     const header = buildCacheControlHeader({ secondsToMidnight: 0 });
-    expect(header).toBe('public, s-maxage=1, stale-while-revalidate=59');
+    expect(header).toBe('public, s-maxage=0, stale-while-revalidate=59');
   });
 });
