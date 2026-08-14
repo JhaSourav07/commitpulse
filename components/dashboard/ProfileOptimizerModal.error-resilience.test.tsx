@@ -87,12 +87,12 @@ describe('ProfileOptimizerModal Error Resilience', () => {
     mockTelemetry.mockClear();
   });
 
-  it('maintains hydration stability with null userData and renders the loading state without crashing', () => {
+  it('maintains hydration stability with null userData and renders the unavailable state without crashing', () => {
     const { container } = render(
       <ProfileOptimizerModal isOpen={true} onClose={vi.fn()} userData={null} />
     );
 
-    expect(screen.getByText('Analysing GitHub profile...')).toBeInTheDocument();
+    expect(screen.getByText('Profile Data Unavailable')).toBeInTheDocument();
     expect(container.firstChild).not.toBeNull();
   });
 

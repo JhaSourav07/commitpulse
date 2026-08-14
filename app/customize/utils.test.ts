@@ -3,6 +3,7 @@ import {
   buildQueryParams,
   getExportSnippet,
   getPlaceholderSnippet,
+  importConfig,
   streakErrorMessage,
 } from './utils';
 import type { CustomizeOptions } from './types';
@@ -279,5 +280,43 @@ describe('streakErrorMessage', () => {
 
   it('falls back to a generic message for other statuses', () => {
     expect(streakErrorMessage(500)).toBe('Failed to load badge');
+  });
+});
+
+describe('importConfig badge dimension bounds', () => {
+  it('falls back to defaults when badgeWidth or badgeHeight are out of valid ranges', () => {
+    const raw = JSON.stringify({
+      version: 1,
+      config: {
+        badgeWidth: -9999,
+        badgeHeight: 99999,
+      },
+    });
+
+    const result = importConfig(raw);
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.options.badgeWidth).toBe('');
+      expect(result.options.badgeHeight).toBe('');
+    }
+  });
+
+  it('accepts valid boundary values for badgeWidth (100-1200) and badgeHeight (80-800)', () => {
+    const raw = JSON.stringify({
+      version: 1,
+      config: {
+        badgeWidth: 500,
+        badgeHeight: 300,
+      },
+    });
+
+    const result = importConfig(raw);
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.options.badgeWidth).toBe(500);
+      expect(result.options.badgeHeight).toBe(300);
+    }
   });
 });

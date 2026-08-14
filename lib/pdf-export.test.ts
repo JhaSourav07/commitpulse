@@ -161,4 +161,40 @@ describe('exportSvgToPdf', () => {
     expect(pdf.addImage).toHaveBeenCalled();
     expect(pdf.save).toHaveBeenCalledWith('badge.pdf');
   });
+
+  it('clears its image-load timeout once the image loads successfully (bug fix)', async () => {
+    const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout');
+
+    class MockImage {
+      public onload: (() => void) | null = null;
+      public onerror: ((e?: string | Event) => void) | null = null;
+      public complete = false;
+      set src(_value: string) {
+        this.complete = true;
+        queueMicrotask(() => this.onload?.());
+      }
+    }
+
+    vi.stubGlobal('Image', MockImage);
+
+    const pdf = {
+      internal: {
+        pageSize: {
+          getWidth: () => 600,
+          getHeight: () => 400,
+        },
+      },
+      addImage: vi.fn(),
+      save: vi.fn(),
+    };
+
+    const minimalSvg =
+      '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" /></svg>';
+
+    await exportSvgToPdf(minimalSvg, 'test.pdf', pdf as never);
+
+    expect(clearTimeoutSpy).toHaveBeenCalled();
+
+    clearTimeoutSpy.mockRestore();
+  });
 });

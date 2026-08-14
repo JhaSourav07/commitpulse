@@ -73,18 +73,21 @@ describe('KeyboardShortcutsModal - Empty & Fallback State Verification', () => {
 
     // Navigation shortcuts
     expect(screen.getByText('Go to Home')).toBeInTheDocument();
+    expect(screen.getByText('Go to Dashboard')).toBeInTheDocument();
+    expect(screen.getByText('Go to Repositories')).toBeInTheDocument();
+    expect(screen.getByText('Go to Profile')).toBeInTheDocument();
     expect(screen.getByText('Go to Contributors')).toBeInTheDocument();
-    expect(screen.getByText('Go to Compare')).toBeInTheDocument();
-    expect(screen.getByText('Go to Customization Studio')).toBeInTheDocument();
 
-    // General shortcuts
-    expect(screen.getByText('Open keyboard shortcuts')).toBeInTheDocument();
-    expect(screen.getByText('Close this modal')).toBeInTheDocument();
+    // Actions & Commands shortcuts
+    expect(screen.getByText('Open Quick Navigation / Palette')).toBeInTheDocument();
+    expect(screen.getByText('Focus search input')).toBeInTheDocument();
+    expect(screen.getByText('Open keyboard shortcuts modal')).toBeInTheDocument();
+    expect(screen.getByText('Close active modal / dialog')).toBeInTheDocument();
   });
 
   it('renders the footer hint text when open', () => {
     render(<KeyboardShortcutsModal isOpen={true} onClose={() => {}} />);
 
-    expect(screen.getByText(/to toggle this modal/i)).toBeInTheDocument();
+    expect(screen.getByText(/Esc/i)).toBeInTheDocument();
   });
 });
