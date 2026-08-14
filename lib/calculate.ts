@@ -389,9 +389,9 @@ export function calculateMonthlyStats(
   for (const day of days) {
     if (day && day.date) {
       if (day.date.startsWith(currentMonthPrefix)) {
-        currentMonthTotal += day.contributionCount || 0;
+        currentMonthTotal += Math.max(0, day.contributionCount || 0);
       } else if (day.date.startsWith(prevMonthPrefix)) {
-        previousMonthTotal += day.contributionCount || 0;
+        previousMonthTotal += Math.max(0, day.contributionCount || 0);
       }
     }
   }
