@@ -79,6 +79,39 @@ Badge/SVG contribution data is cached and refreshes automatically once the cache
 
 This step is entirely optional — without it, badges still update on their own once the cache expires.
 
+## 🐳 Containerized Self-Hosting (Docker Multi-Stage)
+
+CommitPulse includes a production-grade multi-stage `Dockerfile` (`base` → `deps` → `builder` → `runner`) to deliver a lightweight container footprint and secure execution as an unprivileged user (`nextjs`).
+
+### Option 1: Docker Compose (Recommended)
+
+1. Ensure `.env.local` exists with your `GITHUB_TOKEN`.
+2. Start the full stack (CommitPulse application + MongoDB):
+
+```bash
+docker compose up -d --build
+```
+
+3. Access the application at `http://localhost:3000`.
+
+### Option 2: Standalone Multi-Stage Docker Image
+
+1. Build the production image targeting the `runner` stage:
+
+```bash
+docker build --target runner -t commitpulse:latest .
+```
+
+2. Run the container:
+
+```bash
+docker run -d \
+  --name commitpulse \
+  --env-file .env.local \
+  -p 3000:3000 \
+  commitpulse:latest
+```
+
 ---
 
 ## 🌐 Deploy Your Own

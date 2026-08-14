@@ -3,6 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: runner
     container_name: commitpulse-app
     ports:
       - '3000:3000'

@@ -239,16 +239,23 @@ npm run dev
 
 Then visit: `http://localhost:3000/api/streak?user=YOUR_USERNAME`
 
-## 🐳 Docker
+## 🐳 Docker Multi-Stage Deployment
 
-CommitPulse includes Docker support for consistent local development and production deployments.
+CommitPulse features lightweight, optimized multi-stage Docker builds to streamline deployment and minimize container image size.
+
+### Build Stages Architecture
+
+- **`base`**: Node 22 Alpine base image with `libc6-compat` native library support.
+- **`deps`**: Installs application dependencies cleanly via `npm ci`.
+- **`builder`**: Compiles Next.js into a production standalone bundle (`.next/standalone`).
+- **`runner`**: Minimal production environment running as an unprivileged non-root (`nextjs`) user listening on `0.0.0.0:3000`.
 
 ### Prerequisites
 
-- Docker
-- Docker Compose
+- Docker Engine 20.10+
+- Docker Compose v2+
 
-### Local Development
+### Local Development with Docker Compose
 
 1. Copy the example environment file:
 
@@ -256,7 +263,7 @@ CommitPulse includes Docker support for consistent local development and product
 cp .env.local.example .env.local
 ```
 
-2. Update the required environment variables in `.env.local` (such as `GITHUB_TOKEN`, `AUTH_SECRET`, and any optional integrations you plan to use).
+2. Update the required environment variables in `.env.local` (such as `GITHUB_TOKEN`, `AUTH_SECRET`, and optional integrations).
 
 3. Start the application and MongoDB:
 
@@ -264,29 +271,24 @@ cp .env.local.example .env.local
 docker compose up --build
 ```
 
-The application will be available at:
+The application will be available at `http://localhost:3000`. MongoDB is automatically provisioned and linked (`MONGODB_URI=mongodb://mongodb:27017/commitpulse`).
 
-```text
-http://localhost:3000
-```
+### Multi-Stage Production Build
 
-MongoDB is automatically provisioned through Docker Compose. The `MONGODB_URI` is overridden to use the local MongoDB container, so no additional database configuration is required.
-
-### Production
-
-Build the production image:
+Build the optimized production image using the `runner` target:
 
 ```bash
-docker build -t commitpulse .
+docker build --target runner -t commitpulse:latest .
 ```
 
-Run the container:
+Run the production container:
 
 ```bash
-docker run \
+docker run -d \
+  --name commitpulse \
   --env-file .env.local \
   -p 3000:3000 \
-  commitpulse
+  commitpulse:latest
 ```
 
 ### 🌐 Deploy to Vercel
