@@ -67,18 +67,21 @@ describe('KeyboardShortcutsModal Accessibility Standards & ARIA Compliance', () 
     render(<KeyboardShortcutsModal isOpen={true} onClose={onClose} />);
 
     expect(screen.getByText('Navigation')).toBeInTheDocument();
-    expect(screen.getByText('General')).toBeInTheDocument();
+    expect(screen.getByText('Actions & Commands')).toBeInTheDocument();
   });
 
   it('renders all shortcut description labels', () => {
     render(<KeyboardShortcutsModal isOpen={true} onClose={onClose} />);
 
     expect(screen.getByText('Go to Home')).toBeInTheDocument();
+    expect(screen.getByText('Go to Dashboard')).toBeInTheDocument();
+    expect(screen.getByText('Go to Repositories')).toBeInTheDocument();
+    expect(screen.getByText('Go to Profile')).toBeInTheDocument();
     expect(screen.getByText('Go to Contributors')).toBeInTheDocument();
-    expect(screen.getByText('Go to Compare')).toBeInTheDocument();
-    expect(screen.getByText('Go to Customization Studio')).toBeInTheDocument();
-    expect(screen.getByText('Open keyboard shortcuts')).toBeInTheDocument();
-    expect(screen.getByText('Close this modal')).toBeInTheDocument();
+    expect(screen.getByText('Open Quick Navigation / Palette')).toBeInTheDocument();
+    expect(screen.getByText('Focus search input')).toBeInTheDocument();
+    expect(screen.getByText('Open keyboard shortcuts modal')).toBeInTheDocument();
+    expect(screen.getByText('Close active modal / dialog')).toBeInTheDocument();
   });
 
   it('renders <kbd> elements for each key in shortcuts', () => {

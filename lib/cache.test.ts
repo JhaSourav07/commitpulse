@@ -197,6 +197,34 @@ describe('TTLCache', () => {
     });
   });
 
+  describe('getExpiresAt()', () => {
+    it('returns null for missing or invalid keys', () => {
+      const cache = new TTLCache<string>();
+      expect(cache.getExpiresAt('missing')).toBeNull();
+      expect(cache.getExpiresAt('')).toBeNull();
+      cache.destroy();
+    });
+
+    it('returns exact expiration timestamp for valid key', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(10000);
+      const cache = new TTLCache<string>();
+      cache.set('key', 'val', 5000);
+      expect(cache.getExpiresAt('key')).toBe(15000);
+      cache.destroy();
+    });
+
+    it('returns null for expired key', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(10000);
+      const cache = new TTLCache<string>();
+      cache.set('key', 'val', 5000);
+      vi.advanceTimersByTime(6000);
+      expect(cache.getExpiresAt('key')).toBeNull();
+      cache.destroy();
+    });
+  });
+
   describe('delete()', () => {
     it('removes an existing key and returns true', () => {
       const cache = new TTLCache<string>();

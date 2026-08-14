@@ -248,9 +248,8 @@ export function calculateStreak(
         (new Date(effectiveTodayStr).getTime() - new Date(lastDateStr).getTime()) / 86400000
       );
 
-      // Issue #6171:
-      // only reject when today is missing AND gap > grace
-      if (gapDays > (safeGrace > 0 ? safeGrace : 1)) {
+      //The conditional block now properly dictates the value of todayIndex without being overriden
+      if (gapDays > Math.max(1, grace)) {
         todayIndex = -1;
       } else {
         todayIndex = lastIndex;
@@ -315,7 +314,7 @@ export function calculateStreak(
   } else {
     currentStreak = 0;
   }
-  let resolvedTodayDate = localTodayStr;
+  let resolvedTodayDate = effectiveTodayStr;
   const hasTodayEntry = nonVacationUniqueDays.some((d) => d.date === effectiveTodayStr);
 
   // Only fallback if calendar has no entry for today at all
@@ -557,8 +556,16 @@ export function chunkDaysIntoWeeks(
     if (!day.date || typeof day.date !== 'string' || day.date.trim() === '') return false;
     // Validate YYYY-MM-DD format
     if (!/^\d{4}-\d{2}-\d{2}$/.test(day.date)) return false;
-    // Ensure it's a valid date
-    const dateObj = new Date(day.date);
+    // Validate date components (reject impossible dates like 2024-02-30)
+    const parts = day.date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!parts) return false;
+    const year = parseInt(parts[1], 10);
+    const month = parseInt(parts[2], 10);
+    const dayNum = parseInt(parts[3], 10);
+    if (month < 1 || month > 12) return false;
+    const daysInMonth = new Date(year, month, 0).getDate();
+    if (dayNum < 1 || dayNum > daysInMonth) return false;
+    const dateObj = new Date(year, month - 1, dayNum);
     return !isNaN(dateObj.getTime());
   });
 
