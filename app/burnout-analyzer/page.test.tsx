@@ -20,8 +20,17 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
+vi.mock('framer-motion', async () => {
+  const actual = await vi.importActual('framer-motion');
+  return {
+    ...actual as any,
+    AnimatePresence: ({ children }: any) => <>{children}</>,
+  };
+});
+
 describe('BurnoutAnalyzerPage repository input handling', () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
     vi.clearAllMocks();
     mockHistoryBack.mockReset();
     mockRouterPush.mockReset();
@@ -115,14 +124,10 @@ describe('BurnoutAnalyzerPage repository input handling', () => {
       }),
     });
     vi.stubGlobal('fetch', fetchMock);
-    Object.defineProperty(window, 'history', {
-      value: { length: 2, back: mockHistoryBack },
-      configurable: true,
-    });
-    Object.defineProperty(document, 'referrer', {
-      value: 'http://localhost/burnout-analyzer',
-      configurable: true,
-    });
+    vi.spyOn(window.history, 'length', 'get').mockReturnValue(2);
+    vi.spyOn(window.history, 'back').mockImplementation(mockHistoryBack as any);
+    vi.spyOn(window.history, 'pushState').mockImplementation(vi.fn());
+    vi.spyOn(document, 'referrer', 'get').mockReturnValue('http://localhost/burnout-analyzer');
 
     render(<BurnoutAnalyzerPage />);
     fireEvent.change(screen.getByPlaceholderText(/facebook\/react/i), {
@@ -154,14 +159,10 @@ describe('BurnoutAnalyzerPage repository input handling', () => {
       }),
     });
     vi.stubGlobal('fetch', fetchMock);
-    Object.defineProperty(window, 'history', {
-      value: { length: 1, back: mockHistoryBack },
-      configurable: true,
-    });
-    Object.defineProperty(document, 'referrer', {
-      value: 'http://localhost/another-page',
-      configurable: true,
-    });
+    vi.spyOn(window.history, 'length', 'get').mockReturnValue(1);
+    vi.spyOn(window.history, 'back').mockImplementation(mockHistoryBack as any);
+    vi.spyOn(window.history, 'pushState').mockImplementation(vi.fn());
+    vi.spyOn(document, 'referrer', 'get').mockReturnValue('http://localhost/another-page');
 
     render(<BurnoutAnalyzerPage />);
     fireEvent.change(screen.getByPlaceholderText(/facebook\/react/i), {

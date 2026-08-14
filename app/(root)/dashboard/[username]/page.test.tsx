@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
-import { render, screen } from '@testing-library/react';
+import { Suspense } from 'react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import DashboardPage, { generateMetadata } from './page';
-import { getFullDashboardData } from '@/lib/github';
+import { getFullDashboardData, fetchUserProfile } from '@/lib/github';
 
 const { mockNotFound } = vi.hoisted(() => ({
   mockNotFound: vi.fn(),
@@ -21,7 +22,39 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@/lib/github', () => ({
-  getFullDashboardData: vi.fn(),
+  getFullDashboardData: vi.fn().mockReturnValue(Promise.resolve({
+    profile: {
+      login: 'octocat',
+      avatar_url: 'https://avatars.githubusercontent.com/u/583231?v=4',
+      html_url: 'https://github.com/octocat',
+      name: 'The Octocat',
+      bio: null,
+      company: '@github',
+      blog: 'https://github.blog',
+      location: 'San Francisco',
+      email: null,
+      hireable: null,
+      twitter_username: null,
+      public_repos: 8,
+      public_gists: 8,
+      followers: 3938,
+      following: 9,
+      created_at: '2011-01-25T18:44:36Z',
+      updated_at: '2023-01-22T12:13:14Z',
+    },
+    stats: {
+      currentStreak: 5,
+      peakStreak: 15,
+      totalContributions: 500,
+    },
+    activity: [],
+    languages: [],
+    commitTimes: [],
+    achievements: [],
+    recommendations: [],
+  })),
+  fetchUserProfile: vi.fn().mockResolvedValue({ type: 'User', name: '' }),
+  fetchUserRepos: vi.fn().mockResolvedValue([]),
 }));
 
 // --- Mocking Core UI Blocks ---
@@ -222,7 +255,10 @@ describe('DashboardPage', () => {
       const DashboardContent = SuspenseTree.props.children.type;
       const PageContent = await DashboardContent(SuspenseTree.props.children.props);
 
-      render(PageContent);
+      await act(async () => {
+        render(<Suspense fallback="loading">{PageContent}</Suspense>);
+      });
+      await waitFor(() => expect(screen.queryByText('loading')).not.toBeInTheDocument());
 
       expect(getFullDashboardData).toHaveBeenCalledWith(
         'octocat',
@@ -258,7 +294,10 @@ describe('DashboardPage', () => {
       const DashboardContent = SuspenseTree.props.children.type;
       const PageContent = await DashboardContent(SuspenseTree.props.children.props);
 
-      render(PageContent);
+      await act(async () => {
+        render(<Suspense fallback="loading">{PageContent}</Suspense>);
+      });
+      await waitFor(() => expect(screen.queryByText('loading')).not.toBeInTheDocument());
 
       expect(getFullDashboardData).toHaveBeenCalledWith(
         'octocat',
@@ -279,7 +318,10 @@ describe('DashboardPage', () => {
       const DashboardContent = SuspenseTree.props.children.type;
       const PageContent = await DashboardContent(SuspenseTree.props.children.props);
 
-      render(PageContent);
+      await act(async () => {
+        render(<Suspense fallback="loading">{PageContent}</Suspense>);
+      });
+      await waitFor(() => expect(screen.queryByText('loading')).not.toBeInTheDocument());
 
       expect(getFullDashboardData).toHaveBeenCalledWith(
         'octocat',
@@ -300,14 +342,17 @@ describe('DashboardPage', () => {
       const DashboardContent = SuspenseTree.props.children.type;
       const PageContent = await DashboardContent(SuspenseTree.props.children.props);
 
-      render(PageContent);
+      await act(async () => {
+        render(<Suspense fallback="loading">{PageContent}</Suspense>);
+      });
+      await waitFor(() => expect(screen.queryByText('loading')).not.toBeInTheDocument());
 
       const trendView = screen.getByTestId('historical-trend-view');
       expect(JSON.parse(trendView.getAttribute('data-prop') ?? '[]')).toEqual(mockData.activity);
     });
 
-    it('calls notFound when dashboard data fetch throws an error', async () => {
-      vi.mocked(getFullDashboardData).mockRejectedValueOnce(new Error('User not found'));
+    it('calls notFound when fetchUserProfile throws an error', async () => {
+      vi.mocked(fetchUserProfile).mockRejectedValueOnce(new Error('Fetch failed'));
 
       const SuspenseTree = await DashboardPage({
         params: Promise.resolve({ username: 'missing-user' }),
