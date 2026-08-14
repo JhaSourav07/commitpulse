@@ -52,12 +52,27 @@ describe('dateHelpers', () => {
       expect(result).toEqual({ morning: 0, afternoon: 0, evening: 0, night: 0 });
     });
 
+    it('returns zero metrics when input is null', () => {
+      const result = processCommitTimestamps(null);
+      expect(result).toEqual({ morning: 0, afternoon: 0, evening: 0, night: 0 });
+    });
+
+    it('returns zero metrics when input is undefined', () => {
+      const result = processCommitTimestamps(undefined);
+      expect(result).toEqual({ morning: 0, afternoon: 0, evening: 0, night: 0 });
+    });
+
+    it('returns zero metrics when input is not an array', () => {
+      const result = processCommitTimestamps('not-an-array' as unknown as string[]);
+      expect(result).toEqual({ morning: 0, afternoon: 0, evening: 0, night: 0 });
+    });
+
     it('returns zero metrics when all dates are invalid', () => {
       const result = processCommitTimestamps(['invalid-date', 'not-a-date', '']);
       expect(result).toEqual({ morning: 0, afternoon: 0, evening: 0, night: 0 });
     });
 
-    it('returns zero metrics when all dates are null or undefined', () => {
+    it('returns zero metrics when array elements are null or undefined', () => {
       const result = processCommitTimestamps([
         null as unknown as string,
         undefined as unknown as string,
@@ -68,6 +83,18 @@ describe('dateHelpers', () => {
     it('returns zero metrics for an array containing only Invalid Date strings', () => {
       const result = processCommitTimestamps(['2024-13-99T25:99:00', 'hello world']);
       expect(result).toEqual({ morning: 0, afternoon: 0, evening: 0, night: 0 });
+    });
+
+    it('always returns a valid TimeOfDayMetrics object with numeric fields', () => {
+      const result = processCommitTimestamps([]);
+      expect(result).toHaveProperty('morning');
+      expect(result).toHaveProperty('afternoon');
+      expect(result).toHaveProperty('evening');
+      expect(result).toHaveProperty('night');
+      expect(typeof result.morning).toBe('number');
+      expect(typeof result.afternoon).toBe('number');
+      expect(typeof result.evening).toBe('number');
+      expect(typeof result.night).toBe('number');
     });
 
     // NOTE: Added 'Z' to timestamp strings below to explicitly parse them as UTC,

@@ -5,8 +5,12 @@ export interface TimeOfDayMetrics {
   night: number; // 12 AM - 6 AM
 }
 
-export function processCommitTimestamps(commitDates: string[] | Date[]): TimeOfDayMetrics {
+export function processCommitTimestamps(commitDates?: (string | Date)[] | null): TimeOfDayMetrics {
   const metrics: TimeOfDayMetrics = { morning: 0, afternoon: 0, evening: 0, night: 0 };
+
+  if (!commitDates || !Array.isArray(commitDates)) {
+    return metrics;
+  }
 
   commitDates.forEach((dateString) => {
     if (!dateString) return;
