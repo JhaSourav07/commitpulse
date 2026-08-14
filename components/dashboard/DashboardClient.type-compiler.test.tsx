@@ -1,6 +1,10 @@
 import { describe, it, expectTypeOf } from 'vitest';
 import React, { ComponentProps } from 'react';
-import DashboardClient, { ProfileMetrics, CoderProfile, DashboardClientProps } from './DashboardClient';
+import DashboardClient, {
+  ProfileMetrics,
+  CoderProfile,
+  DashboardClientProps,
+} from './DashboardClient';
 import type { DashboardPeriod } from '@/utils/dashboardPeriod';
 
 describe('DashboardClient - TypeScript Compiler Validation & Schema Constraints Stability (Variation 10)', () => {
@@ -24,7 +28,9 @@ describe('DashboardClient - TypeScript Compiler Validation & Schema Constraints 
 
     // Test the internal initialData structure
     expectTypeOf<NonNullable<Props['initialData']>>().toHaveProperty('profile').toBeObject();
-    expectTypeOf<NonNullable<Props['initialData']>['profile']>().toHaveProperty('username').toBeString();
+    expectTypeOf<NonNullable<Props['initialData']>['profile']>()
+      .toHaveProperty('username')
+      .toBeString();
   });
 
   it('Assert that invalid prop parameters are blocked during static type checking: Rejects missing props', () => {
