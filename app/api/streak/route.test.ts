@@ -286,7 +286,7 @@ describe('GET /api/streak', () => {
     });
 
     it('should return 200 OK and valid SVG when the optional repo query parameter is provided', async () => {
-      const response = await GET(makeRequest({ user: 'octocat', repo: 'commitpulse' }));
+      const response = await GET(makeRequest({ user: 'octocat', repo: 'octocat/commitpulse' }));
       expect(response.status).toBe(200);
       const textOutput = await response.text();
       expect(textOutput).toContain('<svg');
