@@ -684,7 +684,8 @@ const TWO_YEARS_MS = 2 * 365.25 * 24 * 60 * 60 * 1000;
 
 export const streakParamsSchema = baseStreakParamsSchema
   .refine(
-    (data) => (data.user && data.user.trim().length > 0) || (data.org && data.org.trim().length > 0),
+    (data) =>
+      (data.user && data.user.trim().length > 0) || (data.org && data.org.trim().length > 0),
     { message: 'Missing user parameter', path: ['user'] }
   )
   .refine((data) => !data.from || !data.to || Date.parse(data.from) <= Date.parse(data.to), {
@@ -1235,7 +1236,8 @@ export const animatedStreakParamsSchema = baseStreakParamsSchema
       .transform((val) => val || 'rise'),
   })
   .refine(
-    (data) => (data.user && data.user.trim().length > 0) || (data.org && data.org.trim().length > 0),
+    (data) =>
+      (data.user && data.user.trim().length > 0) || (data.org && data.org.trim().length > 0),
     { message: 'Missing user parameter', path: ['user'] }
   )
   .refine((data) => !data.from || !data.to || Date.parse(data.from) <= Date.parse(data.to), {

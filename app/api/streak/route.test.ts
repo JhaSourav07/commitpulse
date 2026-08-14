@@ -207,7 +207,9 @@ describe('GET /api/streak', () => {
     });
 
     it('returns 404 JSON for a nonexistent user when format=json', async () => {
-      vi.mocked(fetchGitHubContributions).mockRejectedValue(new Error('Could not resolve to a User with the login of \'nonexistentuser\''));
+      vi.mocked(fetchGitHubContributions).mockRejectedValue(
+        new Error("Could not resolve to a User with the login of 'nonexistentuser'")
+      );
       const response = await GET(makeRequest({ user: 'nonexistentuser', format: 'json' }));
       expect(response.status).toBe(404);
       const body = await response.json();
