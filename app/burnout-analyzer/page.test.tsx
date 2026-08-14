@@ -23,7 +23,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('framer-motion', async () => {
   const actual = await vi.importActual('framer-motion');
   return {
-    ...actual as any,
+    ...(actual as any),
     AnimatePresence: ({ children }: any) => <>{children}</>,
   };
 });
