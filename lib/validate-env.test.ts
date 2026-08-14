@@ -69,6 +69,24 @@ describe('validateCriticalEnv — AUTH_SECRET errors', () => {
     expect(result.valid).toBe(false);
     expect(result.errors[0]).toMatch(/31 chars/);
   });
+
+  it('returns an error when AUTH_SECRET is set to fallback-secret', () => {
+    const result = validateCriticalEnv(validEnv({ AUTH_SECRET: 'fallback-secret' }));
+    expect(result.valid).toBe(false);
+    expect(result.errors[0]).toMatch(
+      /AUTH_SECRET environment variable must be set to a secure value/
+    );
+  });
+
+  it('returns an error when AUTH_SECRET contains fallback-secret', () => {
+    const result = validateCriticalEnv(
+      validEnv({ AUTH_SECRET: 'this-is-a-long-fallback-secret-string-32chars!' })
+    );
+    expect(result.valid).toBe(false);
+    expect(result.errors[0]).toMatch(
+      /AUTH_SECRET environment variable must be set to a secure value/
+    );
+  });
 });
 
 describe('validateCriticalEnv — ENCRYPTION_KEY errors', () => {
@@ -142,6 +160,12 @@ describe('assertCriticalEnv — happy path', () => {
 describe('assertCriticalEnv — throws on bad config', () => {
   it('throws when AUTH_SECRET is missing', () => {
     expect(() => assertCriticalEnv(validEnv({ AUTH_SECRET: undefined }))).toThrow(/AUTH_SECRET/);
+  });
+
+  it('throws when AUTH_SECRET is set to fallback-secret', () => {
+    expect(() => assertCriticalEnv(validEnv({ AUTH_SECRET: 'fallback-secret' }))).toThrow(
+      /AUTH_SECRET environment variable must be set to a secure value/
+    );
   });
 
   it('throws when ENCRYPTION_KEY is missing', () => {

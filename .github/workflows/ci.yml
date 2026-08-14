@@ -88,3 +88,29 @@ jobs:
             bundle-sizes.json
             scripts/measure-bundle-size.js
             scripts/compare-bundle-sizes.js
+
+  api-contract-check:
+    name: API Contract · Breaking Change Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Fetch base and head commits
+        run: |
+          git fetch --depth=1 origin ${{ github.event.pull_request.base.sha }}
+          git fetch --depth=1 origin ${{ github.event.pull_request.head.sha }}
+
+      - name: Check BadgeParams for breaking changes
+        run: npm run check:api-breaking -- ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }}

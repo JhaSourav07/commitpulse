@@ -1,4 +1,5 @@
 import type { BadgeParams, StreakStats } from '../../types';
+import { DEFAULT_FONTS_BASE64 } from './fonts';
 import { escapeXML, sanitizeHexColor } from './sanitizer';
 import { truncateUsername, getSizeScale } from './generator';
 
@@ -98,7 +99,7 @@ export function generatePunchcardSVG(
   <desc id="cp-punch-desc">A 3D isometric grid showing ${safeUser}'s commit frequency by day of week and hour of day.</desc>
   <defs>
     <style>
-      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap");
+      ${DEFAULT_FONTS_BASE64}
       @media (prefers-reduced-motion: reduce) {
         *, ::before, ::after { animation: none !important; transition: none !important; }
       }

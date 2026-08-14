@@ -1,5 +1,4 @@
-import '@testing-library/jest-dom';
-import { afterEach } from 'vitest';
+import '@testing-library/jest-dom/vitest';
 import { vi } from 'vitest';
 
 // Mock IntersectionObserver globally for Framer Motion tests

@@ -6,5 +6,11 @@
       "fix/issue-*": false,
       "test/*": false
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/cache-warmer",
+      "schedule": "0 0 * * *"
+    }
+  ]
 }
