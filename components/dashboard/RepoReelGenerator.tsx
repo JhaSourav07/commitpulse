@@ -177,15 +177,16 @@ export default function RepoReelGenerator({
             <Video className="w-6 h-6" />
           </div>
           <div>
-            <h3 id="reporeel-title" className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+            <h3
+              id="reporeel-title"
+              className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2"
+            >
               {t('reporeel.title')}
               <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-gradient-to-r from-purple-500/20 to-indigo-500/20 text-purple-400 border border-purple-500/30">
                 15s Cinematic Code-to-Video
               </span>
             </h3>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              {t('reporeel.description')}
-            </p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">{t('reporeel.description')}</p>
           </div>
         </div>
 
@@ -221,7 +222,11 @@ export default function RepoReelGenerator({
               aria-label={soundEnabled ? 'Mute audio' : 'Enable audio'}
               className="p-2 rounded-lg bg-neutral-900/80 text-zinc-400 hover:text-white transition-colors cursor-pointer"
             >
-              {soundEnabled ? <Volume2 className="w-4 h-4 text-purple-400" /> : <VolumeX className="w-4 h-4" />}
+              {soundEnabled ? (
+                <Volume2 className="w-4 h-4 text-purple-400" />
+              ) : (
+                <VolumeX className="w-4 h-4" />
+              )}
             </button>
           </div>
 

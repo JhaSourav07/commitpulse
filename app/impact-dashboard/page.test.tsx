@@ -9,13 +9,21 @@ vi.mock('framer-motion', () => ({
       delete props.initial;
       delete props.animate;
       delete props.transition;
-      return <section className={className} {...props}>{children}</section>;
+      return (
+        <section className={className} {...props}>
+          {children}
+        </section>
+      );
     },
     div: ({ children, className, ...props }: any) => {
       delete props.initial;
       delete props.animate;
       delete props.transition;
-      return <div className={className} {...props}>{children}</div>;
+      return (
+        <div className={className} {...props}>
+          {children}
+        </div>
+      );
     },
   },
   AnimatePresence: ({ children }: any) => children,
@@ -26,7 +34,8 @@ vi.mock('@/context/TranslationContext', () => ({
     t: (key: string) => {
       const map: Record<string, string> = {
         'impact_dashboard.page_title': 'Impact & RepoReel Studio',
-        'impact_dashboard.page_subtitle': 'Translate code contributions into real-world value & social videos',
+        'impact_dashboard.page_subtitle':
+          'Translate code contributions into real-world value & social videos',
         'impact_dashboard.tab_metrics': 'Value Metrics',
         'reporeel.tab_studio': 'RepoReel Studio',
         'impact_dashboard.title': 'Real-World Impact Dashboard',

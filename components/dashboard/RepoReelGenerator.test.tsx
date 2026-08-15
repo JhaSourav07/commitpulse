@@ -9,14 +9,22 @@ vi.mock('framer-motion', () => ({
       delete props.initial;
       delete props.animate;
       delete props.transition;
-      return <section className={className} {...props}>{children}</section>;
+      return (
+        <section className={className} {...props}>
+          {children}
+        </section>
+      );
     },
     div: ({ children, className, ...props }: any) => {
       delete props.initial;
       delete props.animate;
       delete props.transition;
       delete props.exit;
-      return <div className={className} {...props}>{children}</div>;
+      return (
+        <div className={className} {...props}>
+          {children}
+        </div>
+      );
     },
   },
   AnimatePresence: ({ children }: any) => children,
@@ -27,7 +35,8 @@ vi.mock('@/context/TranslationContext', () => ({
     t: (key: string) => {
       const map: Record<string, string> = {
         'reporeel.title': 'RepoReel Studio',
-        'reporeel.description': 'Turn your GitHub repository into a 15-second cinematic clip for Reels & Shorts',
+        'reporeel.description':
+          'Turn your GitHub repository into a 15-second cinematic clip for Reels & Shorts',
         'reporeel.export_button': 'Render & Export .MP4',
       };
       return map[key] ?? key;
@@ -53,7 +62,9 @@ describe('RepoReelGenerator Component', () => {
   it('allows updating repo URL and code snippet inputs', () => {
     render(<RepoReelGenerator />);
 
-    const repoInput = screen.getByPlaceholderText('https://github.com/username/repository') as HTMLInputElement;
+    const repoInput = screen.getByPlaceholderText(
+      'https://github.com/username/repository'
+    ) as HTMLInputElement;
     fireEvent.change(repoInput, { target: { value: 'https://github.com/test/repo' } });
     expect(repoInput.value).toBe('https://github.com/test/repo');
   });

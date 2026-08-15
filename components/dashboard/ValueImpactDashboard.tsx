@@ -75,9 +75,7 @@ export default function ValueImpactDashboard({
                 {metrics.tier}
               </span>
             </h2>
-            <p className="text-xs text-purple-200/70 mt-1">
-              {t('impact_dashboard.subtitle')}
-            </p>
+            <p className="text-xs text-purple-200/70 mt-1">{t('impact_dashboard.subtitle')}</p>
           </div>
         </div>
 

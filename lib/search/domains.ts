@@ -58,7 +58,8 @@ export const SEARCH_DOMAINS: SearchableDomain[] = [
   {
     id: 'impact-dashboard',
     title: 'Value Impact & RepoReel',
-    description: 'Translate commit activity to real-world engineering metrics & cinematic video clips',
+    description:
+      'Translate commit activity to real-world engineering metrics & cinematic video clips',
     href: '/impact-dashboard',
     keywords: ['impact', 'metrics', 'value', 'dashboard', 'reporeel', 'video', 'recruiter'],
     category: 'Dashboard',

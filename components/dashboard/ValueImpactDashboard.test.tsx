@@ -9,13 +9,21 @@ vi.mock('framer-motion', () => ({
       delete props.initial;
       delete props.animate;
       delete props.transition;
-      return <section className={className} {...props}>{children}</section>;
+      return (
+        <section className={className} {...props}>
+          {children}
+        </section>
+      );
     },
     div: ({ children, className, ...props }: any) => {
       delete props.initial;
       delete props.animate;
       delete props.transition;
-      return <div className={className} {...props}>{children}</div>;
+      return (
+        <div className={className} {...props}>
+          {children}
+        </div>
+      );
     },
   },
 }));
