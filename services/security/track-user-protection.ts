@@ -56,6 +56,47 @@ export class TrackUserProtection {
   }
 
   /**
+   * Releases a reserved slot if GitHub validation or DB operations fail downstream.
+   */
+  public releaseReservation(username: string): void {
+    const sanitized = username.trim().toLowerCase();
+    this.lastWriteTimes.delete(sanitized);
+  }
+
+  /**
+   * Atomically checks cooldown and reserves the slot immediately to prevent TOCTOU race conditions.
+   * Verifies format, reserves the cooldown window, and checks user existence.
+   */
+  public async tryReserve(username: string): Promise<{
+    allowed: boolean;
+    reason?: 'INVALID_FORMAT' | 'COOLDOWN_ACTIVE' | 'USER_NOT_FOUND';
+    remainingMs?: number;
+  }> {
+    if (!this.validateFormat(username)) {
+      return { allowed: false, reason: 'INVALID_FORMAT' };
+    }
+
+    const sanitized = username.trim().toLowerCase();
+
+    if (!this.isWriteAllowed(sanitized)) {
+      const lastWrite = this.lastWriteTimes.get(sanitized) || 0;
+      const remainingMs = Math.max(0, WRITE_COOLDOWN_MS - (Date.now() - lastWrite));
+      return { allowed: false, reason: 'COOLDOWN_ACTIVE', remainingMs };
+    }
+
+    // Reserve slot immediately before external async checks
+    this.recordWrite(sanitized);
+
+    const exists = await gitHubUserValidator.validateUser(username);
+    if (!exists) {
+      this.releaseReservation(sanitized);
+      return { allowed: false, reason: 'USER_NOT_FOUND' };
+    }
+
+    return { allowed: true };
+  }
+
+  /**
    * Coordinates both format, cooldown, and existence checks.
    */
   public async verifyAndDeduplicate(username: string): Promise<{

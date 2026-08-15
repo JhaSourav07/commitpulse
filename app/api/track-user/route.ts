@@ -72,6 +72,8 @@ export async function POST(req: Request) {
   // Sanitize MongoDB operators from body to prevent injection
   sanitizeMongoPayload(body);
 
+  const trimmedUsername = '';
+
   try {
     const { username } = body as { username?: unknown };
 
@@ -93,7 +95,7 @@ export async function POST(req: Request) {
     const trimmedUsername = username.trim().toLowerCase();
 
     // Coordinate security validations and deduplication checks
-    const validation = await trackUserProtection.verifyAndDeduplicate(trimmedUsername);
+    const validation = await trackUserProtection.tryReserve(trimmedUsername);
     if (!validation.allowed) {
       if (validation.reason === 'COOLDOWN_ACTIVE') {
         // Return 200 OK with duplicate track indicator to bypass write and keep response fast
@@ -116,6 +118,7 @@ export async function POST(req: Request) {
         logger.error('User tracking disabled: MONGODB_URI is not set', {
           environment: process.env.NODE_ENV,
         });
+        trackUserProtection.releaseReservation(trimmedUsername);
         return NextResponse.json(
           { success: false, error: 'Database configuration error' },
           { status: 500 }
@@ -126,7 +129,6 @@ export async function POST(req: Request) {
       logger.warn('User tracking bypassed: MONGODB_URI is not set', {
         environment: process.env.NODE_ENV,
       });
-      trackUserProtection.recordWrite(trimmedUsername);
       return NextResponse.json({ success: true, bypassed: true });
     }
 
@@ -161,9 +163,6 @@ export async function POST(req: Request) {
       if (!result.success) {
         throw result.error;
       }
-
-      // Record successful database write
-      trackUserProtection.recordWrite(trimmedUsername);
     } catch (upsertError) {
       // Gracefully handle MongoDB E11000 duplicate key race conditions under high concurrency.
       if (
@@ -179,17 +178,21 @@ export async function POST(req: Request) {
           (typeof err.message === 'string' && err.message.includes('username'));
 
         if (isUsernameConflict) {
-          trackUserProtection.recordWrite(trimmedUsername);
           return NextResponse.json({ success: true });
         }
       }
 
       console.warn('Database operation failed or timed out. Bypassing user tracking:', upsertError);
+      trackUserProtection.releaseReservation(trimmedUsername);
       return NextResponse.json({ success: true });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (trimmedUsername) {
+      trackUserProtection.releaseReservation(trimmedUsername);
+    }
+
     logger.error('Failed to track user', {
       route: '/api/track-user',
       error,
