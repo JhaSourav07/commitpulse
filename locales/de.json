@@ -528,5 +528,28 @@
       "expand": "Expand",
       "collapse": "Collapse"
     }
+  },
+  "impact_dashboard": {
+    "page_title": "Impact & RepoReel Studio",
+    "page_subtitle": "Übersetzen Sie Commit-Aktivitäten in reale Engineering-Metriken und Videos",
+    "tab_metrics": "Wertmetriken",
+    "title": "Real-World Impact Dashboard",
+    "subtitle": "Umwandlung der Commit-Frequenz in spürbaren Engineering-Wert",
+    "score_title": "Impact-Score",
+    "hours_title": "Eingesparte Entwicklungsstunden",
+    "hours_unit": "Std",
+    "value_est": "Geschätzter Wert",
+    "depth_title": "Problemlösungstiefe",
+    "arch_title": "Architektonischer Einfluss",
+    "recruiter_pitch_title": "Zusammenfassung für Recruiter",
+    "copy_summary": "Pitch kopieren",
+    "copied": "Kopiert!"
+  },
+  "reporeel": {
+    "tab_studio": "RepoReel Studio",
+    "title": "RepoReel Code-to-Video",
+    "description": "Verwandeln Sie Ihr GitHub-Repository in ein kinoreifes 15-Sekunden-Video",
+    "launch_button": "RepoReel Studio starten",
+    "export_button": "Rendern & Exportieren .MP4"
   }
 }

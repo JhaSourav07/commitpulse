@@ -528,5 +528,28 @@
       "expand": "Expand",
       "collapse": "Collapse"
     }
+  },
+  "impact_dashboard": {
+    "page_title": "影响力与 RepoReel 工作室",
+    "page_subtitle": "将提交活动转化为真实的工程指标与视频剪辑",
+    "tab_metrics": "价值指标",
+    "title": "真实世界影响力仪表盘",
+    "subtitle": "将提交频率转化为具体的工程价值与招聘洞察",
+    "score_title": "影响力得分",
+    "hours_title": "节省的工程工时",
+    "hours_unit": "小时",
+    "value_est": "预估价值",
+    "depth_title": "问题解决深度",
+    "arch_title": "架构影响力",
+    "recruiter_pitch_title": "招聘人员执行摘要",
+    "copy_summary": "复制摘要",
+    "copied": "已复制！"
+  },
+  "reporeel": {
+    "tab_studio": "RepoReel 工作室",
+    "title": "RepoReel 代码转视频",
+    "description": "将 GitHub 仓库转化为 15 秒电影感视频剪辑",
+    "launch_button": "启动 RepoReel 工作室",
+    "export_button": "渲染并导出 .MP4"
   }
 }

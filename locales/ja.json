@@ -528,5 +528,28 @@
       "expand": "Expand",
       "collapse": "Collapse"
     }
+  },
+  "impact_dashboard": {
+    "page_title": "インパクト & RepoReel スタジオ",
+    "page_subtitle": "コミットアクティビティを実世界のエンジニアリング指標と動画に変換",
+    "tab_metrics": "価値指標",
+    "title": "リアルワールド・インパクトダッシュボード",
+    "subtitle": "コミット頻度を具体的なエンジニアリング価値に変換",
+    "score_title": "インパクトスコア",
+    "hours_title": "削減された開発時間",
+    "hours_unit": "時間",
+    "value_est": "推定価値",
+    "depth_title": "問題解決の深さ",
+    "arch_title": "アーキテクチャの影響度",
+    "recruiter_pitch_title": "リクルーター用エグゼクティブサマリー",
+    "copy_summary": "サマリーをコピー",
+    "copied": "コピー完了！"
+  },
+  "reporeel": {
+    "tab_studio": "RepoReel スタジオ",
+    "title": "RepoReel コード to ビデオ",
+    "description": "GitHubリポジトリを15秒のシネマティック動画に変換",
+    "launch_button": "RepoReel スタジオを起動",
+    "export_button": "レンダリング & .MP4出力"
   }
 }
