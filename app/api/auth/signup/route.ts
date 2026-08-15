@@ -1,4 +1,11 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
+
+const signupSchema = z.object({
+  fullName: z.string().min(2).max(100),
+  email: z.string().email(),
+  password: z.string().min(1).max(255),
+});
 
 /**
  * Handles user registration requests for frontend signup.
@@ -7,31 +14,21 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request): Promise<Response> {
   try {
     const body = await request.json();
-    const { fullName, email, password } = body as {
-      fullName?: string;
-      email?: string;
-      password?: string;
-    };
+    const result = signupSchema.safeParse(body);
 
-    if (!fullName || !email || !password) {
+    if (!result.success) {
       return NextResponse.json(
-        { error: 'Full Name, Email, and Password are required.' },
+        { error: 'Full Name, Email, and Password are required and must be valid.' },
         { status: 400 }
       );
     }
+
+    const { fullName, email } = result.data;
 
     // Sanitize and validate input to prevent SQL/NoSQL injection payloads
     const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     if (!isEmail) {
       return NextResponse.json({ error: 'Invalid Email format.' }, { status: 400 });
-    }
-
-    if (fullName.length < 2 || fullName.length > 100) {
-      return NextResponse.json({ error: 'Invalid Full Name format.' }, { status: 400 });
-    }
-
-    if (password.length < 1 || password.length > 255) {
-      return NextResponse.json({ error: 'Invalid password format.' }, { status: 400 });
     }
 
     return NextResponse.json(

@@ -1,4 +1,10 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
+
+const loginSchema = z.object({
+  identifier: z.string().min(3).max(255),
+  password: z.string().min(1).max(255),
+});
 
 /**
  * Handles credentials authentication requests for frontend login.
@@ -7,17 +13,16 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request): Promise<Response> {
   try {
     const body = await request.json();
-    const { identifier, password } = body as {
-      identifier?: string;
-      password?: string;
-    };
+    const result = loginSchema.safeParse(body);
 
-    if (!identifier || !password) {
+    if (!result.success) {
       return NextResponse.json(
-        { error: 'Email or Username and Password are required.' },
+        { error: 'Email or Username and Password are required and must be valid.' },
         { status: 400 }
       );
     }
+
+    const { identifier } = result.data;
 
     // Sanitize and validate input to prevent SQL/NoSQL injection payloads
     const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
@@ -25,10 +30,6 @@ export async function POST(request: Request): Promise<Response> {
 
     if (!isEmail && !isUsername) {
       return NextResponse.json({ error: 'Invalid Email or Username format.' }, { status: 400 });
-    }
-
-    if (password.length < 1 || password.length > 255) {
-      return NextResponse.json({ error: 'Invalid password format.' }, { status: 400 });
     }
 
     return NextResponse.json(
