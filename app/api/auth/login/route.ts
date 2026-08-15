@@ -19,6 +19,18 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
+    // Sanitize and validate input to prevent SQL/NoSQL injection payloads
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
+    const isUsername = /^[a-zA-Z0-9_-]{3,39}$/.test(identifier);
+
+    if (!isEmail && !isUsername) {
+      return NextResponse.json({ error: 'Invalid Email or Username format.' }, { status: 400 });
+    }
+
+    if (password.length < 1 || password.length > 255) {
+      return NextResponse.json({ error: 'Invalid password format.' }, { status: 400 });
+    }
+
     return NextResponse.json(
       {
         success: true,

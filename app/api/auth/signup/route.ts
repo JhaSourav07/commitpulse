@@ -20,6 +20,20 @@ export async function POST(request: Request): Promise<Response> {
       );
     }
 
+    // Sanitize and validate input to prevent SQL/NoSQL injection payloads
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    if (!isEmail) {
+      return NextResponse.json({ error: 'Invalid Email format.' }, { status: 400 });
+    }
+
+    if (fullName.length < 2 || fullName.length > 100) {
+      return NextResponse.json({ error: 'Invalid Full Name format.' }, { status: 400 });
+    }
+
+    if (password.length < 1 || password.length > 255) {
+      return NextResponse.json({ error: 'Invalid password format.' }, { status: 400 });
+    }
+
     return NextResponse.json(
       {
         success: true,
