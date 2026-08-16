@@ -25,23 +25,20 @@ interface ParallaxParticle {
  *  Deterministic math prevents random values from causing SSR/CSR mismatches. */
 function buildParticles(): ParallaxParticle[] {
   const colors = ['#10b981', '#8b5cf6', '#06b6d4', '#3b82f6', '#f59e0b'];
-  return Array.from(
-    { length: PARALLAX_PARTICLE_COUNT },
-    (_, i): ParallaxParticle => ({
-      id: i,
-      // Spread particles across the container using prime-number strides
-      x: (i * 17 + 11) % 100,
-      y: (i * 23 + 7) % 100,
-      size: 4 + (i % 5) * 2, // range: 4–12 px
-      // Keep opacity low so particles never obscure the badge
-      opacity: 0.05 + (i % 4) * 0.025, // range: 0.05–0.125
-      // Vary depth so each "layer" of particles shifts by a different amount,
-      // creating the illusion of 3-D depth. depth 0.1 = farthest; 0.7 = nearest.
-      depth: 0.1 + (i % 6) * 0.1, // range: 0.1–0.6
-      color: colors[i % colors.length],
-      isCircle: i % 4 === 0,
-    })
-  );
+  return Array.from({ length: PARALLAX_PARTICLE_COUNT }, (_, i): ParallaxParticle => ({
+    id: i,
+    // Spread particles across the container using prime-number strides
+    x: (i * 17 + 11) % 100,
+    y: (i * 23 + 7) % 100,
+    size: 4 + (i % 5) * 2, // range: 4–12 px
+    // Keep opacity low so particles never obscure the badge
+    opacity: 0.05 + (i % 4) * 0.025, // range: 0.05–0.125
+    // Vary depth so each "layer" of particles shifts by a different amount,
+    // creating the illusion of 3-D depth. depth 0.1 = farthest; 0.7 = nearest.
+    depth: 0.1 + (i % 6) * 0.1, // range: 0.1–0.6
+    color: colors[i % colors.length],
+    isCircle: i % 4 === 0,
+  }));
 }
 
 // How many pixels a depth-1.0 particle shifts when the cursor is at the
@@ -121,7 +118,7 @@ export default function InteractiveViewer({
   // Stable particle list — generated once on mount, never re-shuffled.
   const particles = useMemo((): ParallaxParticle[] => buildParticles(), []);
 
-  // ── Parallax math ──────────────────────────────────────────────────────────
+  // ── Parallax math ─────────────────────────────────────────────────────────
   // Offset from center: at mousePos.x = 0.5, offset = 0 (no shift).
   // At the left edge (0), offset = -STRENGTH/2; at right (1), offset = +STRENGTH/2.
   const hoverParallaxX = (mousePos.x - 0.5) * PARALLAX_STRENGTH;

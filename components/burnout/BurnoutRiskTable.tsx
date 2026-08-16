@@ -167,9 +167,7 @@ export default function BurnoutRiskTable({ contributors }: BurnoutRiskTableProps
 
   const renderSortIcon = (column: SortColumn) => {
     if (sortColumn !== column) {
-      return (
-        <ArrowUpDown size={12} className="opacity-40 hover:opacity-100 transition-opacity ml-1" />
-      );
+      return <ArrowUpDown size={12} className="opacity-40 hover:opacity-100 transition-opacity ml-1" />;
     }
     return sortDirection === 'asc' ? (
       <ArrowUp size={12} className="text-indigo-500 ml-1" />
@@ -211,7 +209,7 @@ export default function BurnoutRiskTable({ contributors }: BurnoutRiskTableProps
               placeholder="Search contributor..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-7 py-1.5 rounded-xl border border-black/10 dark:border-white/10 bg-white/80 dark:bg-[#121212]/80 text-xs text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full pl-8 pr-7 py-1.5 rounded-xl border border-black/10 dark:border-white/10 bg-white/80 dark:bg-[#121212]/80 text-xs text-gray-900 dark:text-white placeholder-gray-400"
             />
             <Search
               className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"
