@@ -112,6 +112,8 @@ export function getTowerAnimationCSS(
     ${keyframes}
     @media (prefers-reduced-motion: reduce) {
       .cp-tower { animation: none !important; transform: scaleY(1) translateY(0) !important; opacity: 1 !important; }
+      .heat-particles { display: none !important; }
+      *, ::before, ::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
     }
   `;
 }
