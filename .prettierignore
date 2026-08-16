@@ -1,3 +1,9 @@
+node_modules
+.next
+coverage
+dist
+build
 package-lock.json
 lib/svg/fonts.ts
 scratch/
+

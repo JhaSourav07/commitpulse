@@ -100,6 +100,9 @@ export function generatePunchcardSVG(
   <defs>
     <style>
       ${DEFAULT_FONTS_BASE64}
+      @media (prefers-reduced-motion: reduce) {
+        *, ::before, ::after { animation: none !important; transition: none !important; }
+      }
     </style>
   </defs>
   ${params.hideBackground ? '' : `<rect width="${WIDTH}" height="${HEIGHT}" fill="#${bg}" rx="${rx}"/>`}

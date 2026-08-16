@@ -5,6 +5,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EditorPanel } from './EditorPanel';
 import type { GeneratorState } from '../types';
 
+vi.mock('@/hooks/useDebounce', () => ({
+  useDebounce: (val: unknown) => val,
+}));
+
 // Mock Next.js Image component
 vi.mock('next/image', () => ({
   default: (props: Record<string, unknown>) => {
@@ -27,17 +31,24 @@ describe('EditorPanel Component Interactivity Tests', () => {
   const mockOnApplyImport = vi.fn();
 
   beforeEach(() => {
-    vi.useFakeTimers();
     vi.clearAllMocks();
 
-    // ContributionGraphSection (rendered inside EditorPanel) calls
-    // /api/github-username-check via useGitHubUserExists whenever a
-    // format-valid username is present. Mock fetch so that effect resolves
-    // harmlessly instead of hitting the real network guard.
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => ({
-        json: async () => ({ exists: false, reason: 'unverifiable' }),
+        ok: true,
+        json: async () => ({
+          exists: true,
+          login: 'johndoe',
+          name: 'John Doe',
+          avatar_url: 'https://github.com/johndoe.png',
+          public_repos: 10,
+          stats: {
+            currentStreak: 5,
+            longestStreak: 12,
+            totalContributions: 150,
+          },
+        }),
       }))
     );
 
@@ -59,30 +70,26 @@ describe('EditorPanel Component Interactivity Tests', () => {
   });
 
   afterEach(() => {
-    vi.clearAllTimers();
-    vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
   const renderEditorPanel = async () => {
-    render(
-      <EditorPanel
-        state={mockState}
-        onNameChange={mockOnNameChange}
-        onDescriptionChange={mockOnDescriptionChange}
-        onTechsChange={mockOnTechsChange}
-        onSocialsChange={mockOnSocialsChange}
-        onSocialLinkChange={mockOnSocialLinkChange}
-        onGithubUsernameChange={mockOnGithubUsernameChange}
-        onShowCommitPulseChange={mockOnShowCommitPulseChange}
-        onCommitPulseAccentChange={mockOnCommitPulseAccentChange}
-        onApplyImport={mockOnApplyImport}
-      />
-    );
-    // Advance past any debounce/setTimeout timers and flush resulting microtasks
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(500);
+      render(
+        <EditorPanel
+          state={mockState}
+          onNameChange={mockOnNameChange}
+          onDescriptionChange={mockOnDescriptionChange}
+          onTechsChange={mockOnTechsChange}
+          onSocialsChange={mockOnSocialsChange}
+          onSocialLinkChange={mockOnSocialLinkChange}
+          onGithubUsernameChange={mockOnGithubUsernameChange}
+          onShowCommitPulseChange={mockOnShowCommitPulseChange}
+          onCommitPulseAccentChange={mockOnCommitPulseAccentChange}
+          onApplyImport={mockOnApplyImport}
+        />
+      );
     });
   };
 
@@ -91,14 +98,14 @@ describe('EditorPanel Component Interactivity Tests', () => {
     await renderEditorPanel();
 
     const switchBtn = screen.getByRole('switch', { name: /toggle commitpulse badge/i });
-    const clearBtn = screen.getByRole('button', { name: 'Clear' });
+    const importBtn = screen.getByRole('button', { name: /import from github/i });
 
     // Verify elements contain transition classes
     expect(switchBtn.className).toContain('transition-colors');
-    expect(clearBtn.className).toContain('transition-colors');
+    expect(importBtn.className).toContain('transition-all');
 
     // Verify hover color or background changes are structurally present in the class names
-    expect(clearBtn.className).toContain('hover:text-gray-700');
+    expect(importBtn.className).toContain('hover:border-emerald-500/30');
   });
 
   // Case 2: Hover State Visibility (Tooltips Equivalent)
@@ -115,28 +122,27 @@ describe('EditorPanel Component Interactivity Tests', () => {
   // Case 3: Event Propagation to DOM Targets (Touch Propagation Equivalent)
   it('Case 3: click events propagate cleanly to parental DOM wrappers', async () => {
     const parentClickSpy = vi.fn();
-    render(
-      <div onClick={parentClickSpy} data-testid="outer-wrapper">
-        <EditorPanel
-          state={mockState}
-          onNameChange={mockOnNameChange}
-          onDescriptionChange={mockOnDescriptionChange}
-          onTechsChange={mockOnTechsChange}
-          onSocialsChange={mockOnSocialsChange}
-          onSocialLinkChange={mockOnSocialLinkChange}
-          onGithubUsernameChange={mockOnGithubUsernameChange}
-          onShowCommitPulseChange={mockOnShowCommitPulseChange}
-          onCommitPulseAccentChange={mockOnCommitPulseAccentChange}
-          onApplyImport={mockOnApplyImport}
-        />
-      </div>
-    );
-
-    const clearBtn = screen.getByRole('button', { name: 'Clear' });
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(500);
-      fireEvent.click(clearBtn);
+      render(
+        <div onClick={parentClickSpy} data-testid="outer-wrapper">
+          <EditorPanel
+            state={mockState}
+            onNameChange={mockOnNameChange}
+            onDescriptionChange={mockOnDescriptionChange}
+            onTechsChange={mockOnTechsChange}
+            onSocialsChange={mockOnSocialsChange}
+            onSocialLinkChange={mockOnSocialLinkChange}
+            onGithubUsernameChange={mockOnGithubUsernameChange}
+            onShowCommitPulseChange={mockOnShowCommitPulseChange}
+            onCommitPulseAccentChange={mockOnCommitPulseAccentChange}
+            onApplyImport={mockOnApplyImport}
+          />
+        </div>
+      );
     });
+
+    const switchBtn = screen.getByRole('switch', { name: /toggle commitpulse badge/i });
+    fireEvent.click(switchBtn);
 
     expect(parentClickSpy).toHaveBeenCalledTimes(1);
   });
@@ -146,18 +152,10 @@ describe('EditorPanel Component Interactivity Tests', () => {
     await renderEditorPanel();
 
     const nameInput = screen.getByPlaceholderText('e.g. Omkar');
-    await act(async () => {
-      fireEvent.change(nameInput, { target: { value: 'Jane Doe' } });
-    });
+    fireEvent.change(nameInput, { target: { value: 'Jane Doe' } });
 
     const usernameInput = screen.getByPlaceholderText('e.g. OmkarArdekar12');
-    await act(async () => {
-      fireEvent.change(usernameInput, { target: { value: 'janedoe' } });
-    });
-
-    await act(async () => {
-      await vi.runOnlyPendingTimersAsync();
-    });
+    fireEvent.change(usernameInput, { target: { value: 'janedoe' } });
 
     expect(mockOnNameChange).toHaveBeenCalledWith('Jane Doe');
     expect(mockOnGithubUsernameChange).toHaveBeenCalledWith('janedoe');
@@ -166,31 +164,28 @@ describe('EditorPanel Component Interactivity Tests', () => {
   // Case 5: Touch and Mobile Interactivity
   it('Case 5: mobile touch gestures propagate successfully on controls', async () => {
     const parentTouchSpy = vi.fn();
-    render(
-      <div onTouchStart={parentTouchSpy} data-testid="outer-wrapper">
-        <EditorPanel
-          state={mockState}
-          onNameChange={mockOnNameChange}
-          onDescriptionChange={mockOnDescriptionChange}
-          onTechsChange={mockOnTechsChange}
-          onSocialsChange={mockOnSocialsChange}
-          onSocialLinkChange={mockOnSocialLinkChange}
-          onGithubUsernameChange={mockOnGithubUsernameChange}
-          onShowCommitPulseChange={mockOnShowCommitPulseChange}
-          onCommitPulseAccentChange={mockOnCommitPulseAccentChange}
-          onApplyImport={mockOnApplyImport}
-        />
-      </div>
-    );
+    await act(async () => {
+      render(
+        <div onTouchStart={parentTouchSpy} data-testid="outer-wrapper">
+          <EditorPanel
+            state={mockState}
+            onNameChange={mockOnNameChange}
+            onDescriptionChange={mockOnDescriptionChange}
+            onTechsChange={mockOnTechsChange}
+            onSocialsChange={mockOnSocialsChange}
+            onSocialLinkChange={mockOnSocialLinkChange}
+            onGithubUsernameChange={mockOnGithubUsernameChange}
+            onShowCommitPulseChange={mockOnShowCommitPulseChange}
+            onCommitPulseAccentChange={mockOnCommitPulseAccentChange}
+            onApplyImport={mockOnApplyImport}
+          />
+        </div>
+      );
+    });
 
     const switchBtn = screen.getByRole('switch', { name: /toggle commitpulse badge/i });
 
-    // Simulate mobile touchstart gesture
-    let touchStartRes = false;
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(500);
-      touchStartRes = fireEvent.touchStart(switchBtn);
-    });
+    const touchStartRes = fireEvent.touchStart(switchBtn);
     expect(touchStartRes).toBe(true);
     expect(parentTouchSpy).toHaveBeenCalledTimes(1);
   });
