@@ -280,6 +280,9 @@ function buildConstellationCSS(): string {
     @keyframes ${CSS_PREFIX}-milkyway-rotate {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after { animation: none !important; transition: none !important; }
     }`;
 }
 

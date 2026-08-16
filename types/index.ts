@@ -359,6 +359,8 @@ export interface BadgeParams {
   gradient_dir?: 'vertical' | 'horizontal' | 'diagonal';
 
   disable_particles?: boolean;
+  animations?: boolean;
+  disable_animations?: boolean;
   animate?: boolean;
   glow?: boolean;
   isOfflineFallback?: boolean;

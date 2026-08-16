@@ -966,7 +966,9 @@ export function generateSVG(
     safeBorderWidth = rawBorderWidth.toLowerCase();
   }
 
-  const animate = params.animate ?? true;
+  const isAnimationDisabled = params.animations === false || params.disable_animations === true;
+  const animate = isAnimationDisabled ? false : (params.animate ?? true);
+  const effectiveEntrance = isAnimationDisabled ? 'none' : params.entrance || 'rise';
   const safeUser = escapeXML(params.user || 'GitHub User');
   const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
   const bgFill =
@@ -1032,7 +1034,7 @@ export function generateSVG(
   return `
 <svg style="max-width: 100%; height: auto;" xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" focusable="false" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
   ${renderHeader(safeUser, stats, sf, params, safeId)}
-  ${renderStyle(selectedFont, statsFont, googleFontsImport, text, mainAccentHex, sf, bg, params.entrance || 'rise')}
+  ${renderStyle(selectedFont, statsFont, googleFontsImport, text, mainAccentHex, sf, bg, effectiveEntrance)}
   ${renderBackgroundRect(params.hideBackground ? 'transparent' : bgFill, radius, borderAttr)}
   <g id="cp-towers" style="transform-origin: center; transform-box: fill-box;" transform="translate(0, ${Math.round((20 + yOffset) * sf)})" focusable="false">${towers}</g>
   ${

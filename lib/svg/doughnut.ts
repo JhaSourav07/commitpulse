@@ -150,6 +150,9 @@ export function generateDoughnutSVG(
       .subtitle { font-family: 'Inter', sans-serif; font-weight: 400; font-size: 12px; fill: #${textColor}; opacity: 0.7; }
       .legend-text { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 13px; fill: #${textColor}; }
       .legend-sub { font-family: 'Inter', sans-serif; font-weight: 400; font-size: 11px; fill: #${textColor}; opacity: 0.6; }
+      @media (prefers-reduced-motion: reduce) {
+        *, ::before, ::after { animation: none !important; transition: none !important; }
+      }
     </style>
   </defs>
 
