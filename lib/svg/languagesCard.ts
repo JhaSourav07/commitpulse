@@ -171,6 +171,9 @@ export function generateLanguagesSVG(
           fill: ${text};
           fill-opacity: 0.6;
         }
+        @media (prefers-reduced-motion: reduce) {
+          *, ::before, ::after { animation: none !important; transition: none !important; }
+        }
       </style>
       <rect width="${width}" height="${height}" rx="${radius}" fill="${bg}" ${borderStroke} />
       ${content}

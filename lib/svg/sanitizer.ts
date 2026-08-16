@@ -161,6 +161,25 @@ export function getLuminance(hex: string): number {
 }
 
 /**
+ * Calculates the WCAG contrast ratio between two hex colors.
+ * Formula: (L1 + 0.05) / (L2 + 0.05) where L1 is the lighter luminance.
+ */
+export function getContrastRatio(hex1: string, hex2: string): number {
+  const l1 = getLuminance(hex1);
+  const l2 = getLuminance(hex2);
+  const lighter = Math.max(l1, l2);
+  const darker = Math.min(l1, l2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+/**
+ * Checks if contrast between two hex colors meets WCAG AA standards (default 4.5:1 ratio).
+ */
+export function isWCAGAAMet(hex1: string, hex2: string, minRatio = 4.5): boolean {
+  return getContrastRatio(hex1, hex2) >= minRatio;
+}
+
+/**
  * Normalizes a single hex color string by removing leading '#' and validating it.
  * Returns the clean hex string (without '#') or null if invalid.
  */

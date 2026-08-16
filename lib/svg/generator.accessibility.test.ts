@@ -79,4 +79,17 @@ describe('SVG accessibility attributes (WCAG 1.1.1)', () => {
       '<desc id="cp-desc-avi">avi has 100 total contributions, a current streak of 5 days, and a longest streak of 10 days.</desc>'
     );
   });
+
+  it('includes prefers-reduced-motion media query in generated SVG styles', () => {
+    const svg = generateSVG(mockStats, baseParams, mockCalendar);
+    expect(svg).toContain('@media (prefers-reduced-motion: reduce)');
+  });
+
+  it('disables entrance animation when animations=false or disable_animations=true', () => {
+    const svg1 = generateSVG(mockStats, { ...baseParams, animations: false }, mockCalendar);
+    expect(svg1).toContain('.cp-tower { transform: scaleY(1); opacity: 1; }');
+
+    const svg2 = generateSVG(mockStats, { ...baseParams, disable_animations: true }, mockCalendar);
+    expect(svg2).toContain('.cp-tower { transform: scaleY(1); opacity: 1; }');
+  });
 });
