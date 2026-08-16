@@ -1,6 +1,6 @@
-// lib/svg/weekday.ts
-
-import type { BadgeParams, ContributionCalendar, StreakStats } from '@/types';
+import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
+import { escapeXML } from './sanitizer';
+import { truncateUsername } from './generator';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -48,6 +48,7 @@ export function generateWeekdaySVG(
   params: BadgeParams,
   calendar: ContributionCalendar
 ): string {
+  const safeUser = escapeXML(truncateUsername(params.user || 'User'));
   let grouped = groupByWeekday(calendar);
 
   if (params.hide_weekend) {
@@ -91,7 +92,16 @@ export function generateWeekdaySVG(
     })
     .join('');
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-labelledby="cp-weekday-title cp-weekday-desc">
+    <title id="cp-weekday-title">CommitPulse Weekday Distribution for ${safeUser}</title>
+    <desc id="cp-weekday-desc">A bar chart of ${safeUser}'s contributions by day of the week.</desc>
+    <defs>
+      <style>
+        @media (prefers-reduced-motion: reduce) {
+          *, ::before, ::after { animation: none !important; transition: none !important; }
+        }
+      </style>
+    </defs>
     <rect width="${width}" height="${height}" fill="#${params.bg}" rx="${params.radius ?? 8}" />
     <text x="${width / 2}" y="24" text-anchor="middle" font-size="14" fill="#${params.text}">
       ${stats.totalContributions} contributions
