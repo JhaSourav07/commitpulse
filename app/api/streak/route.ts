@@ -166,18 +166,23 @@ export async function GET(request: Request) {
       opacity,
       tz: tzParam,
       disable_particles,
+      animations,
+      disable_animations,
       glow,
       format,
       days,
       label,
       badges,
-      entrance,
+      entrance: rawEntrance,
       theta,
       phi,
       border,
       minify,
       hide_weekend,
     } = parseResult.data;
+
+    const isAnimationDisabled = animations === false || disable_animations === true;
+    const entrance = isAnimationDisabled ? 'none' : rawEntrance;
     const normalizedView = view as
       | 'default'
       | 'monthly'
