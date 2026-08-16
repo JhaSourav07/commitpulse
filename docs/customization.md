@@ -8,6 +8,17 @@ URL Parameter > Theme Default > System Fallback
 
 ---
 
+## 📍 Table of Contents
+
+- 📋 [Parameter Reference](#-parameter-reference)
+- ⚡ [Grace Period Examples](#-grace-period-examples)
+- 🎨 [Theme Presets](#-theme-presets)
+- 🎨 [Theme Preview Gallery](#-theme-preview-gallery)
+- 🎨 [Advanced Usage Examples](#-advanced-usage-examples)
+- ❓ [Troubleshooting & FAQ](#-troubleshooting--faq)
+
+---
+
 ## 📋 Parameter Reference
 
 | Parameter           | Type      | Required   | Default                        | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
