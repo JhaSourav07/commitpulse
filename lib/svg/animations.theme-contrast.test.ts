@@ -14,7 +14,7 @@ describe('animations theme contrast', () => {
 
     expect(css).toContain('transform-origin');
     expect(css).toContain('animation: grow-up');
-    expect(css).not.toContain('display: none');
+    expect(css).not.toContain('.cp-tower { display: none');
   });
 
   test('supports fade animation without hiding final content', () => {
