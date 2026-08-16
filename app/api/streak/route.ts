@@ -102,24 +102,6 @@ export async function GET(request: Request) {
         fieldErrors.formErrors[0] ??
         'Invalid parameters';
 
-      if (
-        firstError === 'Missing user parameter' ||
-        firstError === 'Invalid GitHub username' ||
-        firstError === 'GitHub username cannot exceed 39 characters'
-      ) {
-        return NextResponse.json(
-          { success: false, message: 'Invalid or missing user parameter' },
-          {
-            status: 400,
-            headers: {
-              'Content-Type': 'application/json',
-              'Cache-Control': 'no-store',
-              'X-Request-ID': requestId,
-            },
-          }
-        );
-      }
-
       if (searchParams.get('format') === 'json') {
         return NextResponse.json(
           { error: firstError },
