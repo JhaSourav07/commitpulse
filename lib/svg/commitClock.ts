@@ -158,6 +158,11 @@ export function generateCommitClockSVG(
   <title id="cp-clock-title">CommitPulse Commit Clock for ${safeUser}</title>
   <desc id="cp-clock-desc">A 24-hour polar ring showing ${safeUser}'s commit frequency by hour of day.</desc>
   <defs>
+    <style>
+      @media (prefers-reduced-motion: reduce) {
+        *, ::before, ::after { animation: none !important; transition: none !important; }
+      }
+    </style>
     <filter id="cp-clock-glow">
       <feGaussianBlur stdDeviation="2" result="blur"/>
       <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
