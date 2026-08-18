@@ -36,6 +36,7 @@ export const PROFILE_PRESETS: ProfilePreset[] = [
       showCommitPulse: true,
       showSnakeGraph: true,
       graphPlacement: 'bottom',
+      layoutTemplate: 'classic',
     },
   },
   {
@@ -64,6 +65,7 @@ export const PROFILE_PRESETS: ProfilePreset[] = [
       showRepoSpotlight: true,
       showSnakeGraph: true,
       graphPlacement: 'bottom',
+      layoutTemplate: 'storyteller',
     },
   },
   {
@@ -90,6 +92,7 @@ export const PROFILE_PRESETS: ProfilePreset[] = [
       showCommitPulse: true,
       showPacmanGraph: true,
       graphPlacement: 'bottom',
+      layoutTemplate: 'data-heavy',
     },
   },
   {
@@ -117,6 +120,7 @@ export const PROFILE_PRESETS: ProfilePreset[] = [
       showCommitPulse: true,
       showSnakeGraph: true,
       graphPlacement: 'bottom',
+      layoutTemplate: 'minimalist',
     },
   },
 ];

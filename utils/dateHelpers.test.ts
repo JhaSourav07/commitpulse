@@ -123,7 +123,7 @@ describe('dateHelpers', () => {
     });
 
     it('returns zero metrics for an array containing only Invalid Date strings', () => {
-      const result = processCommitTimestamps(['2024-13-99T25:99:00', 'hello world']);
+      const result = processCommitTimestamps(['2024-13-99T25:99:00Z', 'hello world']);
       expect(result).toEqual({ morning: 0, afternoon: 0, evening: 0, night: 0 });
     });
 

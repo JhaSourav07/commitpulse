@@ -13,6 +13,7 @@ import type { GeneratorState } from './types';
 import type { ImportedData } from './utils/githubMapper';
 
 const INITIAL_STATE: GeneratorState = {
+  layoutTemplate: 'classic',
   name: '',
   description: '',
   selectedTechs: [],
@@ -103,6 +104,7 @@ export function GeneratorClient() {
       <div className="w-full lg:w-[44%] xl:w-[42%] flex-shrink-0">
         <EditorPanel
           state={state}
+          onLayoutTemplateChange={(v) => setState((s) => ({ ...s, layoutTemplate: v }))}
           onNameChange={(v) => setState((s) => ({ ...s, name: v }))}
           onDescriptionChange={(v) => setState((s) => ({ ...s, description: v }))}
           onShowHeroImageChange={(v) => setState((s) => ({ ...s, showHeroImage: v }))}
