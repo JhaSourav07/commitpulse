@@ -44,7 +44,7 @@ function mockMatchMedia(initialMatches = false) {
       listeners.forEach((listener) =>
         listener({
           matches,
-          media: '(min-width: 1100px)',
+          media: '(min-width: 1250px)',
         } as MediaQueryListEvent)
       );
     },
