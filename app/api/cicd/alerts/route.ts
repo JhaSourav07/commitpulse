@@ -2,6 +2,7 @@ import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { timingSafeEqual } from 'crypto';
 import { setAlertConfig, isValidWebhookUrl } from '@/services/github/webhook-handler';
+import { cicdAlertSchema } from '@/lib/validations';
 
 export const runtime = 'nodejs';
 
@@ -44,26 +45,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body: AlertConfigRequest = await request.json();
+    const body = await request.json();
 
-    if (!body.repository) {
-      return NextResponse.json({ error: 'Repository is required' }, { status: 400 });
-    }
-
-    if (body.webhookUrl && !isValidWebhookUrl(body.webhookUrl)) {
+    // 1. Validate payload and webhook URL against SSRF checks via Zod
+    const validationResult = cicdAlertSchema.safeParse(body);
+    if (!validationResult.success) {
+      const firstError = validationResult.error.issues[0]?.message || 'Invalid request body';
       return NextResponse.json(
-        { error: 'Invalid webhookUrl: must be an https:// URL and not point to an internal host' },
+        {
+          error: firstError,
+          details: validationResult.error.flatten(),
+        },
         { status: 400 }
       );
     }
 
-    // Await async call to prevent unhandled promise rejections and ensure write completes before responding
-    await setAlertConfig(body.repository, {
-      enabled: body.enabled ?? true,
-      onFailure: body.onFailure ?? true,
-      onSuccess: body.onSuccess ?? false,
-      webhookUrl: body.webhookUrl,
-      email: body.email,
+    const { repository, webhookUrl, enabled, onFailure, onSuccess, email } = validationResult.data;
+
+    // 2. Await async state update
+    await setAlertConfig(repository, {
+      enabled,
+      onFailure,
+      onSuccess,
+      webhookUrl,
+      email,
     });
 
     return NextResponse.json({

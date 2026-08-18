@@ -1,6 +1,7 @@
 import { DistributedCache } from '@/lib/cache';
 import { redactSecrets } from '@/lib/secretScanner';
 import type { CIWorkflowRun, CIInsights } from '@/types/ci-analytics';
+import { isSafeWebhookUrl } from '@/lib/validations';
 
 interface WebhookPayload {
   action?: string;
@@ -83,16 +84,8 @@ interface AlertConfig {
  * depth alongside the existing bearer-token auth gate on this endpoint.
  */
 export function isValidWebhookUrl(urlString: string): boolean {
-  let url: URL;
-  try {
-    url = new URL(urlString);
-  } catch {
-    return false;
-  }
-  if (url.protocol !== 'https:') return false;
-  const blockedHosts = ['localhost', '127.0.0.1', '0.0.0.0', '169.254.169.254'];
-  if (blockedHosts.includes(url.hostname.toLowerCase())) return false;
-  return true;
+  if (!urlString) return true;
+  return isSafeWebhookUrl(urlString);
 }
 
 const eventCache = new DistributedCache<CIEvent>(1000);
@@ -183,6 +176,11 @@ export async function evaluateAlerts(event: CIEvent): Promise<void> {
 }
 
 async function sendWebhookAlert(webhookUrl: string, event: CIEvent): Promise<void> {
+  if (!isSafeWebhookUrl(webhookUrl)) {
+    console.error(`Blocked SSRF attempt targeting URL: ${webhookUrl}`);
+    return;
+  }
+
   try {
     const payload = {
       repository: event.repository,
