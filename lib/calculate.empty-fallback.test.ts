@@ -186,6 +186,30 @@ describe('calculate-empty-fallback', () => {
       expect(result.previousMonthTotal).toBe(0);
       expect(result.deltaAbsolute).toBe(0);
     });
+
+    it('should clamp negative contribution counts to zero', () => {
+      const now = new Date('2026-06-12T12:00:00Z');
+
+      const calendar = {
+        totalContributions: 10,
+        weeks: [
+          {
+            contributionDays: [
+              { date: '2026-06-12', contributionCount: -5 },
+              { date: '2026-05-12', contributionCount: -10 },
+              { date: '2026-06-11', contributionCount: 3 },
+              { date: '2026-05-11', contributionCount: 7 },
+            ],
+          },
+        ],
+      };
+
+      const result = calculateMonthlyStats(calendar, 'UTC', now);
+
+      expect(result.currentMonthTotal).toBe(3);
+      expect(result.previousMonthTotal).toBe(7);
+      expect(result.deltaAbsolute).toBe(-4);
+    });
   });
 
   describe('aggregateCalendars', () => {
