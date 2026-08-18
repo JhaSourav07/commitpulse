@@ -295,13 +295,13 @@ export async function fetchWithRetry(
   }
 
   if (didThrow) {
-    if (options.signal?.aborted) throw fetchError;
+    if (options.signal?.aborted) throw new Error('AbortError');
     const isTimeoutAbort = isAbortError(fetchError);
     if (attempt >= MAX_RETRIES) {
       if (isTimeoutAbort) {
         throw new Error(`GitHub API request timed out after ${resolvedTimeout / 1000}s`);
       }
-      throw fetchError;
+      throw new Error(fetchError instanceof Error ? fetchError.message : String(fetchError));
     }
     const delay = getJitteredBackoff(attempt);
     await new Promise((resolve) => setTimeout(resolve, delay));
@@ -976,13 +976,6 @@ export async function fetchGitHubContributions(
 
   const loadWithTimeout = async (): Promise<ExtendedContributionData> => {
     const controller = new AbortController();
-    if (options.signal) {
-      if (options.signal.aborted) {
-        controller.abort();
-      } else {
-        options.signal.addEventListener('abort', () => controller.abort(), { once: true });
-      }
-    }
 
     let timerId = null;
     const timeoutPromise = new Promise<never>((_, reject) => {
@@ -1007,10 +1000,7 @@ export async function fetchGitHubContributions(
     }
   };
 
-  const coalescedLoad = () => {
-    if (options.signal) {
-      return loadWithTimeout();
-    }
+  const coalescedLoad = async () => {
     let pending = activeContributionsPromises.get(key);
     if (!pending) {
       pending = loadWithTimeout().finally(() => {
@@ -1025,7 +1015,28 @@ export async function fetchGitHubContributions(
         timer.unref();
       }
     }
-    return pending;
+
+    if (!options.signal) {
+      return pending;
+    }
+
+    return new Promise<ExtendedContributionData>((resolve, reject) => {
+      if (options.signal?.aborted) return reject(new Error('AbortError'));
+
+      const onAbort = () => reject(new Error('AbortError'));
+      options.signal?.addEventListener('abort', onAbort, { once: true });
+
+      pending!.then(
+        (val) => {
+          options.signal?.removeEventListener('abort', onAbort);
+          resolve(val);
+        },
+        (err) => {
+          options.signal?.removeEventListener('abort', onAbort);
+          reject(err);
+        }
+      );
+    });
   };
 
   const revalidateInBackground = (username: string, cacheKey: string) => {
