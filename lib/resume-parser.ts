@@ -136,8 +136,9 @@ async function extractTextFromBuffer(buffer: Buffer, mimeType: string): Promise<
   let rawText = '';
 
   if (mimeType === 'application/pdf') {
-    try {
-      if (buffer.toString('utf-8', 0, 4) === '%PDF') {
+    const header = buffer.toString('utf-8', 0, 4);
+    if (header === '%PDF') {
+      try {
         const { PDFParse } = await import('pdf-parse');
 
         const parser = new PDFParse({ data: buffer });
@@ -145,36 +146,48 @@ async function extractTextFromBuffer(buffer: Buffer, mimeType: string): Promise<
         await parser.destroy();
 
         rawText = result.text;
-      } else {
-        rawText = buffer.toString('utf-8');
+      } catch (error) {
+        console.warn('Failed to parse PDF using pdf-parse:', error);
+        rawText = '';
       }
-    } catch (error) {
-      console.warn('Failed to parse PDF using pdf-parse, falling back to UTF-8 decoding:', error);
+    } else {
       rawText = buffer.toString('utf-8');
     }
   } else if (
     mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
   ) {
-    try {
-      if (buffer.toString('utf-8', 0, 2) === 'PK') {
+    const header = buffer.toString('utf-8', 0, 2);
+    if (header === 'PK') {
+      try {
         const mammothModule = await import('mammoth');
         const mammothParser = ((mammothModule as unknown as { default?: unknown }).default ||
           mammothModule) as typeof mammothModule;
         const result = await mammothParser.extractRawText({ buffer });
         rawText = result.value;
-      } else {
-        rawText = buffer.toString('utf-8');
+      } catch (error) {
+        console.warn('Failed to parse DOCX using mammoth:', error);
+        rawText = '';
       }
-    } catch (error) {
-      console.warn('Failed to parse DOCX using mammoth, falling back to UTF-8 decoding:', error);
+    } else {
       rawText = buffer.toString('utf-8');
     }
   } else {
     rawText = buffer.toString('utf-8');
   }
 
+  try {
+    if (rawText.includes('Ã')) {
+      const fixedText = Buffer.from(rawText, 'latin1').toString('utf-8');
+      if (!fixedText.includes('\uFFFD')) {
+        rawText = fixedText;
+      }
+    }
+  } catch (_e) {
+    // Ignore encoding fix errors
+  }
+
   const printable = rawText
-    .replace(/[^\x20-\x7E\n\r]/g, ' ')
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F\uFFFD]/g, '')
     .replace(/[ \t]+/g, ' ')
     .replace(/\r/g, '')
     .trim();
