@@ -44,6 +44,12 @@ function makeRequest(
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.spyOn(RateLimiter.prototype, 'checkWithResult').mockResolvedValue({
+    success: true,
+    limit: 10,
+    remaining: 9,
+    reset: Date.now() + 60000,
+  });
   vi.spyOn(RateLimiter.prototype, 'check').mockResolvedValue(true);
   vi.mocked(getFullDashboardData).mockResolvedValue({
     profile: { lastSyncedAt: new Date().toISOString() },

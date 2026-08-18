@@ -98,6 +98,7 @@ describe('Middleware rate-limit consistency', () => {
     const expectedRoutes = [
       '/api/streak/:path*',
       '/api/github/:path*',
+      '/api/contributions/:path*',
       '/api/track-user/:path*',
       '/api/stats/:path*',
       '/api/og/:path*',

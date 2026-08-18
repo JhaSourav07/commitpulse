@@ -46,6 +46,10 @@ const routeRules: RouteRule[] = [
     pattern: '/api/notify',
     rateLimit: { limit: 5, windowMs: 60000, namespace: 'notify' },
   },
+  {
+    pattern: '/api/contributions',
+    rateLimit: { limit: 10, windowMs: 60000, namespace: 'contributions' },
+  },
 ];
 
 const ROUTES_WITH_OWN_RATE_LIMITING = [
@@ -63,6 +67,7 @@ const ROUTES_WITH_OWN_RATE_LIMITING = [
   '/api/spotify', // Added here in case it has its own rate limiter
   '/api/languages',
   '/api/tech-stack',
+  '/api/contributions',
 ];
 
 function addSecurityHeaders(response: NextResponse): NextResponse {
@@ -203,6 +208,7 @@ export const config = {
   matcher: [
     '/api/streak/:path*',
     '/api/github/:path*',
+    '/api/contributions/:path*',
     '/api/languages/:path*',
     '/api/track-user/:path*',
     '/api/stats/:path*',
