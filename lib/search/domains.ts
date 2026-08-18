@@ -56,6 +56,15 @@ export const SEARCH_DOMAINS: SearchableDomain[] = [
     category: 'Tools',
   },
   {
+    id: 'impact-dashboard',
+    title: 'Value Impact & RepoReel',
+    description:
+      'Translate commit activity to real-world engineering metrics & cinematic video clips',
+    href: '/impact-dashboard',
+    keywords: ['impact', 'metrics', 'value', 'dashboard', 'reporeel', 'video', 'recruiter'],
+    category: 'Dashboard',
+  },
+  {
     id: 'customize',
     title: 'Customization Studio',
     description: 'Customize themes, colors, and layout of your badge',

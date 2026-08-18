@@ -528,5 +528,28 @@
       "expand": "Expand",
       "collapse": "Collapse"
     }
+  },
+  "impact_dashboard": {
+    "page_title": "임팩트 & RepoReel 스튜디오",
+    "page_subtitle": "커밋 활동을 실제 엔지니어링 지표 및 시네마틱 비디오로 변환",
+    "tab_metrics": "가치 지표",
+    "title": "실제 임팩트 대시보드",
+    "subtitle": "커밋 빈도를 구체적인 엔지니어링 가치로 변환",
+    "score_title": "임팩트 점수",
+    "hours_title": "절약된 엔지니어링 시간",
+    "hours_unit": "시간",
+    "value_est": "추정 가치",
+    "depth_title": "문제 해결 깊이",
+    "arch_title": "아키텍처 영향력",
+    "recruiter_pitch_title": "채용 담당자용요약",
+    "copy_summary": "요약 복사",
+    "copied": "복사됨!"
+  },
+  "reporeel": {
+    "tab_studio": "RepoReel 스튜디오",
+    "title": "RepoReel 코드-투-비디오",
+    "description": "GitHub 리포지토리를 15초 분량의 시네마틱 클립으로 변환",
+    "launch_button": "RepoReel 스튜디오 시작",
+    "export_button": "렌더링 및 .MP4 내보내기"
   }
 }
