@@ -246,9 +246,9 @@ function renderHeader(
   safeId: string
 ): string {
   const unit = params.mode === 'loc' ? 'est. lines of code' : 'total contributions';
-  const entityPrefix = params.org ? 'Organization ' : params.repo ? 'Repository ' : '';
   const streakText = `${stats.currentStreak} ${stats.currentStreak === 1 ? 'day' : 'days'}`;
   const longestStreakText = `${stats.longestStreak} ${stats.longestStreak === 1 ? 'day' : 'days'}`;
+  const entityPrefix = params.org ? 'Organization ' : params.repo ? 'Repository ' : '';
 
   return `
   <title id="cp-title-${safeId}">GitHub ${entityPrefix}streak for ${safeUser} is ${streakText}</title>

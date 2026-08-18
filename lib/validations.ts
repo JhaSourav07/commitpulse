@@ -578,7 +578,16 @@ const baseStreakParamsSchema = z.object({
     .default(1),
 
   mode: z.enum(['commits', 'loc']).catch('commits').default('commits'),
-  repo: z.string().optional(),
+  repo: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        return /^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/.test(val.trim());
+      },
+      { message: 'Invalid repo parameter. Expected format: owner/repository-name' }
+    ),
   org: z
     .string()
     .max(39, { message: 'Organization name cannot exceed 39 characters' })

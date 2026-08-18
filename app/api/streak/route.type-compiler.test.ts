@@ -38,7 +38,7 @@ describe('ApiStreakRoute - TypeScript Compiler Validation & Schema Constraints S
       border: '#58a6ff',
       bg: '#0d1117',
       accent: '#58a6ff',
-      repo: 'commitpulse',
+      repo: 'octocat/commitpulse',
       org: 'vercel',
     });
 
@@ -49,7 +49,7 @@ describe('ApiStreakRoute - TypeScript Compiler Validation & Schema Constraints S
     expect(result.data.border).toBeDefined();
     expect(result.data.bg).toBeDefined();
     expect(result.data.accent).toBeDefined();
-    expect(result.data.repo).toBe('commitpulse');
+    expect(result.data.repo).toBe('octocat/commitpulse');
     expect(result.data.org).toBe('vercel');
   });
 
