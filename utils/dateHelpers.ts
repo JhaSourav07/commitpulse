@@ -12,15 +12,13 @@ export function processCommitTimestamps(commitDates?: (string | Date)[] | null):
     return metrics;
   }
 
-  commitDates.forEach((dateString) => {
-    if (!dateString) return;
-    const date = new Date(dateString);
+  commitDates.forEach((dateItem) => {
+    if (!dateItem) return;
+    const date = new Date(dateItem);
     if (isNaN(date.getTime())) return;
 
-    // Use getUTCHours() instead of getHours() to ensure timezone-agnostic
-    // results — getHours() returns local time which causes test failures
-    // in non-UTC timezones like IST (UTC+5:30).
-    const hour = date.getUTCHours();
+    const hour =
+      typeof dateItem === 'string' ? getAuthorLocalHour(dateItem) : dateItem.getUTCHours();
 
     if (hour >= 6 && hour < 12) {
       metrics.morning++;
