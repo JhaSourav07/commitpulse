@@ -569,11 +569,18 @@ const baseStreakParamsSchema = z.object({
   grace: z
     .string()
     .optional()
-    .transform((val) => {
+    .transform((val, ctx) => {
       if (val === undefined || val === '') return 1;
       const n = Number(val);
       if (isNaN(n) || !Number.isInteger(n)) return 1;
-      return Math.min(7, Math.max(0, n));
+      if (n < 0 || n > 7) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'grace must be an integer between 0 and 7',
+        });
+        return z.NEVER;
+      }
+      return n;
     })
     .default(1),
 
